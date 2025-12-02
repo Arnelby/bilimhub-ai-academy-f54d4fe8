@@ -62,6 +62,108 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_learning_plans_v2: {
+        Row: {
+          daily_tasks: Json | null
+          generated_at: string | null
+          id: string
+          is_active: boolean | null
+          learning_strategy: string | null
+          mastery_goals: Json | null
+          mini_tests: Json | null
+          ort_score_projection: Json | null
+          plan_data: Json
+          predicted_timeline: Json | null
+          schedule: Json | null
+          target_topics: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          daily_tasks?: Json | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          learning_strategy?: string | null
+          mastery_goals?: Json | null
+          mini_tests?: Json | null
+          ort_score_projection?: Json | null
+          plan_data: Json
+          predicted_timeline?: Json | null
+          schedule?: Json | null
+          target_topics?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          daily_tasks?: Json | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          learning_strategy?: string | null
+          mastery_goals?: Json | null
+          mini_tests?: Json | null
+          ort_score_projection?: Json | null
+          plan_data?: Json
+          predicted_timeline?: Json | null
+          schedule?: Json | null
+          target_topics?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_recommendations: {
+        Row: {
+          error_patterns: Json | null
+          generated_at: string | null
+          id: string
+          is_active: boolean | null
+          long_term_plan: Json | null
+          motivation_message: string | null
+          predicted_mastery: Json | null
+          recommended_lessons: Json | null
+          recommended_mini_tests: Json | null
+          recommended_topics: Json | null
+          short_term_plan: Json | null
+          study_strategy: string | null
+          user_id: string
+          weak_topics: Json | null
+        }
+        Insert: {
+          error_patterns?: Json | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          long_term_plan?: Json | null
+          motivation_message?: string | null
+          predicted_mastery?: Json | null
+          recommended_lessons?: Json | null
+          recommended_mini_tests?: Json | null
+          recommended_topics?: Json | null
+          short_term_plan?: Json | null
+          study_strategy?: string | null
+          user_id: string
+          weak_topics?: Json | null
+        }
+        Update: {
+          error_patterns?: Json | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          long_term_plan?: Json | null
+          motivation_message?: string | null
+          predicted_mastery?: Json | null
+          recommended_lessons?: Json | null
+          recommended_mini_tests?: Json | null
+          recommended_topics?: Json | null
+          short_term_plan?: Json | null
+          study_strategy?: string | null
+          user_id?: string
+          weak_topics?: Json | null
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           content: Json | null
@@ -111,6 +213,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mini_test_results: {
+        Row: {
+          answers: Json | null
+          completed_at: string | null
+          id: string
+          mini_test_id: string
+          score: number | null
+          time_taken_seconds: number | null
+          total_questions: number | null
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          mini_test_id: string
+          score?: number | null
+          time_taken_seconds?: number | null
+          total_questions?: number | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          completed_at?: string | null
+          id?: string
+          mini_test_id?: string
+          score?: number | null
+          time_taken_seconds?: number | null
+          total_questions?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_test_results_mini_test_id_fkey"
+            columns: ["mini_test_id"]
+            isOneToOne: false
+            referencedRelation: "mini_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mini_tests: {
+        Row: {
+          created_at: string | null
+          difficulty_level: number | null
+          estimated_mastery_impact: number | null
+          id: string
+          questions: Json
+          topic_id: string | null
+          topic_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          difficulty_level?: number | null
+          estimated_mastery_impact?: number | null
+          id?: string
+          questions: Json
+          topic_id?: string | null
+          topic_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          difficulty_level?: number | null
+          estimated_mastery_impact?: number | null
+          id?: string
+          questions?: Json
+          topic_id?: string | null
+          topic_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -369,6 +545,102 @@ export type Database = {
           points_awarded?: number | null
           unlocked_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_diagnostic_profile: {
+        Row: {
+          accuracy_score: number | null
+          attention_level: number | null
+          auditory_preference: number | null
+          completed_at: string | null
+          confidence: number | null
+          consistency: number | null
+          created_at: string | null
+          diagnostic_completed: boolean | null
+          example_preference: number | null
+          id: string
+          impulsiveness: number | null
+          learning_style: string | null
+          logic_score: number | null
+          math_level: number | null
+          motivation_type: string | null
+          patience: number | null
+          prefers_examples: boolean | null
+          prefers_quizzes: boolean | null
+          prefers_short_lessons: boolean | null
+          prefers_step_by_step: boolean | null
+          problem_driven_preference: number | null
+          problem_solving_score: number | null
+          speed_score: number | null
+          step_by_step_preference: number | null
+          stress_resistance: number | null
+          text_preference: number | null
+          updated_at: string | null
+          user_id: string
+          visual_preference: number | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          attention_level?: number | null
+          auditory_preference?: number | null
+          completed_at?: string | null
+          confidence?: number | null
+          consistency?: number | null
+          created_at?: string | null
+          diagnostic_completed?: boolean | null
+          example_preference?: number | null
+          id?: string
+          impulsiveness?: number | null
+          learning_style?: string | null
+          logic_score?: number | null
+          math_level?: number | null
+          motivation_type?: string | null
+          patience?: number | null
+          prefers_examples?: boolean | null
+          prefers_quizzes?: boolean | null
+          prefers_short_lessons?: boolean | null
+          prefers_step_by_step?: boolean | null
+          problem_driven_preference?: number | null
+          problem_solving_score?: number | null
+          speed_score?: number | null
+          step_by_step_preference?: number | null
+          stress_resistance?: number | null
+          text_preference?: number | null
+          updated_at?: string | null
+          user_id: string
+          visual_preference?: number | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          attention_level?: number | null
+          auditory_preference?: number | null
+          completed_at?: string | null
+          confidence?: number | null
+          consistency?: number | null
+          created_at?: string | null
+          diagnostic_completed?: boolean | null
+          example_preference?: number | null
+          id?: string
+          impulsiveness?: number | null
+          learning_style?: string | null
+          logic_score?: number | null
+          math_level?: number | null
+          motivation_type?: string | null
+          patience?: number | null
+          prefers_examples?: boolean | null
+          prefers_quizzes?: boolean | null
+          prefers_short_lessons?: boolean | null
+          prefers_step_by_step?: boolean | null
+          problem_driven_preference?: number | null
+          problem_solving_score?: number | null
+          speed_score?: number | null
+          step_by_step_preference?: number | null
+          stress_resistance?: number | null
+          text_preference?: number | null
+          updated_at?: string | null
+          user_id?: string
+          visual_preference?: number | null
         }
         Relationships: []
       }
