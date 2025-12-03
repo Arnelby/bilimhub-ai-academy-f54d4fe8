@@ -11,3 +11,15 @@ verify_jwt = true
 
 [functions.ai-learning-path]
 verify_jwt = true
+
+[functions.ai-recommendations-v2]
+verify_jwt = true
+
+[functions.ai-learning-plan-v2]
+verify_jwt = true
+
+[functions.ai-mini-test]
+verify_jwt = true
+
+[functions.ai-chat-tutor]
+verify_jwt = true

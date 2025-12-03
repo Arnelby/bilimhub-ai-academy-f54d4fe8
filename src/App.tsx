@@ -47,7 +47,7 @@ const App = () => (
                 <Route path="/tests/:testId" element={<ProtectedRoute><TestTaking /></ProtectedRoute>} />
                 <Route path="/tests/:testId/results/:attemptId" element={<ProtectedRoute><TestResults /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/diagnostic" element={<ProtectedRoute><DiagnosticTest /></ProtectedRoute>} />
+                <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><DiagnosticTest /></ProtectedRoute>} />
                 <Route path="/learning-plan" element={<ProtectedRoute><LearningPlanV2 /></ProtectedRoute>} />
                 <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />

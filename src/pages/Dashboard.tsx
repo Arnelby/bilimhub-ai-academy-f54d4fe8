@@ -298,7 +298,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card variant="interactive" className="group">
             <CardContent className="flex items-center gap-4 p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
@@ -310,13 +310,13 @@ export default function Dashboard() {
                   {recentActivity.find(a => a.type === 'lesson')?.title || 'Начните новый урок'}
                 </p>
               </div>
-              <Button variant="accent" asChild>
-                <Link to="/lessons">
-                  {t.common.continue}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
             </CardContent>
+            <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
+              <Link to="/lessons">
+                {t.common.continue}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </Card>
 
           <Card variant="interactive" className="group">
@@ -328,13 +328,49 @@ export default function Dashboard() {
                 <h3 className="font-semibold">{t.dashboard.startTest}</h3>
                 <p className="text-sm text-muted-foreground">ОРТ Математика</p>
               </div>
-              <Button variant="success" asChild>
-                <Link to="/tests">
-                  Start
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
             </CardContent>
+            <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
+              <Link to="/tests">
+                Start
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </Card>
+
+          <Card variant="interactive" className="group">
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <Brain className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">AI Tutor</h3>
+                <p className="text-sm text-muted-foreground">Ask questions</p>
+              </div>
+            </CardContent>
+            <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
+              <Link to="/ai-tutor">
+                Chat
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </Card>
+
+          <Card variant="interactive" className="group">
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 text-warning transition-colors group-hover:bg-warning group-hover:text-warning-foreground">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">My Plan</h3>
+                <p className="text-sm text-muted-foreground">AI Learning Plan</p>
+              </div>
+            </CardContent>
+            <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
+              <Link to="/learning-plan">
+                View
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </Card>
         </div>
 

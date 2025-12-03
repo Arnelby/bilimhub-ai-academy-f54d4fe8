@@ -34,8 +34,9 @@ export function Navbar() {
     { href: '/lessons', label: t.nav.lessons },
     { href: '/tests', label: t.nav.tests },
     { href: '/dashboard', label: t.nav.dashboard },
+    { href: '/ai-tutor', label: 'AI Tutor' },
+    { href: '/learning-plan', label: 'My Plan' },
     { href: '/profile', label: t.nav.profile },
-    { href: '/pricing', label: t.nav.pricing },
   ];
 
   const isActive = (path: string) => location.pathname === path;
