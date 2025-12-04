@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, AlertTriangle, ChevronLeft, ChevronRight, Flag, Loader2 } from 'lucide-react';
+import { Clock, AlertTriangle, ChevronLeft, ChevronRight, Flag, Loader2, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,7 @@ export default function TestTaking() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [testAttemptId, setTestAttemptId] = useState<string | null>(null);
   const [startTime] = useState(new Date());
+  const [isPaused, setIsPaused] = useState(false);
 
   // Fetch test and questions
   useEffect(() => {
@@ -122,7 +123,7 @@ export default function TestTaking() {
 
   // Timer
   useEffect(() => {
-    if (timeLeft <= 0 || loading) return;
+    if (timeLeft <= 0 || loading || isPaused) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -136,7 +137,11 @@ export default function TestTaking() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, loading]);
+  }, [timeLeft, loading, isPaused]);
+
+  const togglePause = () => {
+    setIsPaused(!isPaused);
+  };
 
   // Auto-save answers
   useEffect(() => {
@@ -241,8 +246,26 @@ export default function TestTaking() {
             <h1 className="font-semibold">{test?.title_ru || test?.title}</h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Badge variant={isTimeWarning ? 'destructive' : 'secondary'} className="text-lg px-3 py-1">
+          <div className="flex items-center gap-3">
+            <Button
+              variant={isPaused ? 'accent' : 'outline'}
+              size="sm"
+              onClick={togglePause}
+              className="gap-1"
+            >
+              {isPaused ? (
+                <>
+                  <Play className="h-4 w-4" />
+                  Продолжить
+                </>
+              ) : (
+                <>
+                  <Pause className="h-4 w-4" />
+                  Пауза
+                </>
+              )}
+            </Button>
+            <Badge variant={isTimeWarning ? 'destructive' : isPaused ? 'outline' : 'secondary'} className={`text-lg px-3 py-1 ${isPaused ? 'animate-pulse' : ''}`}>
               <Clock className="mr-2 h-4 w-4" />
               {formatTime(timeLeft)}
             </Badge>
@@ -256,7 +279,25 @@ export default function TestTaking() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-3xl">
+          {/* Pause Overlay */}
+          {isPaused && (
+            <Card className="mb-6 bg-muted/50">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <Pause className="h-16 w-16 text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-semibold mb-2">Тест на паузе</h2>
+                <p className="text-muted-foreground mb-6 text-center">
+                  Таймер остановлен. Нажмите «Продолжить» чтобы вернуться к тесту.
+                </p>
+                <Button variant="accent" size="lg" onClick={togglePause}>
+                  <Play className="mr-2 h-5 w-5" />
+                  Продолжить тест
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Question */}
+          {!isPaused && (
           <Card className="mb-6">
             <CardContent className="p-6">
               <div className="mb-4 flex items-center justify-between">
@@ -309,8 +350,10 @@ export default function TestTaking() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Navigation */}
+          {!isPaused && (
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
@@ -354,6 +397,7 @@ export default function TestTaking() {
               </Button>
             )}
           </div>
+          )}
         </div>
       </main>
 
