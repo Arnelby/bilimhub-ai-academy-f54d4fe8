@@ -341,6 +341,7 @@ export type Database = {
           explanation_kg: string | null
           explanation_ru: string | null
           id: string
+          image_url: string | null
           lesson_id: string | null
           options: Json
           order_index: number | null
@@ -357,6 +358,7 @@ export type Database = {
           explanation_kg?: string | null
           explanation_ru?: string | null
           id?: string
+          image_url?: string | null
           lesson_id?: string | null
           options: Json
           order_index?: number | null
@@ -373,6 +375,7 @@ export type Database = {
           explanation_kg?: string | null
           explanation_ru?: string | null
           id?: string
+          image_url?: string | null
           lesson_id?: string | null
           options?: Json
           order_index?: number | null
