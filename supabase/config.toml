@@ -26,3 +26,6 @@ verify_jwt = true
 
 [functions.ai-generate-ort-test]
 verify_jwt = true
+
+[functions.ai-homework-review]
+verify_jwt = true

@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import DiagnosticTest from "./pages/DiagnosticTest";
 import LearningPlanV2 from "./pages/LearningPlanV2";
 import AISmartTutor from "./pages/AISmartTutor";
+import Homework from "./pages/Homework";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
                 <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><DiagnosticTest /></ProtectedRoute>} />
                 <Route path="/learning-plan" element={<ProtectedRoute><LearningPlanV2 /></ProtectedRoute>} />
                 <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
+                <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

@@ -38,6 +38,56 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_homework_feedback: {
+        Row: {
+          additional_exercises: Json | null
+          corrections: string | null
+          created_at: string
+          feedback: string
+          id: string
+          score: number | null
+          strengths: Json | null
+          submission_id: string
+          suggestions: string | null
+          user_id: string
+          weaknesses: Json | null
+        }
+        Insert: {
+          additional_exercises?: Json | null
+          corrections?: string | null
+          created_at?: string
+          feedback: string
+          id?: string
+          score?: number | null
+          strengths?: Json | null
+          submission_id: string
+          suggestions?: string | null
+          user_id: string
+          weaknesses?: Json | null
+        }
+        Update: {
+          additional_exercises?: Json | null
+          corrections?: string | null
+          created_at?: string
+          feedback?: string
+          id?: string
+          score?: number | null
+          strengths?: Json | null
+          submission_id?: string
+          suggestions?: string | null
+          user_id?: string
+          weaknesses?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_homework_feedback_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "homework_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_learning_plans: {
         Row: {
           generated_at: string | null
@@ -163,6 +213,106 @@ export type Database = {
           weak_topics?: Json | null
         }
         Relationships: []
+      }
+      homework_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          submission_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          submission_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          submission_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_notifications_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "homework_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homework_submissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          notes: string | null
+          points_awarded: number | null
+          status: string
+          subject: string
+          title: string
+          topic_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_type: string
+          file_url: string
+          id?: string
+          notes?: string | null
+          points_awarded?: number | null
+          status?: string
+          subject: string
+          title: string
+          topic_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          notes?: string | null
+          points_awarded?: number | null
+          status?: string
+          subject?: string
+          title?: string
+          topic_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_submissions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lessons: {
         Row: {
