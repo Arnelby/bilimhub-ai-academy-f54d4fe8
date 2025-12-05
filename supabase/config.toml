@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.ai-homework-review]
 verify_jwt = true
+
+[functions.ai-diagnostic-analysis]
+verify_jwt = true
