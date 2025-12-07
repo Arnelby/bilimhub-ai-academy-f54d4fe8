@@ -32,3 +32,9 @@ verify_jwt = true
 
 [functions.ai-diagnostic-analysis]
 verify_jwt = true
+
+[functions.ai-deep-analysis]
+verify_jwt = true
+
+[functions.ai-mastery-update]
+verify_jwt = true

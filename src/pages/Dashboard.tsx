@@ -33,6 +33,8 @@ import { MasteryLevel } from '@/components/gamification/MasteryNode';
 import { Leaderboard } from '@/components/gamification/Leaderboard';
 import { XPProgress } from '@/components/gamification/XPProgress';
 import { StreakCalendar } from '@/components/gamification/StreakCalendar';
+import { MasteryOverview } from '@/components/ai/MasteryOverview';
+import { AIRecommendationsWidget } from '@/components/ai/AIRecommendationsWidget';
 
 interface Profile {
   name: string | null;
@@ -473,8 +475,11 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Sidebar */}
+{/* Sidebar */}
           <div className="space-y-8">
+            {/* Mastery Overview */}
+            <MasteryOverview compact />
+
             {/* AI Recommendations */}
             <Card variant="accent">
               <CardHeader>
