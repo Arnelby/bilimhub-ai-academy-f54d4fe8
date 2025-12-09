@@ -18,62 +18,143 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `You are an educational psychologist AI analyzing student diagnostic test results for ORT exam preparation in Kyrgyzstan.
+    // Pre-calculate key metrics for the AI
+    const totalMathQuestions = mathAnswers?.length || 0;
+    const correctMathAnswers = mathAnswers?.filter((a: any) => a.correct).length || 0;
+    const mathAccuracy = totalMathQuestions > 0 ? Math.round((correctMathAnswers / totalMathQuestions) * 100) : 0;
+    
+    // Calculate topic-level performance
+    const topicPerformance: Record<string, { correct: number; total: number; avgTime: number }> = {};
+    mathAnswers?.forEach((a: any) => {
+      const topic = a.topic || 'general';
+      if (!topicPerformance[topic]) {
+        topicPerformance[topic] = { correct: 0, total: 0, avgTime: 0 };
+      }
+      topicPerformance[topic].total += 1;
+      topicPerformance[topic].avgTime += a.timeTaken || 0;
+      if (a.correct) topicPerformance[topic].correct += 1;
+    });
+    
+    // Calculate averages
+    Object.keys(topicPerformance).forEach(topic => {
+      topicPerformance[topic].avgTime = Math.round(topicPerformance[topic].avgTime / topicPerformance[topic].total);
+    });
 
-Analyze the provided test data and generate a comprehensive learning profile. Your analysis should be detailed, actionable, and supportive.
+    // Identify weak and strong topics
+    const weakTopics = Object.entries(topicPerformance)
+      .filter(([_, p]) => (p.correct / p.total) < 0.5)
+      .map(([topic]) => topic);
+    
+    const strongTopics = Object.entries(topicPerformance)
+      .filter(([_, p]) => (p.correct / p.total) >= 0.75)
+      .map(([topic]) => topic);
+
+    // Calculate difficulty-weighted score
+    let difficultyScore = 0;
+    mathAnswers?.forEach((a: any) => {
+      if (a.correct) {
+        difficultyScore += (a.difficulty || 1) * 10;
+      }
+    });
+
+    // Analyze learning style preferences
+    const styleCounts: Record<string, number> = {};
+    learningAnswers?.forEach((a: any) => {
+      (a.scales || []).forEach((scale: string) => {
+        styleCounts[scale] = (styleCounts[scale] || 0) + 1;
+      });
+    });
+
+    // Analyze psychology traits
+    const traitScores: Record<string, number> = {};
+    psychologyAnswers?.forEach((a: any) => {
+      if (a.trait && a.score !== undefined) {
+        traitScores[a.trait] = a.score;
+      }
+    });
+
+    const systemPrompt = `You are an expert educational psychologist AI analyzing ORT exam diagnostic results.
+
+Your analysis must be STRICTLY DATA-DRIVEN. Every score and conclusion must be based on the actual test performance data provided.
+
+ANALYSIS REQUIREMENTS:
+1. Math level (1-5) must be calculated from actual accuracy: ${mathAccuracy}% correct
+2. Learning style must be determined from the learning style responses
+3. Psychological traits must come from the psychology assessment
+4. Strengths and weaknesses must reference specific topics from the test
+
+PRE-CALCULATED DATA:
+- Total Math Questions: ${totalMathQuestions}
+- Correct Answers: ${correctMathAnswers}
+- Accuracy: ${mathAccuracy}%
+- Difficulty Score: ${difficultyScore}
+- Weak Topics: ${weakTopics.join(', ') || 'None identified'}
+- Strong Topics: ${strongTopics.join(', ') || 'None identified'}
+- Total Time: ${timeTaken} seconds
+- Average Time Per Question: ${totalMathQuestions > 0 ? Math.round(timeTaken / totalMathQuestions) : 0} seconds
 
 Return ONLY valid JSON with this exact structure:
 {
-  "math_level": 1-5,
-  "logic_score": 0-100,
-  "problem_solving_score": 0-100,
-  "speed_score": 0-100,
-  "accuracy_score": 0-100,
-  "learning_style": "visual" | "auditory" | "text-based" | "example-based" | "problem-driven" | "step-by-step",
-  "visual_preference": 0-100,
-  "auditory_preference": 0-100,
-  "text_preference": 0-100,
-  "example_preference": 0-100,
-  "problem_driven_preference": 0-100,
-  "step_by_step_preference": 0-100,
-  "attention_level": 0-100,
-  "stress_resistance": 0-100,
-  "impulsiveness": 0-100,
-  "consistency": 0-100,
-  "patience": 0-100,
-  "confidence": 0-100,
-  "motivation_type": "achievement" | "intrinsic" | "social" | "practical",
-  "summary": "A 2-3 sentence summary of the student's profile in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}",
-  "strengths": ["strength1", "strength2", "strength3"],
-  "areas_to_improve": ["area1", "area2", "area3"],
-  "recommended_study_approach": "Brief recommendation in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}"
+  "math_level": [1-5 based on ${mathAccuracy}% accuracy: 1=0-20%, 2=21-40%, 3=41-60%, 4=61-80%, 5=81-100%],
+  "logic_score": [0-100 based on difficulty-weighted performance],
+  "problem_solving_score": [0-100],
+  "speed_score": [0-100 based on time taken],
+  "accuracy_score": ${mathAccuracy},
+  "learning_style": "[most frequent from responses]",
+  "visual_preference": [0-100],
+  "auditory_preference": [0-100],
+  "text_preference": [0-100],
+  "example_preference": [0-100],
+  "problem_driven_preference": [0-100],
+  "step_by_step_preference": [0-100],
+  "attention_level": [from psychology: ${traitScores.attention_level || 'calculate'}],
+  "stress_resistance": [from psychology: ${traitScores.stress_resistance || 'calculate'}],
+  "impulsiveness": [from psychology: ${traitScores.impulsiveness || 'calculate'}],
+  "consistency": [from psychology: ${traitScores.consistency || 'calculate'}],
+  "patience": [from psychology: ${traitScores.patience || 'calculate'}],
+  "confidence": [from psychology: ${traitScores.confidence || 'calculate'}],
+  "motivation_type": "[from psychology responses]",
+  "topic_mastery": {
+    ${Object.entries(topicPerformance).map(([topic, p]) => 
+      `"${topic}": ${Math.round((p.correct / p.total) * 100)}`
+    ).join(',\n    ')}
+  },
+  "weak_topics": ${JSON.stringify(weakTopics)},
+  "strong_topics": ${JSON.stringify(strongTopics)},
+  "summary": "[2-3 sentence personalized summary in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}]",
+  "strengths": ["strength1 based on strong topics", "strength2", "strength3"],
+  "areas_to_improve": ["area1 based on weak topics", "area2", "area3"],
+  "recommended_study_approach": "[Specific recommendation in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}]",
+  "estimated_ort_score": [100-200 estimate based on performance]
 }`;
 
-    const userPrompt = `Analyze this diagnostic test data:
+    const userPrompt = `Analyze this complete diagnostic test data:
 
-MATH SECTION RESULTS:
+MATH SECTION DETAILED RESULTS:
 ${JSON.stringify(mathAnswers, null, 2)}
+
+TOPIC PERFORMANCE BREAKDOWN:
+${JSON.stringify(topicPerformance, null, 2)}
 
 LEARNING STYLE RESPONSES:
 ${JSON.stringify(learningAnswers, null, 2)}
+Style Counts: ${JSON.stringify(styleCounts)}
 
 PSYCHOLOGICAL PROFILE RESPONSES:
 ${JSON.stringify(psychologyAnswers, null, 2)}
+Trait Scores: ${JSON.stringify(traitScores)}
 
 STATED PREFERENCES:
 ${JSON.stringify(preferences, null, 2)}
 
-TIME TAKEN: ${timeTaken} seconds
+TIME ANALYSIS:
+- Total Time: ${timeTaken} seconds
+- Average per question: ${totalMathQuestions > 0 ? Math.round(timeTaken / totalMathQuestions) : 0} seconds
 
-Based on this data:
-1. Calculate accurate scores for each metric
-2. Determine the dominant learning style
-3. Assess psychological traits
-4. Provide personalized recommendations
+Generate the analysis JSON with all scores calculated from this data.`;
 
-Return the JSON analysis.`;
-
-    console.log('Calling Lovable AI for diagnostic analysis...');
+    console.log('Calling AI for diagnostic analysis...');
+    console.log(`Math accuracy: ${mathAccuracy}%, Weak topics: ${weakTopics.length}, Strong topics: ${strongTopics.length}`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -131,7 +212,18 @@ Return the JSON analysis.`;
       throw new Error('Failed to parse AI analysis');
     }
 
+    // Ensure we have the pre-calculated topic data in the response
+    if (!analysis.topic_mastery) {
+      analysis.topic_mastery = {};
+      Object.entries(topicPerformance).forEach(([topic, p]) => {
+        analysis.topic_mastery[topic] = Math.round((p.correct / p.total) * 100);
+      });
+    }
+    if (!analysis.weak_topics) analysis.weak_topics = weakTopics;
+    if (!analysis.strong_topics) analysis.strong_topics = strongTopics;
+
     console.log('Diagnostic analysis completed successfully');
+    console.log(`Math level: ${analysis.math_level}, Estimated ORT: ${analysis.estimated_ort_score}`);
 
     return new Response(JSON.stringify({ analysis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

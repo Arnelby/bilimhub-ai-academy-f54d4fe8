@@ -711,12 +711,15 @@ export type Database = {
           consistency: number | null
           created_at: string | null
           diagnostic_completed: boolean | null
+          exam_date: string | null
           example_preference: number | null
+          grade_level: string | null
           id: string
           impulsiveness: number | null
           learning_style: string | null
           logic_score: number | null
           math_level: number | null
+          months_until_exam: number | null
           motivation_type: string | null
           patience: number | null
           prefers_examples: boolean | null
@@ -728,6 +731,7 @@ export type Database = {
           speed_score: number | null
           step_by_step_preference: number | null
           stress_resistance: number | null
+          target_ort_score: number | null
           text_preference: number | null
           updated_at: string | null
           user_id: string
@@ -742,12 +746,15 @@ export type Database = {
           consistency?: number | null
           created_at?: string | null
           diagnostic_completed?: boolean | null
+          exam_date?: string | null
           example_preference?: number | null
+          grade_level?: string | null
           id?: string
           impulsiveness?: number | null
           learning_style?: string | null
           logic_score?: number | null
           math_level?: number | null
+          months_until_exam?: number | null
           motivation_type?: string | null
           patience?: number | null
           prefers_examples?: boolean | null
@@ -759,6 +766,7 @@ export type Database = {
           speed_score?: number | null
           step_by_step_preference?: number | null
           stress_resistance?: number | null
+          target_ort_score?: number | null
           text_preference?: number | null
           updated_at?: string | null
           user_id: string
@@ -773,12 +781,15 @@ export type Database = {
           consistency?: number | null
           created_at?: string | null
           diagnostic_completed?: boolean | null
+          exam_date?: string | null
           example_preference?: number | null
+          grade_level?: string | null
           id?: string
           impulsiveness?: number | null
           learning_style?: string | null
           logic_score?: number | null
           math_level?: number | null
+          months_until_exam?: number | null
           motivation_type?: string | null
           patience?: number | null
           prefers_examples?: boolean | null
@@ -790,6 +801,7 @@ export type Database = {
           speed_score?: number | null
           step_by_step_preference?: number | null
           stress_resistance?: number | null
+          target_ort_score?: number | null
           text_preference?: number | null
           updated_at?: string | null
           user_id?: string

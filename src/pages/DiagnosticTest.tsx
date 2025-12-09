@@ -14,10 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Brain, BookOpen, Target, Heart, ArrowRight, ArrowLeft, Check, Loader2, 
   Sparkles, Timer, Trophy, Lightbulb, Eye, Ear, FileText, Puzzle, 
-  ListOrdered, Zap, Clock, ChevronRight
+  ListOrdered, Zap, Clock, ChevronRight, Calendar, GraduationCap, Flag
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type Section = 'intro' | 'math' | 'learning_style' | 'psychology' | 'preferences' | 'analyzing' | 'complete';
+type Section = 'intro' | 'math' | 'learning_style' | 'psychology' | 'preferences' | 'goals' | 'analyzing' | 'complete';
 
 interface MathQuestion {
   id: string;
@@ -625,9 +627,14 @@ const encouragements = {
     kg: "Дээрлик бүттү! Өзүңүз жөнүндө айтыңыз. 🧠"
   },
   preferences_start: {
-    en: "Last step! Set your learning preferences. ⚙️",
-    ru: "Последний шаг! Настройте предпочтения. ⚙️",
-    kg: "Акыркы кадам! Каалоолорду тандаңыз. ⚙️"
+    en: "Almost there! Set your learning preferences. ⚙️",
+    ru: "Почти готово! Настройте предпочтения. ⚙️",
+    kg: "Дээрлик бүттү! Каалоолорду тандаңыз. ⚙️"
+  },
+  goals_start: {
+    en: "Final step! Tell us about your ORT goals. 🎯",
+    ru: "Последний шаг! Расскажите о ваших целях ОРТ. 🎯",
+    kg: "Акыркы кадам! ЖРТ максаттарыңыз жөнүндө айтыңыз. 🎯"
   }
 };
 
@@ -646,6 +653,13 @@ export default function DiagnosticTest() {
     examples: 50,
     quizzes: 50,
     stepByStep: 50,
+  });
+  const [goals, setGoals] = useState({
+    targetORTScore: 170,
+    examDate: '',
+    gradeLevel: '' as '' | '10' | '11' | 'graduate',
+    monthsUntilExam: 6,
+    knowsExamDate: true,
   });
   const [saving, setSaving] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
@@ -673,13 +687,14 @@ export default function DiagnosticTest() {
     }
   };
 
-  const totalSections = 4;
+  const totalSections = 5;
   const currentSectionIndex = 
     section === 'intro' ? 0 : 
     section === 'math' ? 1 : 
     section === 'learning_style' ? 2 : 
     section === 'psychology' ? 3 : 
-    section === 'preferences' ? 4 : 4;
+    section === 'preferences' ? 4 : 
+    section === 'goals' ? 5 : 5;
   
   const sectionProgress = section === 'math' 
     ? (currentQuestion / mathQuestions.length) * 100
@@ -872,11 +887,23 @@ export default function DiagnosticTest() {
 
       setAiAnalysis(analysis);
       
+      // Calculate exam date from goals
+      let examDateValue = goals.examDate ? new Date(goals.examDate).toISOString() : null;
+      if (!examDateValue && goals.monthsUntilExam) {
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + goals.monthsUntilExam);
+        examDateValue = futureDate.toISOString();
+      }
+
       const { error } = await supabase
         .from('user_diagnostic_profile')
         .upsert({
           user_id: user.id,
           ...results,
+          target_ort_score: goals.targetORTScore,
+          exam_date: examDateValue,
+          grade_level: goals.gradeLevel || null,
+          months_until_exam: goals.monthsUntilExam,
           diagnostic_completed: true,
           completed_at: new Date().toISOString(),
         });
@@ -1263,6 +1290,193 @@ export default function DiagnosticTest() {
           <Button 
             className="w-full h-12 text-lg" 
             size="lg" 
+            onClick={() => setSection('goals')}
+          >
+            <ArrowRight className="mr-2 h-5 w-5" /> {language === 'ru' ? 'Далее' : language === 'kg' ? 'Кийинки' : 'Continue'}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderGoalsSection = () => (
+    <div className="space-y-4">
+      <div className="bg-indigo-100 dark:bg-indigo-950/30 rounded-xl p-4 text-center mb-4">
+        <p className="text-indigo-700 dark:text-indigo-300 font-medium">
+          {encouragements.goals_start[language as 'en' | 'ru' | 'kg']}
+        </p>
+      </div>
+      
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Flag className="w-5 h-5 text-indigo-500" />
+            {language === 'ru' ? 'Ваши цели ОРТ' : language === 'kg' ? 'ЖРТ максаттарыңыз' : 'Your ORT Goals'}
+          </CardTitle>
+          <CardDescription>
+            {language === 'ru' 
+              ? 'Эта информация поможет создать идеальный план подготовки'
+              : language === 'kg'
+              ? 'Бул маалымат идеалдуу даярдык планын түзүүгө жардам берет'
+              : 'This information will help us create your perfect preparation plan'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {/* Target ORT Score */}
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2 text-base font-medium">
+              <Target className="w-5 h-5 text-primary" />
+              {language === 'ru' ? 'Какой балл ОРТ вы хотите получить?' : language === 'kg' ? 'Канча ЖРТ балл алгыңыз келет?' : 'What ORT score do you want to achieve?'}
+            </Label>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              {[110, 130, 150, 170, 190, 200].map((score) => (
+                <Button
+                  key={score}
+                  variant={goals.targetORTScore === score ? "default" : "outline"}
+                  className={`h-12 ${goals.targetORTScore === score ? '' : 'hover:border-primary'}`}
+                  onClick={() => setGoals(g => ({ ...g, targetORTScore: score }))}
+                >
+                  {score}{score === 200 ? '+' : ''}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {language === 'ru' ? 'Или введите свой:' : language === 'kg' ? 'Же өзүңүз жазыңыз:' : 'Or enter your own:'}
+              </span>
+              <Input
+                type="number"
+                min={100}
+                max={250}
+                value={goals.targetORTScore}
+                onChange={(e) => setGoals(g => ({ ...g, targetORTScore: parseInt(e.target.value) || 170 }))}
+                className="w-24"
+              />
+            </div>
+          </div>
+
+          {/* Exam Date Toggle */}
+          <div className="space-y-4">
+            <Label className="flex items-center gap-2 text-base font-medium">
+              <Calendar className="w-5 h-5 text-primary" />
+              {language === 'ru' ? 'Когда ваш экзамен?' : language === 'kg' ? 'Экзамениңиз качан?' : 'When is your exam?'}
+            </Label>
+            <div className="flex gap-2">
+              <Button
+                variant={goals.knowsExamDate ? "default" : "outline"}
+                onClick={() => setGoals(g => ({ ...g, knowsExamDate: true }))}
+                className="flex-1"
+              >
+                {language === 'ru' ? 'Знаю дату' : language === 'kg' ? 'Күнүн билем' : 'I know the date'}
+              </Button>
+              <Button
+                variant={!goals.knowsExamDate ? "default" : "outline"}
+                onClick={() => setGoals(g => ({ ...g, knowsExamDate: false }))}
+                className="flex-1"
+              >
+                {language === 'ru' ? 'Примерно' : language === 'kg' ? 'Болжолдуу' : 'Approximately'}
+              </Button>
+            </div>
+          </div>
+
+          {goals.knowsExamDate ? (
+            <div className="space-y-2">
+              <Label>{language === 'ru' ? 'Выберите дату экзамена:' : language === 'kg' ? 'Экзамен күнүн тандаңыз:' : 'Select exam date:'}</Label>
+              <Input
+                type="date"
+                value={goals.examDate}
+                onChange={(e) => setGoals(g => ({ ...g, examDate: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+                className="max-w-xs"
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4" />
+                  {language === 'ru' ? 'В каком вы классе?' : language === 'kg' ? 'Канча класста окуйсуз?' : 'What grade are you in?'}
+                </Label>
+                <Select 
+                  value={goals.gradeLevel} 
+                  onValueChange={(v) => setGoals(g => ({ 
+                    ...g, 
+                    gradeLevel: v as '' | '10' | '11' | 'graduate',
+                    monthsUntilExam: v === '10' ? 18 : v === '11' ? 6 : g.monthsUntilExam
+                  }))}
+                >
+                  <SelectTrigger className="max-w-xs">
+                    <SelectValue placeholder={language === 'ru' ? 'Выберите класс' : language === 'kg' ? 'Классты тандаңыз' : 'Select grade'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">{language === 'ru' ? '10 класс (~18 месяцев)' : language === 'kg' ? '10 класс (~18 ай)' : '10th Grade (~18 months)'}</SelectItem>
+                    <SelectItem value="11">{language === 'ru' ? '11 класс (~6 месяцев)' : language === 'kg' ? '11 класс (~6 ай)' : '11th Grade (~6 months)'}</SelectItem>
+                    <SelectItem value="graduate">{language === 'ru' ? 'Выпускник' : language === 'kg' ? 'Бүтүрүүчү' : 'Graduate'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  {language === 'ru' ? 'Примерно сколько месяцев до экзамена?' : language === 'kg' ? 'Экзаменге болжол менен канча ай калды?' : 'Approximately how many months until exam?'}
+                </Label>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-muted-foreground">1</span>
+                  <Slider
+                    value={[goals.monthsUntilExam]}
+                    onValueChange={([v]) => setGoals(g => ({ ...g, monthsUntilExam: v }))}
+                    min={1}
+                    max={24}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground">24</span>
+                </div>
+                <div className="text-center">
+                  <Badge variant="outline" className="text-lg px-4 py-1">
+                    {goals.monthsUntilExam} {language === 'ru' ? 'мес.' : language === 'kg' ? 'ай' : 'months'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Summary of what they'll get */}
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+            <h4 className="font-medium flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              {language === 'ru' ? 'Ваш план будет включать:' : language === 'kg' ? 'Планыңыз камтыйт:' : 'Your plan will include:'}
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-500" />
+                {language === 'ru' 
+                  ? `Цель: ${goals.targetORTScore}+ баллов` 
+                  : language === 'kg' 
+                  ? `Максат: ${goals.targetORTScore}+ балл` 
+                  : `Target: ${goals.targetORTScore}+ points`}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-500" />
+                {language === 'ru' 
+                  ? `Срок: ${goals.examDate ? new Date(goals.examDate).toLocaleDateString() : `~${goals.monthsUntilExam} месяцев`}` 
+                  : language === 'kg' 
+                  ? `Мөөнөт: ${goals.examDate ? new Date(goals.examDate).toLocaleDateString() : `~${goals.monthsUntilExam} ай`}` 
+                  : `Timeline: ${goals.examDate ? new Date(goals.examDate).toLocaleDateString() : `~${goals.monthsUntilExam} months`}`}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-500" />
+                {language === 'ru' 
+                  ? 'Персональная программа на основе диагностики' 
+                  : language === 'kg' 
+                  ? 'Диагностикага негизделген жеке программа' 
+                  : 'Personalized program based on your diagnostic'}
+              </li>
+            </ul>
+          </div>
+
+          <Button 
+            className="w-full h-12 text-lg" 
+            size="lg" 
             onClick={saveProfile} 
             disabled={saving}
           >
@@ -1390,9 +1604,13 @@ export default function DiagnosticTest() {
                 <Heart className="w-4 h-4" />
                 <span className="hidden md:inline">{language === 'ru' ? 'Психология' : language === 'kg' ? 'Психология' : 'Psychology'}</span>
               </div>
-              <div className={`flex items-center gap-1 ${section === 'preferences' ? 'text-primary font-medium' : 'text-muted-foreground/50'}`}>
+              <div className={`flex items-center gap-1 ${section === 'preferences' ? 'text-primary font-medium' : currentSectionIndex > 4 ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
                 <Sparkles className="w-4 h-4" />
                 <span className="hidden md:inline">{language === 'ru' ? 'Предпочтения' : language === 'kg' ? 'Каалоолор' : 'Preferences'}</span>
+              </div>
+              <div className={`flex items-center gap-1 ${section === 'goals' ? 'text-primary font-medium' : 'text-muted-foreground/50'}`}>
+                <Flag className="w-4 h-4" />
+                <span className="hidden md:inline">{language === 'ru' ? 'Цели' : language === 'kg' ? 'Максаттар' : 'Goals'}</span>
               </div>
             </div>
           </div>
@@ -1403,6 +1621,7 @@ export default function DiagnosticTest() {
         {section === 'learning_style' && renderLearningStyleSection()}
         {section === 'psychology' && renderPsychologySection()}
         {section === 'preferences' && renderPreferencesSection()}
+        {section === 'goals' && renderGoalsSection()}
         {section === 'analyzing' && renderAnalyzing()}
         {section === 'complete' && renderComplete()}
       </div>
