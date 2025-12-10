@@ -12,9 +12,19 @@ import {
   XCircle, 
   Loader2,
   ArrowLeft,
+  Pause,
+  Play,
+  RotateCcw,
   Flag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const STORAGE_KEYS = {
   answers: "testing58_answers",
@@ -45,6 +55,7 @@ const Testing58Viewer = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Get signed URL for a file in the tests bucket
   const getSignedUrl = useCallback(async (path: string): Promise<string | null> => {
@@ -185,7 +196,7 @@ const Testing58Viewer = () => {
 
   // Timer countdown
   useEffect(() => {
-    if (isFinished || loading) return;
+    if (isFinished || loading || isPaused) return;
     
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
@@ -199,7 +210,7 @@ const Testing58Viewer = () => {
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [isFinished, loading]);
+  }, [isFinished, loading, isPaused]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -267,7 +278,13 @@ const Testing58Viewer = () => {
     setTimeLeft(DEFAULT_DURATION_SECONDS);
     setIsFinished(false);
     setShowResults(false);
+    setIsPaused(false);
     localStorage.setItem(STORAGE_KEYS.startTime, Date.now().toString());
+  };
+
+  // Pause/Resume test
+  const handleTogglePause = () => {
+    setIsPaused((prev) => !prev);
   };
 
   if (loading) {
@@ -373,10 +390,11 @@ const Testing58Viewer = () => {
               <div className="flex gap-4 mt-8">
                 <Button 
                   variant="outline" 
-                  className="flex-1"
+                  className="flex-1 gap-2"
                   onClick={handleResetTest}
                 >
-                  Пройти заново
+                  <RotateCcw className="h-4 w-4" />
+                  Restart Test
                 </Button>
                 <Button 
                   className="flex-1"
@@ -411,16 +429,89 @@ const Testing58Viewer = () => {
             Назад
           </Button>
           
-          <div className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-lg font-semibold",
-            isTimeWarning 
-              ? "bg-destructive/10 text-destructive" 
-              : "bg-muted text-foreground"
-          )}>
-            <Clock className="h-5 w-5" />
-            {formatTime(timeLeft)}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTogglePause}
+              className="gap-2"
+            >
+              {isPaused ? (
+                <>
+                  <Play className="h-4 w-4" />
+                  Resume
+                </>
+              ) : (
+                <>
+                  <Pause className="h-4 w-4" />
+                  Pause
+                </>
+              )}
+            </Button>
+            
+            <div className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-lg font-semibold",
+              isPaused
+                ? "bg-muted text-muted-foreground"
+                : isTimeWarning 
+                  ? "bg-destructive/10 text-destructive" 
+                  : "bg-muted text-foreground"
+            )}>
+              <Clock className="h-5 w-5" />
+              {formatTime(timeLeft)}
+              {isPaused && <span className="text-xs ml-1">(Paused)</span>}
+            </div>
           </div>
         </div>
+        
+        {/* Pause Modal */}
+        <Dialog open={isPaused} onOpenChange={setIsPaused}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pause className="h-5 w-5" />
+                Test Paused
+              </DialogTitle>
+              <DialogDescription>
+                The timer has been paused. You can view your current answers but cannot change them while paused.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="text-center">
+                <div className="text-3xl font-mono font-bold text-primary mb-2">
+                  {formatTime(timeLeft)}
+                </div>
+                <p className="text-sm text-muted-foreground">Time remaining</p>
+              </div>
+              
+              <div className="bg-muted rounded-lg p-4">
+                <h4 className="font-medium mb-2">Your Answers:</h4>
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                    const answer = answers[pageNum.toString()];
+                    return (
+                      <div
+                        key={pageNum}
+                        className={cn(
+                          "text-center p-2 rounded text-sm font-medium",
+                          answer ? "bg-primary/20 text-primary" : "bg-muted-foreground/10 text-muted-foreground"
+                        )}
+                      >
+                        {pageNum}: {answer || "—"}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <Button onClick={handleTogglePause} className="gap-2">
+                <Play className="h-4 w-4" />
+                Resume Test
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         
         {/* Main content */}
         <Card className="mb-4">
