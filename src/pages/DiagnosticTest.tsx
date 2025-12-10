@@ -895,20 +895,77 @@ export default function DiagnosticTest() {
         examDateValue = futureDate.toISOString();
       }
 
+      // Only include fields that exist in the database schema
+      const profileData = {
+        user_id: user.id,
+        math_level: results.math_level || localResults.math_level || 1,
+        logic_score: results.logic_score || localResults.logic_score || 0,
+        problem_solving_score: results.problem_solving_score || localResults.problem_solving_score || 0,
+        speed_score: results.speed_score || localResults.speed_score || 0,
+        accuracy_score: results.accuracy_score || localResults.accuracy_score || 0,
+        learning_style: results.learning_style || localResults.learning_style || 'balanced',
+        visual_preference: results.visual_preference || localResults.visual_preference || 50,
+        auditory_preference: results.auditory_preference || localResults.auditory_preference || 50,
+        text_preference: results.text_preference || localResults.text_preference || 50,
+        example_preference: results.example_preference || localResults.example_preference || 50,
+        problem_driven_preference: results.problem_driven_preference || localResults.problem_driven_preference || 50,
+        step_by_step_preference: results.step_by_step_preference || localResults.step_by_step_preference || 50,
+        attention_level: results.attention_level || localResults.attention_level || 50,
+        stress_resistance: results.stress_resistance || localResults.stress_resistance || 50,
+        impulsiveness: results.impulsiveness || localResults.impulsiveness || 50,
+        consistency: results.consistency || localResults.consistency || 50,
+        patience: results.patience || localResults.patience || 50,
+        confidence: results.confidence || localResults.confidence || 50,
+        motivation_type: results.motivation_type || localResults.motivation_type || 'balanced',
+        prefers_short_lessons: results.prefers_short_lessons ?? localResults.prefers_short_lessons ?? true,
+        prefers_examples: results.prefers_examples ?? localResults.prefers_examples ?? true,
+        prefers_quizzes: results.prefers_quizzes ?? localResults.prefers_quizzes ?? true,
+        prefers_step_by_step: results.prefers_step_by_step ?? localResults.prefers_step_by_step ?? true,
+        target_ort_score: goals.targetORTScore,
+        exam_date: examDateValue,
+        grade_level: goals.gradeLevel || null,
+        months_until_exam: goals.monthsUntilExam,
+        diagnostic_completed: true,
+        completed_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('user_diagnostic_profile')
-        .upsert({
-          user_id: user.id,
-          ...results,
-          target_ort_score: goals.targetORTScore,
-          exam_date: examDateValue,
-          grade_level: goals.gradeLevel || null,
-          months_until_exam: goals.monthsUntilExam,
-          diagnostic_completed: true,
-          completed_at: new Date().toISOString(),
-        });
+        .upsert(profileData);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      // Generate learning plan in background (don't block completion)
+      supabase.functions.invoke('ai-learning-plan-v2', {
+        body: {
+          diagnosticProfile: profileData,
+          testHistory: [],
+          lessonProgress: [],
+          topicMastery: [],
+          language
+        }
+      }).then(async (planResponse) => {
+        if (!planResponse.error && planResponse.data) {
+          // Save the learning plan to database
+          await supabase.from('ai_learning_plans_v2').upsert({
+            user_id: user.id,
+            plan_data: planResponse.data.planData || planResponse.data,
+            schedule: planResponse.data.schedule || {},
+            target_topics: planResponse.data.targetTopics || [],
+            daily_tasks: planResponse.data.dailyTasks || [],
+            mini_tests: planResponse.data.miniTests || [],
+            predicted_timeline: planResponse.data.predictedTimeline || {},
+            mastery_goals: planResponse.data.masteryGoals || {},
+            ort_score_projection: planResponse.data.ortScoreProjection || {},
+            learning_strategy: planResponse.data.learningStrategy || '',
+            is_active: true,
+            generated_at: new Date().toISOString(),
+          });
+        }
+      }).catch(err => console.error('Learning plan generation error:', err));
 
       toast({
         title: language === 'ru' ? "Диагностика завершена!" : language === 'kg' ? "Диагностика аяктады!" : "Diagnostic Complete!",
@@ -921,9 +978,10 @@ export default function DiagnosticTest() {
       console.error('Error saving profile:', error);
       toast({
         title: "Error",
-        description: "Failed to save diagnostic results",
+        description: language === 'ru' ? "Не удалось сохранить результаты" : language === 'kg' ? "Жыйынтыктарды сактоо мүмкүн болгон жок" : "Failed to save diagnostic results",
         variant: "destructive",
       });
+      setSection('goals'); // Go back to goals so user can retry
       setSaving(false);
     }
   };
