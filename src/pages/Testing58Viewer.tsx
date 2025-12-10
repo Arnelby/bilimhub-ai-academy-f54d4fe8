@@ -56,25 +56,26 @@ const Testing58Viewer = () => {
     return data.signedUrl;
   }, []);
 
-  // Detect total pages by checking which files exist
+  // Detect total pages by listing files in storage
   const detectTotalPages = useCallback(async (): Promise<number> => {
-    let pageNum = 1;
-    const maxPages = 50; // Safety limit
-    
-    while (pageNum <= maxPages) {
-      const url = await getSignedUrl(`${pageNum}.png`);
-      if (!url) break;
+    try {
+      const { data, error } = await supabase.storage
+        .from("tests")
+        .list("", { limit: 100 });
       
-      try {
-        const res = await fetch(url, { method: "HEAD" });
-        if (!res.ok) break;
-      } catch {
-        break;
+      if (error || !data) {
+        console.error("Error listing files:", error);
+        return 7; // Fallback to known count
       }
-      pageNum++;
+      
+      // Count PNG files that match numeric pattern
+      const pngFiles = data.filter(file => /^\d+\.png$/.test(file.name));
+      return pngFiles.length || 7;
+    } catch (err) {
+      console.error("Error detecting pages:", err);
+      return 7; // Fallback
     }
-    return pageNum - 1;
-  }, [getSignedUrl]);
+  }, []);
 
   // Load correct answers from storage
   const loadCorrectAnswers = useCallback(async () => {
