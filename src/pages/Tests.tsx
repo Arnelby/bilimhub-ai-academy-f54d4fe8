@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Target, 
   Clock, 
@@ -9,7 +9,8 @@ import {
   Calendar,
   Trophy,
   ArrowRight,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -53,6 +54,7 @@ interface TestWithStatus extends Test {
 export default function Tests() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tests, setTests] = useState<TestWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState('all');
@@ -63,6 +65,21 @@ export default function Tests() {
     bestScore: 0,
     totalTime: '0 ч',
   });
+
+  // Handle retake test - clears localStorage and navigates to test
+  const handleRetakeTest = (testId: string) => {
+    // Clear localStorage for this test (using the testing58 keys pattern)
+    localStorage.removeItem('testing58_answers');
+    localStorage.removeItem('testing58_currentPage');
+    localStorage.removeItem('testing58_startTime');
+    
+    // Navigate to the test
+    if (testId === '3fa85f64-5717-4562-b3fc-2c963f66afa6' || testId.includes('testing58')) {
+      navigate('/tests/testing58');
+    } else {
+      navigate(`/tests/${testId}`);
+    }
+  };
 
   useEffect(() => {
     async function fetchTests() {
@@ -313,12 +330,22 @@ export default function Tests() {
                         {test.userAttempt?.score || 0}%
                       </span>
                     </div>
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link to={`/tests/${test.id}/results/${test.userAttempt?.id}`}>
-                        {t.tests.viewResults}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1" asChild>
+                        <Link to={`/tests/${test.id}/results/${test.userAttempt?.id}`}>
+                          {t.tests.viewResults}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="accent" 
+                        className="flex-1 gap-2"
+                        onClick={() => handleRetakeTest(test.id)}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Пересдать
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
