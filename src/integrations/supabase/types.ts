@@ -14,6 +14,122 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_topics: {
+        Row: {
+          ai_categories: string[] | null
+          ai_labels: string[] | null
+          ai_metadata: Json | null
+          content_blocks: Json | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          description_kg: string | null
+          description_ru: string | null
+          id: string
+          is_published: boolean | null
+          learning_styles: Json | null
+          level_grade: number | null
+          order_index: number | null
+          parent_topic_id: string | null
+          subject: string
+          title: string
+          title_kg: string | null
+          title_ru: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_categories?: string[] | null
+          ai_labels?: string[] | null
+          ai_metadata?: Json | null
+          content_blocks?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          description_kg?: string | null
+          description_ru?: string | null
+          id?: string
+          is_published?: boolean | null
+          learning_styles?: Json | null
+          level_grade?: number | null
+          order_index?: number | null
+          parent_topic_id?: string | null
+          subject: string
+          title: string
+          title_kg?: string | null
+          title_ru?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_categories?: string[] | null
+          ai_labels?: string[] | null
+          ai_metadata?: Json | null
+          content_blocks?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          description_kg?: string | null
+          description_ru?: string | null
+          id?: string
+          is_published?: boolean | null
+          learning_styles?: Json | null
+          level_grade?: number | null
+          order_index?: number | null
+          parent_topic_id?: string | null
+          subject?: string
+          title?: string
+          title_kg?: string | null
+          title_ru?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_topics_parent_topic_id_fkey"
+            columns: ["parent_topic_id"]
+            isOneToOne: false
+            referencedRelation: "admin_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_training_datasets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data: Json | null
+          dataset_type: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          dataset_type: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          dataset_type?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_chat_messages: {
         Row: {
           content: string
@@ -850,6 +966,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_tests: {
         Row: {
           ai_analysis: Json | null
@@ -946,7 +1083,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       achievement_type:
@@ -960,6 +1103,7 @@ export type Database = {
         | "perfect_score"
         | "early_bird"
         | "night_owl"
+      app_role: "admin" | "moderator" | "user"
       mastery_level: "not_attempted" | "weak" | "in_progress" | "mastered"
       subject_type:
         | "mathematics"
@@ -1109,6 +1253,7 @@ export const Constants = {
         "early_bird",
         "night_owl",
       ],
+      app_role: ["admin", "moderator", "user"],
       mastery_level: ["not_attempted", "weak", "in_progress", "mastered"],
       subject_type: [
         "mathematics",

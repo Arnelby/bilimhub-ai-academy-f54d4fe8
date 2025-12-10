@@ -8,6 +8,8 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GamificationProvider } from "@/hooks/useGamificationEvents";
+import { ProtectedAdminRoute } from "@/components/admin/ProtectedAdminRoute";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -25,6 +27,15 @@ import DiagnosticTest from "./pages/DiagnosticTest";
 import LearningPlanV2 from "./pages/LearningPlanV2";
 import AISmartTutor from "./pages/AISmartTutor";
 import Homework from "./pages/Homework";
+
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import TopicsManager from "./pages/admin/TopicsManager";
+import DatasetManager from "./pages/admin/DatasetManager";
+import TestBuilder from "./pages/admin/TestBuilder";
+import LearningPlanConstructor from "./pages/admin/LearningPlanConstructor";
+import AnalyticsDashboard from "./pages/admin/AnalyticsDashboard";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +65,18 @@ const App = () => (
                   <Route path="/learning-plan" element={<ProtectedRoute><LearningPlanV2 /></ProtectedRoute>} />
                   <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
                   <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="topics" element={<TopicsManager />} />
+                    <Route path="datasets" element={<DatasetManager />} />
+                    <Route path="test-builder" element={<TestBuilder />} />
+                    <Route path="learning-plans" element={<LearningPlanConstructor />} />
+                    <Route path="analytics" element={<AnalyticsDashboard />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                  </Route>
+                  
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
