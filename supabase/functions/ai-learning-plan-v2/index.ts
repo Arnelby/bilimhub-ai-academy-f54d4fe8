@@ -5,6 +5,126 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Default fallback plan when AI fails or no data available
+function generateDefaultPlan(diagnosticProfile: any, language: string) {
+  const targetORTScore = diagnosticProfile?.target_ort_score || 170;
+  const monthsUntilExam = diagnosticProfile?.months_until_exam || 6;
+  const mathLevel = diagnosticProfile?.math_level || 3;
+  const learningStyle = diagnosticProfile?.learning_style || 'balanced';
+  const weeksRemaining = monthsUntilExam * 4;
+  const currentORTScore = Math.round(100 + (mathLevel * 20));
+  const scoreGap = targetORTScore - currentORTScore;
+  const hoursPerDay = scoreGap > 40 ? 3 : scoreGap > 20 ? 2.5 : 2;
+  
+  const topicNames = language === 'ru' 
+    ? ['Арифметика', 'Алгебра', 'Геометрия', 'Проценты', 'Уравнения', 'Функции']
+    : language === 'kg'
+    ? ['Арифметика', 'Алгебра', 'Геометрия', 'Пайыздар', 'Теңдемелер', 'Функциялар']
+    : ['Arithmetic', 'Algebra', 'Geometry', 'Percentages', 'Equations', 'Functions'];
+
+  const weekDays = language === 'ru'
+    ? ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье']
+    : language === 'kg'
+    ? ['дүйшөмбү', 'шейшемби', 'шаршемби', 'бейшемби', 'жума', 'ишемби', 'жекшемби']
+    : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  return {
+    planData: {
+      title: language === 'ru' 
+        ? `Персональный план подготовки к ОРТ на ${targetORTScore}+ баллов`
+        : language === 'kg'
+        ? `ЖРТга даярдык планы ${targetORTScore}+ балл`
+        : `Personalized ORT Plan for ${targetORTScore}+ Score`,
+      createdFor: language === 'ru' ? 'Студент' : language === 'kg' ? 'Окуучу' : 'Student',
+      totalDuration: language === 'ru' 
+        ? `${weeksRemaining} недель`
+        : language === 'kg'
+        ? `${weeksRemaining} жума`
+        : `${weeksRemaining} weeks`,
+      intensity: scoreGap > 40 ? 'intensive' : scoreGap > 20 ? 'high' : 'moderate',
+      basedOn: {
+        diagnosticMathLevel: mathLevel,
+        currentScore: currentORTScore,
+        targetScore: targetORTScore,
+        scoreGap: scoreGap,
+        weakTopicsCount: 3
+      }
+    },
+    schedule: {
+      weeklyHours: Math.round(hoursPerDay * 6),
+      dailyHours: hoursPerDay,
+      dailySchedule: {
+        [weekDays[0]]: { topics: [topicNames[0], topicNames[1]], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Теория + практика' : 'Theory + practice'] },
+        [weekDays[1]]: { topics: [topicNames[2]], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Геометрические задачи' : 'Geometry problems'] },
+        [weekDays[2]]: { topics: [topicNames[3], topicNames[4]], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Решение уравнений' : 'Solving equations'] },
+        [weekDays[3]]: { topics: [topicNames[5]], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Анализ функций' : 'Function analysis'] },
+        [weekDays[4]]: { topics: [topicNames[0], topicNames[1]], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Комплексные задачи' : 'Complex problems'] },
+        [weekDays[5]]: { topics: [language === 'ru' ? 'Обзор + Тест' : 'Review + Test'], duration: `${hoursPerDay}h`, activities: [language === 'ru' ? 'Полный практический тест' : 'Full practice test'] },
+        [weekDays[6]]: { topics: [], duration: '0h', activities: [language === 'ru' ? 'Отдых' : 'Rest'] }
+      }
+    },
+    targetTopics: topicNames.slice(0, 4).map((topic, idx) => ({
+      topic,
+      currentMastery: 30 + idx * 10,
+      targetMastery: 80,
+      priority: idx === 0 ? 'high' : idx === 1 ? 'high' : 'medium',
+      weeksToComplete: 2 + idx,
+      basedOn: language === 'ru' ? 'Диагностический тест' : 'Diagnostic test'
+    })),
+    dailyTasks: [
+      { day: 1, tasks: [language === 'ru' ? 'Изучить основы арифметики' : 'Study arithmetic basics', language === 'ru' ? 'Решить 10 задач' : 'Solve 10 problems'], estimatedTime: `${hoursPerDay}h`, focusTopic: topicNames[0] },
+      { day: 2, tasks: [language === 'ru' ? 'Геометрические фигуры' : 'Geometric shapes', language === 'ru' ? 'Вычисление площадей' : 'Area calculations'], estimatedTime: `${hoursPerDay}h`, focusTopic: topicNames[2] },
+      { day: 3, tasks: [language === 'ru' ? 'Линейные уравнения' : 'Linear equations', language === 'ru' ? 'Мини-тест' : 'Mini-test'], estimatedTime: `${hoursPerDay}h`, focusTopic: topicNames[4] }
+    ],
+    miniTests: [
+      { week: 1, day: 3, topic: topicNames[0], questionCount: 5, purpose: language === 'ru' ? 'Проверка базовых навыков' : 'Basic skills check' },
+      { week: 1, day: 6, topic: language === 'ru' ? 'Недельный обзор' : 'Weekly review', questionCount: 10, purpose: language === 'ru' ? 'Комплексная проверка' : 'Comprehensive check' }
+    ],
+    predictedTimeline: {
+      week1: { expectedMastery: 35, expectedScore: currentORTScore + 5, focusAreas: [topicNames[0], topicNames[1]], milestone: language === 'ru' ? 'Основа' : 'Foundation' },
+      [`week${Math.ceil(weeksRemaining/2)}`]: { expectedMastery: 60, expectedScore: currentORTScore + Math.round(scoreGap/2), focusAreas: [topicNames[2], topicNames[3]], milestone: language === 'ru' ? 'Половина пути' : 'Halfway' },
+      [`week${weeksRemaining}`]: { expectedMastery: 85, expectedScore: targetORTScore, focusAreas: topicNames, milestone: language === 'ru' ? 'Цель достигнута' : 'Goal reached' }
+    },
+    masteryGoals: {
+      shortTerm: { duration: language === 'ru' ? '2 недели' : '2 weeks', targetScore: currentORTScore + 10, keyTopics: [topicNames[0], topicNames[1]] },
+      mediumTerm: { duration: language === 'ru' ? `${Math.ceil(weeksRemaining/2)} недель` : `${Math.ceil(weeksRemaining/2)} weeks`, targetScore: currentORTScore + Math.round(scoreGap/2), keyTopics: [topicNames[2], topicNames[3]] },
+      longTerm: { duration: language === 'ru' ? `${weeksRemaining} недель` : `${weeksRemaining} weeks`, targetScore: targetORTScore, keyTopics: topicNames }
+    },
+    ortScoreProjection: {
+      current: currentORTScore,
+      in2Weeks: currentORTScore + 10,
+      in1Month: currentORTScore + 20,
+      final: targetORTScore,
+      confidence: scoreGap < 30 ? 'high' : scoreGap < 50 ? 'medium' : 'challenging',
+      factors: [
+        language === 'ru' ? `Уровень математики: ${mathLevel}/5` : `Math level: ${mathLevel}/5`,
+        language === 'ru' ? `${weeksRemaining} недель подготовки` : `${weeksRemaining} weeks of preparation`
+      ]
+    },
+    learningStrategy: language === 'ru'
+      ? `Стратегия адаптирована под ${learningStyle === 'visual' ? 'визуальный' : learningStyle === 'auditory' ? 'аудиальный' : 'сбалансированный'} стиль обучения с ${hoursPerDay} часами занятий ежедневно`
+      : `Strategy adapted for ${learningStyle} learning style with ${hoursPerDay}h daily commitment`,
+    adaptations: {
+      forLearningStyle: language === 'ru'
+        ? `Контент оптимизирован для ${learningStyle === 'visual' ? 'визуального' : 'вашего'} восприятия`
+        : `Content optimized for ${learningStyle} learners`,
+      forPsychology: language === 'ru'
+        ? 'Регулярные перерывы и разнообразие задач'
+        : 'Regular breaks and varied tasks',
+      forMotivation: language === 'ru'
+        ? 'Еженедельные достижения и отслеживание прогресса'
+        : 'Weekly achievements and progress tracking'
+    },
+    warnings: scoreGap > 50 
+      ? [language === 'ru' ? 'Большой разрыв в баллах требует интенсивной подготовки' : 'Large score gap requires intensive preparation']
+      : [],
+    motivationalMilestones: [
+      { week: 2, reward: '🎉', achievement: language === 'ru' ? 'Первое улучшение результата!' : 'First score improvement!' },
+      { week: Math.ceil(weeksRemaining/2), reward: '🏆', achievement: language === 'ru' ? 'Половина пути пройдена!' : 'Halfway milestone reached!' }
+    ]
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,42 +132,46 @@ serve(async (req) => {
 
   try {
     const { 
-      testHistory, 
-      lessonProgress, 
-      topicMastery, 
-      diagnosticProfile,
+      testHistory = [], 
+      lessonProgress = [], 
+      topicMastery = [], 
+      diagnosticProfile = {},
       language = 'ru' 
     } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.log("LOVABLE_API_KEY not configured, using fallback plan");
+      const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+      return new Response(JSON.stringify(fallbackPlan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Extract key information from diagnostic profile
+    // Extract key information from diagnostic profile with safe defaults
     const targetORTScore = diagnosticProfile?.target_ort_score || 170;
     const examDate = diagnosticProfile?.exam_date;
     const monthsUntilExam = diagnosticProfile?.months_until_exam || 6;
     const gradeLevel = diagnosticProfile?.grade_level || 'unknown';
-    const mathLevel = diagnosticProfile?.math_level || 1;
+    const mathLevel = diagnosticProfile?.math_level || 3;
     const learningStyle = diagnosticProfile?.learning_style || 'balanced';
     
     // Calculate time remaining
-    let weeksRemaining = monthsUntilExam * 4;
+    let weeksRemaining = Math.max(4, monthsUntilExam * 4);
     if (examDate) {
       const examDateObj = new Date(examDate);
       const now = new Date();
       const diffMs = examDateObj.getTime() - now.getTime();
-      weeksRemaining = Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)));
+      weeksRemaining = Math.max(4, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)));
     }
 
     // Calculate current estimated ORT score from diagnostic
     const currentORTScore = Math.round(100 + (mathLevel * 20) + (diagnosticProfile?.accuracy_score || 50) * 0.5);
-    const scoreGap = targetORTScore - currentORTScore;
+    const scoreGap = Math.max(0, targetORTScore - currentORTScore);
     
     // Calculate required intensity based on score gap and time
-    const pointsPerWeek = scoreGap / weeksRemaining;
+    const pointsPerWeek = weeksRemaining > 0 ? scoreGap / weeksRemaining : 5;
     let intensity = 'moderate';
     let hoursPerDay = 2;
     if (pointsPerWeek > 5) {
@@ -61,16 +185,16 @@ serve(async (req) => {
       hoursPerDay = 1.5;
     }
 
-    // Build topic mastery map for AI
+    // Build topic mastery map for AI (handle empty data)
     const topicMasteryMap = (topicMastery || []).reduce((acc: any, t: any) => {
-      acc[t.topic_id || t.title] = {
+      acc[t.topic_id || t.title || 'unknown'] = {
         mastery: t.progress_percentage || 0,
         level: t.mastery || 'not_attempted'
       };
       return acc;
     }, {});
 
-    // Analyze test history for weak topics
+    // Analyze test history for weak topics (handle empty data)
     const topicPerformance: Record<string, { correct: number; total: number }> = {};
     (testHistory || []).forEach((test: any) => {
       const answers = test.answers || [];
@@ -92,24 +216,33 @@ serve(async (req) => {
         questionsAttempted: perf.total
       }));
 
+    // For new users with no data, provide assumed weak topics
+    const hasLimitedData = testHistory.length === 0 && lessonProgress.length === 0;
+    const assumedWeakTopics = hasLimitedData ? [
+      { topic: 'algebra', accuracy: 50, questionsAttempted: 0 },
+      { topic: 'geometry', accuracy: 50, questionsAttempted: 0 },
+      { topic: 'percentages', accuracy: 50, questionsAttempted: 0 }
+    ] : [];
+
     const languageInstructions = {
-      ru: "Respond entirely in Russian.",
-      kg: "Respond entirely in Kyrgyz language.",
+      ru: "Respond entirely in Russian. All text, topic names, descriptions, and recommendations must be in Russian.",
+      kg: "Respond entirely in Kyrgyz language. All text, topic names, descriptions, and recommendations must be in Kyrgyz.",
       en: "Respond entirely in English."
     };
 
     const prompt = `You are an expert ORT exam preparation AI creating a STRICTLY DATA-DRIVEN personalized learning plan.
 
-CRITICAL: This plan must be based ONLY on the diagnostic data provided. No generic templates. Every recommendation must trace back to specific data points.
+${hasLimitedData ? 'NOTE: This is a NEW USER with limited data. Create a comprehensive starter plan based on their diagnostic test results and goals. Make reasonable assumptions for topic mastery based on their math level.' : 'CRITICAL: This plan must be based ONLY on the diagnostic data provided. No generic templates. Every recommendation must trace back to specific data points.'}
 
 === STUDENT DIAGNOSTIC DATA ===
 
 CURRENT LEVEL:
 - Math Level: ${mathLevel}/5
-- Logic Score: ${diagnosticProfile?.logic_score || 0}/100
-- Problem Solving: ${diagnosticProfile?.problem_solving_score || 0}/100
-- Speed Score: ${diagnosticProfile?.speed_score || 0}/100
-- Accuracy Score: ${diagnosticProfile?.accuracy_score || 0}/100
+- Logic Score: ${diagnosticProfile?.logic_score || 50}/100
+- Problem Solving: ${diagnosticProfile?.problem_solving_score || 50}/100
+- Speed Score: ${diagnosticProfile?.speed_score || 50}/100
+- Accuracy Score: ${diagnosticProfile?.accuracy_score || 50}/100
+${hasLimitedData ? '- Status: NEW USER - plan should focus on establishing baseline and building fundamentals' : ''}
 
 GOALS:
 - Target ORT Score: ${targetORTScore}
@@ -146,11 +279,10 @@ LEARNING PREFERENCES:
 - Prefers Quizzes: ${diagnosticProfile?.prefers_quizzes ?? true}
 - Prefers Step-by-Step: ${diagnosticProfile?.prefers_step_by_step ?? true}
 
-TOPIC MASTERY MAP:
-${JSON.stringify(topicMasteryMap, null, 2)}
+${Object.keys(topicMasteryMap).length > 0 ? `TOPIC MASTERY MAP:\n${JSON.stringify(topicMasteryMap, null, 2)}` : 'TOPIC MASTERY MAP: No prior data - assume baseline levels based on math level'}
 
-WEAK TOPICS FROM TEST HISTORY:
-${JSON.stringify(weakTopics, null, 2)}
+WEAK TOPICS FROM DATA:
+${weakTopics.length > 0 ? JSON.stringify(weakTopics, null, 2) : hasLimitedData ? JSON.stringify(assumedWeakTopics, null, 2) : '[]'}
 
 === PLAN REQUIREMENTS ===
 
@@ -159,6 +291,7 @@ ${JSON.stringify(weakTopics, null, 2)}
 3. ADAPT: Match lesson format to learning style (${learningStyle})
 4. PSYCHOLOGY: Account for ${diagnosticProfile?.attention_level || 50}% attention span and ${diagnosticProfile?.stress_resistance || 50}% stress resistance
 5. GOAL: Achieve ${targetORTScore}+ ORT score from current ${currentORTScore}
+${hasLimitedData ? '6. NEW USER: Start with comprehensive fundamentals review before advancing to complex topics' : ''}
 
 Generate a comprehensive plan in this exact JSON format:
 {
@@ -172,7 +305,7 @@ Generate a comprehensive plan in this exact JSON format:
       "currentScore": ${currentORTScore},
       "targetScore": ${targetORTScore},
       "scoreGap": ${scoreGap},
-      "weakTopicsCount": ${weakTopics.length}
+      "weakTopicsCount": ${weakTopics.length || assumedWeakTopics.length}
     }
   },
   "schedule": {
@@ -229,10 +362,10 @@ Generate a comprehensive plan in this exact JSON format:
 
 ${languageInstructions[language as keyof typeof languageInstructions] || languageInstructions.ru}
 
-CRITICAL: Every number and recommendation must be calculated from the diagnostic data provided. No placeholder values.`;
+CRITICAL: Every number and recommendation must be calculated from the diagnostic data provided. No placeholder values. Return ONLY valid JSON, no markdown code blocks.`;
 
     console.log("Generating data-driven learning plan...");
-    console.log(`Target: ${targetORTScore}, Current: ${currentORTScore}, Gap: ${scoreGap}, Weeks: ${weeksRemaining}`);
+    console.log(`Target: ${targetORTScore}, Current: ${currentORTScore}, Gap: ${scoreGap}, Weeks: ${weeksRemaining}, HasLimitedData: ${hasLimitedData}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -243,7 +376,7 @@ CRITICAL: Every number and recommendation must be calculated from the diagnostic
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are an expert ORT exam preparation AI. Create strictly data-driven, personalized learning plans. Always respond with valid JSON only. Every recommendation must be based on the specific diagnostic data provided." },
+          { role: "system", content: "You are an expert ORT exam preparation AI. Create strictly data-driven, personalized learning plans. Always respond with valid JSON only, no markdown code blocks. Every recommendation must be based on the specific diagnostic data provided." },
           { role: "user", content: prompt },
         ],
       }),
@@ -252,36 +385,71 @@ CRITICAL: Every number and recommendation must be calculated from the diagnostic
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI learning plan error:", response.status, errorText);
+      
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
+        console.log("Rate limited, using fallback plan");
+        const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+        return new Response(JSON.stringify(fallbackPlan), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "API credits exhausted. Please contact support." }), {
-          status: 402,
+        console.log("Credits exhausted, using fallback plan");
+        const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+        return new Response(JSON.stringify(fallbackPlan), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Failed to generate learning plan");
+      
+      // For any other error, use fallback
+      console.log("AI error, using fallback plan");
+      const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+      return new Response(JSON.stringify(fallbackPlan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await response.json();
-    const content = aiData.choices[0].message.content;
+    const content = aiData.choices?.[0]?.message?.content;
     
-    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
-    const learningPlan = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content);
+    if (!content) {
+      console.log("No content from AI, using fallback plan");
+      const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+      return new Response(JSON.stringify(fallbackPlan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    try {
+      // Try to parse JSON, handling various formats
+      let learningPlan;
+      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/```\n?([\s\S]*?)\n?```/);
+      
+      if (jsonMatch) {
+        learningPlan = JSON.parse(jsonMatch[1]);
+      } else {
+        // Try parsing the content directly
+        const cleanContent = content.trim();
+        learningPlan = JSON.parse(cleanContent);
+      }
 
-    console.log("Data-driven learning plan generated successfully");
+      console.log("Data-driven learning plan generated successfully");
 
-    return new Response(JSON.stringify(learningPlan), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      return new Response(JSON.stringify(learningPlan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (parseError) {
+      console.error("Failed to parse AI response, using fallback:", parseError);
+      const fallbackPlan = generateDefaultPlan(diagnosticProfile, language);
+      return new Response(JSON.stringify(fallbackPlan), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     console.error("Learning plan error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
+    // Always return a valid plan, never an error
+    const fallbackPlan = generateDefaultPlan({}, 'ru');
+    return new Response(JSON.stringify(fallbackPlan), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

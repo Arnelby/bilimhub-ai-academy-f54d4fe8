@@ -1042,22 +1042,21 @@ export default function DiagnosticTest() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup 
-              onValueChange={(v) => handleMathAnswer(parseInt(v))}
-              className="space-y-3"
-            >
+            <div className="space-y-3">
               {q.options[language as 'en' | 'ru' | 'kg'].map((option, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center space-x-3 p-4 border rounded-xl hover:bg-muted/50 hover:border-primary/50 cursor-pointer transition-all"
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleMathAnswer(idx)}
+                  className="w-full flex items-center space-x-3 p-4 border rounded-xl hover:bg-primary/10 hover:border-primary cursor-pointer transition-all text-left active:scale-[0.98]"
                 >
-                  <RadioGroupItem value={idx.toString()} id={`math-${idx}`} />
-                  <Label htmlFor={`math-${idx}`} className="flex-1 cursor-pointer text-base">
-                    {option}
-                  </Label>
-                </div>
+                  <div className="w-6 h-6 rounded-full border-2 border-primary/50 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium text-primary">{String.fromCharCode(65 + idx)}</span>
+                  </div>
+                  <span className="flex-1 text-base">{option}</span>
+                </button>
               ))}
-            </RadioGroup>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1092,22 +1091,21 @@ export default function DiagnosticTest() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup 
-              onValueChange={(v) => handleLearningAnswer(parseInt(v))}
-              className="space-y-3"
-            >
+            <div className="space-y-3">
               {q.options[language as 'en' | 'ru' | 'kg'].map((option, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center space-x-3 p-4 border rounded-xl hover:bg-muted/50 hover:border-green-500/50 cursor-pointer transition-all"
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleLearningAnswer(idx)}
+                  className="w-full flex items-center space-x-3 p-4 border rounded-xl hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-500 cursor-pointer transition-all text-left active:scale-[0.98]"
                 >
-                  <RadioGroupItem value={idx.toString()} id={`learn-${idx}`} />
-                  <Label htmlFor={`learn-${idx}`} className="flex-1 cursor-pointer text-base">
-                    {option}
-                  </Label>
-                </div>
+                  <div className="w-6 h-6 rounded-full border-2 border-green-500/50 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">{String.fromCharCode(65 + idx)}</span>
+                  </div>
+                  <span className="flex-1 text-base">{option}</span>
+                </button>
               ))}
-            </RadioGroup>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1142,22 +1140,21 @@ export default function DiagnosticTest() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup 
-              onValueChange={(v) => handlePsychologyAnswer(parseInt(v))}
-              className="space-y-3"
-            >
+            <div className="space-y-3">
               {q.options[language as 'en' | 'ru' | 'kg'].map((option, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center space-x-3 p-4 border rounded-xl hover:bg-muted/50 hover:border-purple-500/50 cursor-pointer transition-all"
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handlePsychologyAnswer(idx)}
+                  className="w-full flex items-center space-x-3 p-4 border rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-500 cursor-pointer transition-all text-left active:scale-[0.98]"
                 >
-                  <RadioGroupItem value={idx.toString()} id={`psych-${idx}`} />
-                  <Label htmlFor={`psych-${idx}`} className="flex-1 cursor-pointer text-base">
-                    {option}
-                  </Label>
-                </div>
+                  <div className="w-6 h-6 rounded-full border-2 border-purple-500/50 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium text-purple-600 dark:text-purple-400">{String.fromCharCode(65 + idx)}</span>
+                  </div>
+                  <span className="flex-1 text-base">{option}</span>
+                </button>
               ))}
-            </RadioGroup>
+            </div>
           </CardContent>
         </Card>
       </div>
