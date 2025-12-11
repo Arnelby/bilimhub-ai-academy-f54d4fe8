@@ -352,10 +352,16 @@ export default function FractionsLesson() {
                       </div>
                       <p className="text-muted-foreground">{lesson.explanation}</p>
                       
-                      {/* Video Placeholder */}
-                      <div className="bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center">
-                        <Video className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">{lesson.videoPlaceholder}</p>
+                      {/* YouTube Video */}
+                      <div className="aspect-video rounded-lg overflow-hidden">
+                        <iframe
+                          className="w-full h-full"
+                          src="https://www.youtube.com/embed/UJbYTA-1rYc"
+                          title={lesson.title}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
                       </div>
 
                       <div className="flex items-start gap-3 p-4 rounded-lg bg-warning/10 border border-warning/30">
