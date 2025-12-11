@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, Moon, Sun, User } from 'lucide-react';
+import { Menu, X, Globe, Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Language } from '@/lib/i18n';
 import logo from '@/assets/bilimhub-logo.png';
 import {
@@ -22,6 +23,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const { language, setLanguage, t } = useLanguage();
+  const { user, signOut } = useAuth();
   const location = useLocation();
 
   const toggleTheme = () => {
@@ -29,8 +31,13 @@ export function Navbar() {
     document.documentElement.classList.toggle('dark');
   };
 
-  const navLinks = [
+  // Public links - visible to everyone
+  const publicLinks = [
     { href: '/', label: t.nav.home },
+  ];
+
+  // Protected links - only visible to authenticated users
+  const protectedLinks = [
     { href: '/lessons', label: t.nav.lessons },
     { href: '/tests', label: t.nav.tests },
     { href: '/homework', label: t.nav.homework || 'Homework' },
@@ -40,7 +47,13 @@ export function Navbar() {
     { href: '/profile', label: t.nav.profile },
   ];
 
+  const navLinks = user ? [...publicLinks, ...protectedLinks] : publicLinks;
+
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -97,12 +110,21 @@ export function Navbar() {
 
             {/* Auth Buttons */}
             <div className="hidden items-center gap-2 sm:flex">
-              <Button variant="ghost" asChild>
-                <Link to="/login">{t.nav.login}</Link>
-              </Button>
-              <Button variant="accent" asChild>
-                <Link to="/signup">{t.nav.signup}</Link>
-              </Button>
+              {user ? (
+                <Button variant="ghost" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {t.nav.logout || 'Logout'}
+                </Button>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link to="/login">{t.nav.login}</Link>
+                  </Button>
+                  <Button variant="accent" asChild>
+                    <Link to="/signup">{t.nav.signup}</Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -136,12 +158,21 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="mt-4 flex flex-col gap-2 px-4">
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/login">{t.nav.login}</Link>
-                </Button>
-                <Button variant="accent" asChild className="w-full">
-                  <Link to="/signup">{t.nav.signup}</Link>
-                </Button>
+                {user ? (
+                  <Button variant="outline" className="w-full" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {t.nav.logout || 'Logout'}
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild className="w-full">
+                      <Link to="/login">{t.nav.login}</Link>
+                    </Button>
+                    <Button variant="accent" asChild className="w-full">
+                      <Link to="/signup">{t.nav.signup}</Link>
+                    </Button>
+                  </>
+                )}
               </div>
               {/* Mobile Language Selector */}
               <div className="mt-4 flex gap-2 px-4">

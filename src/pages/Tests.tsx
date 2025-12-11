@@ -289,7 +289,7 @@ export default function Tests() {
                       </div>
                     )}
                     <Button variant="accent" className="w-full" asChild>
-                      <Link to={`/tests/${test.id}`}>
+                      <Link to={test.id === '3fa85f64-5717-4562-b3fc-2c963f66afa6' ? '/tests/testing58' : `/tests/${test.id}`}>
                         <Play className="mr-2 h-4 w-4" />
                         {t.tests.startTest}
                       </Link>
