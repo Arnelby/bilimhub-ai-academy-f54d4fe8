@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { mathTopics, LearningStyle } from '@/data/mathLessonsData';
+import { fractionsLessonData, getText, LearningStyle } from '@/data/fractionsLessonData';
 import { 
   BookOpen, 
   PlayCircle, 
