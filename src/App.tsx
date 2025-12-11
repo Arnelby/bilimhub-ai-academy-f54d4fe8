@@ -28,6 +28,7 @@ import DiagnosticTest from "./pages/DiagnosticTest";
 import LearningPlanV2 from "./pages/LearningPlanV2";
 import AISmartTutor from "./pages/AISmartTutor";
 import Homework from "./pages/Homework";
+import MathLessons from "./pages/MathLessons";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -67,6 +68,7 @@ const App = () => (
                   <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
                   <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
                   <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
+                  <Route path="/math-lessons" element={<ProtectedRoute><MathLessons /></ProtectedRoute>} />
                   
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
