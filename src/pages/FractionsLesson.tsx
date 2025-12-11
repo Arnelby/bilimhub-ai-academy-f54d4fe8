@@ -37,6 +37,12 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Language } from '@/lib/i18n';
 import { toast } from 'sonner';
+import pizzaFraction34 from '@/assets/lessons/pizza-fraction-3-4.png';
+
+// Map of section IDs to actual images
+const sectionImages: Record<string, string> = {
+  'theory-1': pizzaFraction34,
+};
 
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 
@@ -324,10 +330,20 @@ export default function FractionsLesson() {
                         <h3 className="text-lg font-semibold">{getText(section.title, language)}</h3>
                         <p className="text-muted-foreground whitespace-pre-wrap">{getText(section.content, language)}</p>
                         {section.imagePlaceholder && (
-                          <div className="bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center">
-                            <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                            <p className="text-sm text-muted-foreground">{getText(section.imagePlaceholder, language)}</p>
-                          </div>
+                          sectionImages[section.id] ? (
+                            <div className="flex justify-center">
+                              <img 
+                                src={sectionImages[section.id]} 
+                                alt={getText(section.imagePlaceholder, language)}
+                                className="max-w-xs rounded-lg shadow-md"
+                              />
+                            </div>
+                          ) : (
+                            <div className="bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center">
+                              <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">{getText(section.imagePlaceholder, language)}</p>
+                            </div>
+                          )
                         )}
                         <Separator />
                       </div>
