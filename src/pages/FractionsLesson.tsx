@@ -49,9 +49,9 @@ const sectionImages: Record<string, string> = {
 
 // Map of diagram IDs to actual images
 const diagramImages: Record<string, string> = {
-  'diagram-1': fractionOperationsCheatsheet,
-  'diagram-2': fractionConversionFlowchart,
-  'diagram-3': fractionDivisionSteps,
+  'diag-1': fractionOperationsCheatsheet,
+  'diag-2': fractionConversionFlowchart,
+  'diag-3': fractionDivisionSteps,
 };
 
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
