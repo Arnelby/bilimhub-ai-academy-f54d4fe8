@@ -187,16 +187,16 @@ export default function DynamicLessonViewer() {
   const { language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
-  // Mapping from topic IDs to lesson JSON files in storage
+  // Mapping from topic IDs to lesson JSON files in storage (exact paths in bucket)
   const lessonPathMap: Record<string, string> = {
-    fractions: 'storage/lessons/fractions.json',
-    exponents: 'storage/lessons/exponents.json',
+    fractions: 'fractions/fraction.json',
+    exponents: 'exponents/exponents.json',
   };
 
   // Fetch lesson data from storage (JSON is the single source of truth)
   const bucketPath =
     (topicId && lessonPathMap[topicId]) ||
-    (topicId ? `storage/lessons/${topicId}.json` : '');
+    (topicId ? `${topicId}/${topicId}.json` : '');
 
   const { data, loading, error } = useLessonData(bucketPath);
   
