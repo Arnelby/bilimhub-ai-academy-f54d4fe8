@@ -115,22 +115,19 @@ export function useLessonData(bucketPath: string) {
         
         console.log('Fetching lesson from path:', bucketPath);
         
-        // Get signed URL for the JSON file
-        const { data: signedUrlData, error: urlError } = await supabase.storage
+        // Get public URL for the JSON file (bucket is public)
+        const { data: publicUrlData } = supabase.storage
           .from('lessons')
-          .createSignedUrl(bucketPath, 3600);
+          .getPublicUrl(bucketPath);
 
-        if (urlError) {
-          console.error('Storage error:', urlError);
-          throw new Error(`Failed to get signed URL: ${urlError.message}`);
+        if (!publicUrlData?.publicUrl) {
+          throw new Error('No public URL returned');
         }
 
-        if (!signedUrlData?.signedUrl) {
-          throw new Error('No signed URL returned');
-        }
+        console.log('Fetching from URL:', publicUrlData.publicUrl);
 
         // Fetch the JSON content
-        const response = await fetch(signedUrlData.signedUrl);
+        const response = await fetch(publicUrlData.publicUrl);
         if (!response.ok) {
           throw new Error(`Failed to fetch lesson data: ${response.status} ${response.statusText}`);
         }
@@ -158,24 +155,21 @@ export function useStorageImage(bucketPath: string) {
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    async function getImageUrl() {
-      if (!bucketPath) return;
-      
-      // Clean the path - remove 'storage/lessons/' prefix if present
-      let cleanPath = bucketPath
-        .replace(/^storage\/lessons\//, '')
-        .replace(/^\//, '');
+    if (!bucketPath) return;
+    
+    // Clean the path - remove 'storage/lessons/' prefix if present
+    let cleanPath = bucketPath
+      .replace(/^storage\/lessons\//, '')
+      .replace(/^\//, '');
 
-      const { data } = await supabase.storage
-        .from('lessons')
-        .createSignedUrl(cleanPath, 3600);
+    // Use public URL since bucket is public
+    const { data } = supabase.storage
+      .from('lessons')
+      .getPublicUrl(cleanPath);
 
-      if (data?.signedUrl) {
-        setUrl(data.signedUrl);
-      }
+    if (data?.publicUrl) {
+      setUrl(data.publicUrl);
     }
-
-    getImageUrl();
   }, [bucketPath]);
 
   return url;
