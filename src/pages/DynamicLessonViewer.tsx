@@ -51,6 +51,9 @@ import fractionOperationsCheatsheet from '@/assets/lessons/fraction-operations-c
 import fractionConversionFlowchart from '@/assets/lessons/fraction-conversion-flowchart.png';
 import fractionDivisionSteps from '@/assets/lessons/fraction-division-steps.png';
 
+// Import lesson tests data (simple format)
+import { lessonTests, SimpleTestQuestion } from '@/data/lessonTestsData';
+
 // Static image maps per topic
 const topicImages: Record<string, Record<string, string>> = {
   fractions: {
@@ -71,1100 +74,8 @@ const topicVideos: Record<string, string> = {
   exponents: 'https://youtu.be/4-j-tKt6gIo',
 };
 
-// Fallback mini test questions for fractions
-const fractionsMiniTests = [
-  {
-    id: 'frac-mt-1',
-    difficulty: 'easy',
-    question: { en: 'What is 1/2 + 1/4?', ru: 'Чему равно 1/2 + 1/4?', kg: '1/2 + 1/4 канча?' },
-    options: {
-      A: { en: '3/4', ru: '3/4', kg: '3/4' },
-      B: { en: '2/6', ru: '2/6', kg: '2/6' },
-      C: { en: '1/6', ru: '1/6', kg: '1/6' },
-      D: { en: '2/4', ru: '2/4', kg: '2/4' }
-    },
-    correct: 'A',
-    explanation: { en: '1/2 = 2/4, so 2/4 + 1/4 = 3/4', ru: '1/2 = 2/4, поэтому 2/4 + 1/4 = 3/4', kg: '1/2 = 2/4, ошондуктан 2/4 + 1/4 = 3/4' }
-  },
-  {
-    id: 'frac-mt-2',
-    difficulty: 'easy',
-    question: { en: 'Simplify 4/8', ru: 'Сократите дробь 4/8', kg: '4/8 кыскартыңыз' },
-    options: {
-      A: { en: '2/4', ru: '2/4', kg: '2/4' },
-      B: { en: '1/2', ru: '1/2', kg: '1/2' },
-      C: { en: '1/4', ru: '1/4', kg: '1/4' },
-      D: { en: '4/4', ru: '4/4', kg: '4/4' }
-    },
-    correct: 'B',
-    explanation: { en: '4/8 ÷ 4/4 = 1/2', ru: '4/8 ÷ 4/4 = 1/2', kg: '4/8 ÷ 4/4 = 1/2' }
-  },
-  {
-    id: 'frac-mt-3',
-    difficulty: 'easy',
-    question: { en: 'What is 3/5 × 2?', ru: 'Чему равно 3/5 × 2?', kg: '3/5 × 2 канча?' },
-    options: {
-      A: { en: '5/5', ru: '5/5', kg: '5/5' },
-      B: { en: '3/10', ru: '3/10', kg: '3/10' },
-      C: { en: '6/5', ru: '6/5', kg: '6/5' },
-      D: { en: '6/10', ru: '6/10', kg: '6/10' }
-    },
-    correct: 'C',
-    explanation: { en: '3/5 × 2 = 6/5 = 1 1/5', ru: '3/5 × 2 = 6/5 = 1 1/5', kg: '3/5 × 2 = 6/5 = 1 1/5' }
-  },
-  {
-    id: 'frac-mt-4',
-    difficulty: 'medium',
-    question: { en: 'What is 2/3 ÷ 1/2?', ru: 'Чему равно 2/3 ÷ 1/2?', kg: '2/3 ÷ 1/2 канча?' },
-    options: {
-      A: { en: '1/3', ru: '1/3', kg: '1/3' },
-      B: { en: '4/3', ru: '4/3', kg: '4/3' },
-      C: { en: '2/6', ru: '2/6', kg: '2/6' },
-      D: { en: '3/4', ru: '3/4', kg: '3/4' }
-    },
-    correct: 'B',
-    explanation: { en: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3', ru: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3', kg: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3' }
-  },
-  {
-    id: 'frac-mt-5',
-    difficulty: 'medium',
-    question: { en: 'What is 3/4 - 1/3?', ru: 'Чему равно 3/4 - 1/3?', kg: '3/4 - 1/3 канча?' },
-    options: {
-      A: { en: '2/1', ru: '2/1', kg: '2/1' },
-      B: { en: '5/12', ru: '5/12', kg: '5/12' },
-      C: { en: '2/7', ru: '2/7', kg: '2/7' },
-      D: { en: '1/12', ru: '1/12', kg: '1/12' }
-    },
-    correct: 'B',
-    explanation: { en: '3/4 = 9/12, 1/3 = 4/12, so 9/12 - 4/12 = 5/12', ru: '3/4 = 9/12, 1/3 = 4/12, поэтому 9/12 - 4/12 = 5/12', kg: '3/4 = 9/12, 1/3 = 4/12, ошондуктан 9/12 - 4/12 = 5/12' }
-  },
-  {
-    id: 'frac-mt-6',
-    difficulty: 'medium',
-    question: { en: 'Convert 7/4 to a mixed number', ru: 'Преобразуйте 7/4 в смешанное число', kg: '7/4 аралаш санга айландырыңыз' },
-    options: {
-      A: { en: '1 3/4', ru: '1 3/4', kg: '1 3/4' },
-      B: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
-      C: { en: '1 1/2', ru: '1 1/2', kg: '1 1/2' },
-      D: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' }
-    },
-    correct: 'A',
-    explanation: { en: '7 ÷ 4 = 1 remainder 3, so 7/4 = 1 3/4', ru: '7 ÷ 4 = 1 остаток 3, поэтому 7/4 = 1 3/4', kg: '7 ÷ 4 = 1 калдык 3, ошондуктан 7/4 = 1 3/4' }
-  },
-  {
-    id: 'frac-mt-7',
-    difficulty: 'hard',
-    question: { en: 'What is (2/3 + 1/4) × 6?', ru: 'Чему равно (2/3 + 1/4) × 6?', kg: '(2/3 + 1/4) × 6 канча?' },
-    options: {
-      A: { en: '5 1/2', ru: '5 1/2', kg: '5 1/2' },
-      B: { en: '11/2', ru: '11/2', kg: '11/2' },
-      C: { en: '6', ru: '6', kg: '6' },
-      D: { en: '4', ru: '4', kg: '4' }
-    },
-    correct: 'B',
-    explanation: { en: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Then 11/12 × 6 = 66/12 = 11/2', ru: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Затем 11/12 × 6 = 66/12 = 11/2', kg: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Анан 11/12 × 6 = 66/12 = 11/2' }
-  },
-  {
-    id: 'frac-mt-8',
-    difficulty: 'hard',
-    question: { en: 'Simplify: (5/6 - 1/3) ÷ 1/2', ru: 'Упростите: (5/6 - 1/3) ÷ 1/2', kg: 'Жөнөкөйлөтүңүз: (5/6 - 1/3) ÷ 1/2' },
-    options: {
-      A: { en: '1', ru: '1', kg: '1' },
-      B: { en: '1/4', ru: '1/4', kg: '1/4' },
-      C: { en: '1/2', ru: '1/2', kg: '1/2' },
-      D: { en: '2', ru: '2', kg: '2' }
-    },
-    correct: 'A',
-    explanation: { en: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Then 1/2 ÷ 1/2 = 1', ru: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Затем 1/2 ÷ 1/2 = 1', kg: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Анан 1/2 ÷ 1/2 = 1' }
-  },
-  {
-    id: 'frac-mt-9',
-    difficulty: 'hard',
-    question: { en: 'If 3/x = 1/4, what is x?', ru: 'Если 3/x = 1/4, чему равен x?', kg: 'Эгер 3/x = 1/4 болсо, x канча?' },
-    options: {
-      A: { en: '12', ru: '12', kg: '12' },
-      B: { en: '3/4', ru: '3/4', kg: '3/4' },
-      C: { en: '4/3', ru: '4/3', kg: '4/3' },
-      D: { en: '7', ru: '7', kg: '7' }
-    },
-    correct: 'A',
-    explanation: { en: '3/x = 1/4 → x = 3 × 4 = 12', ru: '3/x = 1/4 → x = 3 × 4 = 12', kg: '3/x = 1/4 → x = 3 × 4 = 12' }
-  }
-];
-
-// Fallback full test questions for fractions (20 questions)
-const fractionsFullTest = [
-  {
-    id: 'ft-1',
-    question: { en: 'What is 1/2 + 1/3?', ru: 'Чему равно 1/2 + 1/3?', kg: '1/2 + 1/3 канча?' },
-    options: {
-      A: { en: '2/5', ru: '2/5', kg: '2/5' },
-      B: { en: '5/6', ru: '5/6', kg: '5/6' },
-      C: { en: '2/6', ru: '2/6', kg: '2/6' },
-      D: { en: '1/5', ru: '1/5', kg: '1/5' }
-    },
-    correct: 'B',
-    explanation: { en: '1/2 = 3/6, 1/3 = 2/6, so 3/6 + 2/6 = 5/6', ru: '1/2 = 3/6, 1/3 = 2/6, поэтому 3/6 + 2/6 = 5/6', kg: '1/2 = 3/6, 1/3 = 2/6, ошондуктан 3/6 + 2/6 = 5/6' }
-  },
-  {
-    id: 'ft-2',
-    question: { en: 'Which fraction is equivalent to 4/6?', ru: 'Какая дробь равна 4/6?', kg: 'Кайсы бөлчөк 4/6 барабар?' },
-    options: {
-      A: { en: '2/3', ru: '2/3', kg: '2/3' },
-      B: { en: '3/4', ru: '3/4', kg: '3/4' },
-      C: { en: '1/2', ru: '1/2', kg: '1/2' },
-      D: { en: '4/8', ru: '4/8', kg: '4/8' }
-    },
-    correct: 'A',
-    explanation: { en: '4/6 ÷ 2/2 = 2/3', ru: '4/6 ÷ 2/2 = 2/3', kg: '4/6 ÷ 2/2 = 2/3' }
-  },
-  {
-    id: 'ft-3',
-    question: { en: 'What is 3/4 × 2/5?', ru: 'Чему равно 3/4 × 2/5?', kg: '3/4 × 2/5 канча?' },
-    options: {
-      A: { en: '6/20', ru: '6/20', kg: '6/20' },
-      B: { en: '5/9', ru: '5/9', kg: '5/9' },
-      C: { en: '3/10', ru: '3/10', kg: '3/10' },
-      D: { en: '6/9', ru: '6/9', kg: '6/9' }
-    },
-    correct: 'C',
-    explanation: { en: '3/4 × 2/5 = 6/20 = 3/10', ru: '3/4 × 2/5 = 6/20 = 3/10', kg: '3/4 × 2/5 = 6/20 = 3/10' }
-  },
-  {
-    id: 'ft-4',
-    question: { en: 'What is 5/6 - 1/2?', ru: 'Чему равно 5/6 - 1/2?', kg: '5/6 - 1/2 канча?' },
-    options: {
-      A: { en: '4/4', ru: '4/4', kg: '4/4' },
-      B: { en: '1/3', ru: '1/3', kg: '1/3' },
-      C: { en: '2/6', ru: '2/6', kg: '2/6' },
-      D: { en: '4/6', ru: '4/6', kg: '4/6' }
-    },
-    correct: 'B',
-    explanation: { en: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3', ru: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3', kg: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3' }
-  },
-  {
-    id: 'ft-5',
-    question: { en: 'What is 3/5 ÷ 1/2?', ru: 'Чему равно 3/5 ÷ 1/2?', kg: '3/5 ÷ 1/2 канча?' },
-    options: {
-      A: { en: '3/10', ru: '3/10', kg: '3/10' },
-      B: { en: '6/5', ru: '6/5', kg: '6/5' },
-      C: { en: '5/6', ru: '5/6', kg: '5/6' },
-      D: { en: '1/5', ru: '1/5', kg: '1/5' }
-    },
-    correct: 'B',
-    explanation: { en: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5', ru: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5', kg: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5' }
-  },
-  {
-    id: 'ft-6',
-    question: { en: 'Simplify 12/18', ru: 'Сократите 12/18', kg: '12/18 кыскартыңыз' },
-    options: {
-      A: { en: '6/9', ru: '6/9', kg: '6/9' },
-      B: { en: '4/6', ru: '4/6', kg: '4/6' },
-      C: { en: '2/3', ru: '2/3', kg: '2/3' },
-      D: { en: '3/4', ru: '3/4', kg: '3/4' }
-    },
-    correct: 'C',
-    explanation: { en: '12/18 ÷ 6/6 = 2/3', ru: '12/18 ÷ 6/6 = 2/3', kg: '12/18 ÷ 6/6 = 2/3' }
-  },
-  {
-    id: 'ft-7',
-    question: { en: 'Convert 11/4 to a mixed number', ru: 'Преобразуйте 11/4 в смешанное число', kg: '11/4 аралаш санга айландырыңыз' },
-    options: {
-      A: { en: '2 3/4', ru: '2 3/4', kg: '2 3/4' },
-      B: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
-      C: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
-      D: { en: '1 3/4', ru: '1 3/4', kg: '1 3/4' }
-    },
-    correct: 'A',
-    explanation: { en: '11 ÷ 4 = 2 remainder 3, so 11/4 = 2 3/4', ru: '11 ÷ 4 = 2 остаток 3, поэтому 11/4 = 2 3/4', kg: '11 ÷ 4 = 2 калдык 3, ошондуктан 11/4 = 2 3/4' }
-  },
-  {
-    id: 'ft-8',
-    question: { en: 'What is 2 1/2 + 1 3/4?', ru: 'Чему равно 2 1/2 + 1 3/4?', kg: '2 1/2 + 1 3/4 канча?' },
-    options: {
-      A: { en: '3 5/4', ru: '3 5/4', kg: '3 5/4' },
-      B: { en: '4 1/4', ru: '4 1/4', kg: '4 1/4' },
-      C: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
-      D: { en: '4 3/4', ru: '4 3/4', kg: '4 3/4' }
-    },
-    correct: 'B',
-    explanation: { en: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, so 10/4 + 7/4 = 17/4 = 4 1/4', ru: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, поэтому 10/4 + 7/4 = 17/4 = 4 1/4', kg: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, ошондуктан 10/4 + 7/4 = 17/4 = 4 1/4' }
-  },
-  {
-    id: 'ft-9',
-    question: { en: 'Which fraction is greater: 3/5 or 2/3?', ru: 'Какая дробь больше: 3/5 или 2/3?', kg: 'Кайсы бөлчөк чоңураак: 3/5 же 2/3?' },
-    options: {
-      A: { en: '3/5', ru: '3/5', kg: '3/5' },
-      B: { en: '2/3', ru: '2/3', kg: '2/3' },
-      C: { en: 'They are equal', ru: 'Они равны', kg: 'Алар барабар' },
-      D: { en: 'Cannot determine', ru: 'Нельзя определить', kg: 'Аныктоого мүмкүн эмес' }
-    },
-    correct: 'B',
-    explanation: { en: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, so 2/3 > 3/5', ru: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, поэтому 2/3 > 3/5', kg: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, ошондуктан 2/3 > 3/5' }
-  },
-  {
-    id: 'ft-10',
-    question: { en: 'What is 7/8 × 4/7?', ru: 'Чему равно 7/8 × 4/7?', kg: '7/8 × 4/7 канча?' },
-    options: {
-      A: { en: '1/2', ru: '1/2', kg: '1/2' },
-      B: { en: '28/56', ru: '28/56', kg: '28/56' },
-      C: { en: '4/8', ru: '4/8', kg: '4/8' },
-      D: { en: '11/15', ru: '11/15', kg: '11/15' }
-    },
-    correct: 'A',
-    explanation: { en: '7/8 × 4/7 = 28/56 = 1/2 (or cancel 7s: 4/8 = 1/2)', ru: '7/8 × 4/7 = 28/56 = 1/2 (или сокращаем 7: 4/8 = 1/2)', kg: '7/8 × 4/7 = 28/56 = 1/2 (же 7 кыскартылат: 4/8 = 1/2)' }
-  },
-  {
-    id: 'ft-11',
-    question: { en: 'Convert 3 2/5 to an improper fraction', ru: 'Преобразуйте 3 2/5 в неправильную дробь', kg: '3 2/5 туура эмес бөлчөккө айландырыңыз' },
-    options: {
-      A: { en: '15/5', ru: '15/5', kg: '15/5' },
-      B: { en: '17/5', ru: '17/5', kg: '17/5' },
-      C: { en: '13/5', ru: '13/5', kg: '13/5' },
-      D: { en: '11/5', ru: '11/5', kg: '11/5' }
-    },
-    correct: 'B',
-    explanation: { en: '3 2/5 = (3 × 5 + 2)/5 = 17/5', ru: '3 2/5 = (3 × 5 + 2)/5 = 17/5', kg: '3 2/5 = (3 × 5 + 2)/5 = 17/5' }
-  },
-  {
-    id: 'ft-12',
-    question: { en: 'What is 5/8 - 3/8?', ru: 'Чему равно 5/8 - 3/8?', kg: '5/8 - 3/8 канча?' },
-    options: {
-      A: { en: '2/8', ru: '2/8', kg: '2/8' },
-      B: { en: '1/4', ru: '1/4', kg: '1/4' },
-      C: { en: '1/8', ru: '1/8', kg: '1/8' },
-      D: { en: '2/16', ru: '2/16', kg: '2/16' }
-    },
-    correct: 'B',
-    explanation: { en: '5/8 - 3/8 = 2/8 = 1/4', ru: '5/8 - 3/8 = 2/8 = 1/4', kg: '5/8 - 3/8 = 2/8 = 1/4' }
-  },
-  {
-    id: 'ft-13',
-    question: { en: 'What is 2/3 ÷ 4/5?', ru: 'Чему равно 2/3 ÷ 4/5?', kg: '2/3 ÷ 4/5 канча?' },
-    options: {
-      A: { en: '8/15', ru: '8/15', kg: '8/15' },
-      B: { en: '10/12', ru: '10/12', kg: '10/12' },
-      C: { en: '5/6', ru: '5/6', kg: '5/6' },
-      D: { en: '6/5', ru: '6/5', kg: '6/5' }
-    },
-    correct: 'C',
-    explanation: { en: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6', ru: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6', kg: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6' }
-  },
-  {
-    id: 'ft-14',
-    question: { en: 'If 1/4 of a number is 12, what is the number?', ru: 'Если 1/4 числа равна 12, чему равно число?', kg: 'Эгерде сандын 1/4 12ге барабар болсо, ал сан канча?' },
-    options: {
-      A: { en: '3', ru: '3', kg: '3' },
-      B: { en: '48', ru: '48', kg: '48' },
-      C: { en: '16', ru: '16', kg: '16' },
-      D: { en: '36', ru: '36', kg: '36' }
-    },
-    correct: 'B',
-    explanation: { en: 'If 1/4 × x = 12, then x = 12 × 4 = 48', ru: 'Если 1/4 × x = 12, тогда x = 12 × 4 = 48', kg: 'Эгерде 1/4 × x = 12 болсо, анда x = 12 × 4 = 48' }
-  },
-  {
-    id: 'ft-15',
-    question: { en: 'What is 1/6 + 1/4 + 1/3?', ru: 'Чему равно 1/6 + 1/4 + 1/3?', kg: '1/6 + 1/4 + 1/3 канча?' },
-    options: {
-      A: { en: '3/13', ru: '3/13', kg: '3/13' },
-      B: { en: '3/4', ru: '3/4', kg: '3/4' },
-      C: { en: '9/12', ru: '9/12', kg: '9/12' },
-      D: { en: '1/2', ru: '1/2', kg: '1/2' }
-    },
-    correct: 'B',
-    explanation: { en: 'LCD = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Sum = 9/12 = 3/4', ru: 'НОЗ = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Сумма = 9/12 = 3/4', kg: 'ЭКБ = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Сумма = 9/12 = 3/4' }
-  },
-  {
-    id: 'ft-16',
-    question: { en: 'Simplify (2/3)²', ru: 'Упростите (2/3)²', kg: '(2/3)² жөнөкөйлөтүңүз' },
-    options: {
-      A: { en: '4/6', ru: '4/6', kg: '4/6' },
-      B: { en: '4/9', ru: '4/9', kg: '4/9' },
-      C: { en: '2/6', ru: '2/6', kg: '2/6' },
-      D: { en: '6/9', ru: '6/9', kg: '6/9' }
-    },
-    correct: 'B',
-    explanation: { en: '(2/3)² = 2²/3² = 4/9', ru: '(2/3)² = 2²/3² = 4/9', kg: '(2/3)² = 2²/3² = 4/9' }
-  },
-  {
-    id: 'ft-17',
-    question: { en: 'What is 5 - 2 3/4?', ru: 'Чему равно 5 - 2 3/4?', kg: '5 - 2 3/4 канча?' },
-    options: {
-      A: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
-      B: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
-      C: { en: '2 3/4', ru: '2 3/4', kg: '2 3/4' },
-      D: { en: '3 3/4', ru: '3 3/4', kg: '3 3/4' }
-    },
-    correct: 'A',
-    explanation: { en: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4', ru: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4', kg: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4' }
-  },
-  {
-    id: 'ft-18',
-    question: { en: 'What is 3/4 of 24?', ru: 'Чему равно 3/4 от 24?', kg: '24дүн 3/4 канча?' },
-    options: {
-      A: { en: '16', ru: '16', kg: '16' },
-      B: { en: '18', ru: '18', kg: '18' },
-      C: { en: '20', ru: '20', kg: '20' },
-      D: { en: '6', ru: '6', kg: '6' }
-    },
-    correct: 'B',
-    explanation: { en: '3/4 × 24 = 72/4 = 18', ru: '3/4 × 24 = 72/4 = 18', kg: '3/4 × 24 = 72/4 = 18' }
-  },
-  {
-    id: 'ft-19',
-    question: { en: 'What is the reciprocal of 5/7?', ru: 'Чему равна обратная дробь от 5/7?', kg: '5/7дин карама-каршы бөлчөгү канча?' },
-    options: {
-      A: { en: '-5/7', ru: '-5/7', kg: '-5/7' },
-      B: { en: '7/5', ru: '7/5', kg: '7/5' },
-      C: { en: '1/5', ru: '1/5', kg: '1/5' },
-      D: { en: '5/1', ru: '5/1', kg: '5/1' }
-    },
-    correct: 'B',
-    explanation: { en: 'The reciprocal of a/b is b/a. So reciprocal of 5/7 is 7/5', ru: 'Обратная дробь к a/b равна b/a. Поэтому обратная к 5/7 равна 7/5', kg: 'a/b бөлчөгүнүн карама-каршысы b/a. Ошондуктан 5/7дин карама-каршысы 7/5' }
-  },
-  {
-    id: 'ft-20',
-    question: { en: 'Solve: x/3 = 4/9', ru: 'Решите: x/3 = 4/9', kg: 'Чечиңиз: x/3 = 4/9' },
-    options: {
-      A: { en: 'x = 4/3', ru: 'x = 4/3', kg: 'x = 4/3' },
-      B: { en: 'x = 12/9', ru: 'x = 12/9', kg: 'x = 12/9' },
-      C: { en: 'x = 4/27', ru: 'x = 4/27', kg: 'x = 4/27' },
-      D: { en: 'x = 12/27', ru: 'x = 12/27', kg: 'x = 12/27' }
-    },
-    correct: 'A',
-    explanation: { en: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3', ru: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3', kg: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3' }
-  }
-];
-
-// Fallback mini test questions for exponents (9 questions: 3 easy, 3 medium, 3 hard)
-const exponentsMiniTests = [
-  {
-    id: 'exp-mt-1',
-    difficulty: 'easy',
-    question: { en: 'What is 2³?', ru: 'Чему равно 2³?', kg: '2³ канча?' },
-    options: {
-      A: { en: '6', ru: '6', kg: '6' },
-      B: { en: '8', ru: '8', kg: '8' },
-      C: { en: '9', ru: '9', kg: '9' },
-      D: { en: '5', ru: '5', kg: '5' }
-    },
-    correct: 'B',
-    explanation: { en: '2³ = 2 × 2 × 2 = 8', ru: '2³ = 2 × 2 × 2 = 8', kg: '2³ = 2 × 2 × 2 = 8' }
-  },
-  {
-    id: 'exp-mt-2',
-    difficulty: 'easy',
-    question: { en: 'What is 5⁰?', ru: 'Чему равно 5⁰?', kg: '5⁰ канча?' },
-    options: {
-      A: { en: '0', ru: '0', kg: '0' },
-      B: { en: '5', ru: '5', kg: '5' },
-      C: { en: '1', ru: '1', kg: '1' },
-      D: { en: 'undefined', ru: 'не определено', kg: 'аныкталбаган' }
-    },
-    correct: 'C',
-    explanation: { en: 'Any number raised to power 0 equals 1 (except 0⁰)', ru: 'Любое число в степени 0 равно 1 (кроме 0⁰)', kg: 'Ар кандай сан 0 даражасына барабар 1 (0⁰ден башка)' }
-  },
-  {
-    id: 'exp-mt-3',
-    difficulty: 'easy',
-    question: { en: 'What is 10²?', ru: 'Чему равно 10²?', kg: '10² канча?' },
-    options: {
-      A: { en: '20', ru: '20', kg: '20' },
-      B: { en: '100', ru: '100', kg: '100' },
-      C: { en: '1000', ru: '1000', kg: '1000' },
-      D: { en: '12', ru: '12', kg: '12' }
-    },
-    correct: 'B',
-    explanation: { en: '10² = 10 × 10 = 100', ru: '10² = 10 × 10 = 100', kg: '10² = 10 × 10 = 100' }
-  },
-  {
-    id: 'exp-mt-4',
-    difficulty: 'medium',
-    question: { en: 'Simplify: 2³ × 2⁴', ru: 'Упростите: 2³ × 2⁴', kg: 'Жөнөкөйлөтүңүз: 2³ × 2⁴' },
-    options: {
-      A: { en: '2⁷', ru: '2⁷', kg: '2⁷' },
-      B: { en: '2¹²', ru: '2¹²', kg: '2¹²' },
-      C: { en: '4⁷', ru: '4⁷', kg: '4⁷' },
-      D: { en: '2¹', ru: '2¹', kg: '2¹' }
-    },
-    correct: 'A',
-    explanation: { en: 'When multiplying with same base, add exponents: 2³ × 2⁴ = 2³⁺⁴ = 2⁷', ru: 'При умножении с одинаковым основанием складываем показатели: 2³ × 2⁴ = 2³⁺⁴ = 2⁷', kg: 'Бирдей негиз менен көбөйтүүдө даражаларды кошобуз: 2³ × 2⁴ = 2³⁺⁴ = 2⁷' }
-  },
-  {
-    id: 'exp-mt-5',
-    difficulty: 'medium',
-    question: { en: 'What is 3⁻²?', ru: 'Чему равно 3⁻²?', kg: '3⁻² канча?' },
-    options: {
-      A: { en: '-9', ru: '-9', kg: '-9' },
-      B: { en: '1/9', ru: '1/9', kg: '1/9' },
-      C: { en: '-6', ru: '-6', kg: '-6' },
-      D: { en: '9', ru: '9', kg: '9' }
-    },
-    correct: 'B',
-    explanation: { en: 'Negative exponent means reciprocal: 3⁻² = 1/3² = 1/9', ru: 'Отрицательный показатель означает обратное число: 3⁻² = 1/3² = 1/9', kg: 'Терс даража карама-каршыны билдирет: 3⁻² = 1/3² = 1/9' }
-  },
-  {
-    id: 'exp-mt-6',
-    difficulty: 'medium',
-    question: { en: 'Simplify: (2³)²', ru: 'Упростите: (2³)²', kg: 'Жөнөкөйлөтүңүз: (2³)²' },
-    options: {
-      A: { en: '2⁵', ru: '2⁵', kg: '2⁵' },
-      B: { en: '2⁶', ru: '2⁶', kg: '2⁶' },
-      C: { en: '2⁹', ru: '2⁹', kg: '2⁹' },
-      D: { en: '4⁶', ru: '4⁶', kg: '4⁶' }
-    },
-    correct: 'B',
-    explanation: { en: 'Power of a power: multiply exponents: (2³)² = 2³ˣ² = 2⁶', ru: 'Степень степени: умножаем показатели: (2³)² = 2³ˣ² = 2⁶', kg: 'Даражанын даражасы: даражаларды көбөйтөбүз: (2³)² = 2³ˣ² = 2⁶' }
-  },
-  {
-    id: 'exp-mt-7',
-    difficulty: 'hard',
-    question: { en: 'Simplify: 5⁴ ÷ 5²', ru: 'Упростите: 5⁴ ÷ 5²', kg: 'Жөнөкөйлөтүңүз: 5⁴ ÷ 5²' },
-    options: {
-      A: { en: '5²', ru: '5²', kg: '5²' },
-      B: { en: '5⁶', ru: '5⁶', kg: '5⁶' },
-      C: { en: '1²', ru: '1²', kg: '1²' },
-      D: { en: '5⁸', ru: '5⁸', kg: '5⁸' }
-    },
-    correct: 'A',
-    explanation: { en: 'When dividing with same base, subtract exponents: 5⁴ ÷ 5² = 5⁴⁻² = 5²', ru: 'При делении с одинаковым основанием вычитаем показатели: 5⁴ ÷ 5² = 5⁴⁻² = 5²', kg: 'Бирдей негиз менен бөлүүдө даражаларды кемитебиз: 5⁴ ÷ 5² = 5⁴⁻² = 5²' }
-  },
-  {
-    id: 'exp-mt-8',
-    difficulty: 'hard',
-    question: { en: 'What is (2 × 3)³?', ru: 'Чему равно (2 × 3)³?', kg: '(2 × 3)³ канча?' },
-    options: {
-      A: { en: '18', ru: '18', kg: '18' },
-      B: { en: '36', ru: '36', kg: '36' },
-      C: { en: '216', ru: '216', kg: '216' },
-      D: { en: '72', ru: '72', kg: '72' }
-    },
-    correct: 'C',
-    explanation: { en: '(2 × 3)³ = 6³ = 216, or 2³ × 3³ = 8 × 27 = 216', ru: '(2 × 3)³ = 6³ = 216, или 2³ × 3³ = 8 × 27 = 216', kg: '(2 × 3)³ = 6³ = 216, же 2³ × 3³ = 8 × 27 = 216' }
-  },
-  {
-    id: 'exp-mt-9',
-    difficulty: 'hard',
-    question: { en: 'Simplify: (x²)³ × x⁴', ru: 'Упростите: (x²)³ × x⁴', kg: 'Жөнөкөйлөтүңүз: (x²)³ × x⁴' },
-    options: {
-      A: { en: 'x⁹', ru: 'x⁹', kg: 'x⁹' },
-      B: { en: 'x¹⁰', ru: 'x¹⁰', kg: 'x¹⁰' },
-      C: { en: 'x²⁴', ru: 'x²⁴', kg: 'x²⁴' },
-      D: { en: 'x⁸', ru: 'x⁸', kg: 'x⁸' }
-    },
-    correct: 'B',
-    explanation: { en: '(x²)³ = x⁶, then x⁶ × x⁴ = x¹⁰', ru: '(x²)³ = x⁶, затем x⁶ × x⁴ = x¹⁰', kg: '(x²)³ = x⁶, анан x⁶ × x⁴ = x¹⁰' }
-  }
-];
-
-// Fallback full test questions for exponents (20 questions)
-const exponentsFullTest = [
-  {
-    id: 'exp-ft-1',
-    question: { en: 'What is 3⁴?', ru: 'Чему равно 3⁴?', kg: '3⁴ канча?' },
-    options: {
-      A: { en: '12', ru: '12', kg: '12' },
-      B: { en: '81', ru: '81', kg: '81' },
-      C: { en: '64', ru: '64', kg: '64' },
-      D: { en: '27', ru: '27', kg: '27' }
-    },
-    correct: 'B',
-    explanation: { en: '3⁴ = 3 × 3 × 3 × 3 = 81', ru: '3⁴ = 3 × 3 × 3 × 3 = 81', kg: '3⁴ = 3 × 3 × 3 × 3 = 81' }
-  },
-  {
-    id: 'exp-ft-2',
-    question: { en: 'What is 2⁵?', ru: 'Чему равно 2⁵?', kg: '2⁵ канча?' },
-    options: {
-      A: { en: '10', ru: '10', kg: '10' },
-      B: { en: '25', ru: '25', kg: '25' },
-      C: { en: '32', ru: '32', kg: '32' },
-      D: { en: '16', ru: '16', kg: '16' }
-    },
-    correct: 'C',
-    explanation: { en: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32', ru: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32', kg: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32' }
-  },
-  {
-    id: 'exp-ft-3',
-    question: { en: 'Simplify: 4² × 4³', ru: 'Упростите: 4² × 4³', kg: 'Жөнөкөйлөтүңүз: 4² × 4³' },
-    options: {
-      A: { en: '4⁵', ru: '4⁵', kg: '4⁵' },
-      B: { en: '4⁶', ru: '4⁶', kg: '4⁶' },
-      C: { en: '16⁵', ru: '16⁵', kg: '16⁵' },
-      D: { en: '8⁵', ru: '8⁵', kg: '8⁵' }
-    },
-    correct: 'A',
-    explanation: { en: 'Same base multiplication: 4² × 4³ = 4²⁺³ = 4⁵', ru: 'Умножение с одинаковым основанием: 4² × 4³ = 4²⁺³ = 4⁵', kg: 'Бирдей негиз менен көбөйтүү: 4² × 4³ = 4²⁺³ = 4⁵' }
-  },
-  {
-    id: 'exp-ft-4',
-    question: { en: 'What is 7⁰?', ru: 'Чему равно 7⁰?', kg: '7⁰ канча?' },
-    options: {
-      A: { en: '0', ru: '0', kg: '0' },
-      B: { en: '7', ru: '7', kg: '7' },
-      C: { en: '1', ru: '1', kg: '1' },
-      D: { en: '-1', ru: '-1', kg: '-1' }
-    },
-    correct: 'C',
-    explanation: { en: 'Any non-zero number to the power of 0 equals 1', ru: 'Любое ненулевое число в степени 0 равно 1', kg: 'Ар кандай нөлдөн башка сан 0 даражасына барабар 1' }
-  },
-  {
-    id: 'exp-ft-5',
-    question: { en: 'What is 2⁻³?', ru: 'Чему равно 2⁻³?', kg: '2⁻³ канча?' },
-    options: {
-      A: { en: '-8', ru: '-8', kg: '-8' },
-      B: { en: '1/8', ru: '1/8', kg: '1/8' },
-      C: { en: '-6', ru: '-6', kg: '-6' },
-      D: { en: '8', ru: '8', kg: '8' }
-    },
-    correct: 'B',
-    explanation: { en: '2⁻³ = 1/2³ = 1/8', ru: '2⁻³ = 1/2³ = 1/8', kg: '2⁻³ = 1/2³ = 1/8' }
-  },
-  {
-    id: 'exp-ft-6',
-    question: { en: 'Simplify: (3²)³', ru: 'Упростите: (3²)³', kg: 'Жөнөкөйлөтүңүз: (3²)³' },
-    options: {
-      A: { en: '3⁵', ru: '3⁵', kg: '3⁵' },
-      B: { en: '3⁶', ru: '3⁶', kg: '3⁶' },
-      C: { en: '9⁶', ru: '9⁶', kg: '9⁶' },
-      D: { en: '3⁸', ru: '3⁸', kg: '3⁸' }
-    },
-    correct: 'B',
-    explanation: { en: 'Power of power: (3²)³ = 3²ˣ³ = 3⁶', ru: 'Степень степени: (3²)³ = 3²ˣ³ = 3⁶', kg: 'Даражанын даражасы: (3²)³ = 3²ˣ³ = 3⁶' }
-  },
-  {
-    id: 'exp-ft-7',
-    question: { en: 'What is 6⁸ ÷ 6⁵?', ru: 'Чему равно 6⁸ ÷ 6⁵?', kg: '6⁸ ÷ 6⁵ канча?' },
-    options: {
-      A: { en: '6³', ru: '6³', kg: '6³' },
-      B: { en: '6¹³', ru: '6¹³', kg: '6¹³' },
-      C: { en: '1³', ru: '1³', kg: '1³' },
-      D: { en: '36³', ru: '36³', kg: '36³' }
-    },
-    correct: 'A',
-    explanation: { en: 'Same base division: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³', ru: 'Деление с одинаковым основанием: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³', kg: 'Бирдей негиз менен бөлүү: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³' }
-  },
-  {
-    id: 'exp-ft-8',
-    question: { en: 'What is (5²)⁰?', ru: 'Чему равно (5²)⁰?', kg: '(5²)⁰ канча?' },
-    options: {
-      A: { en: '25', ru: '25', kg: '25' },
-      B: { en: '0', ru: '0', kg: '0' },
-      C: { en: '1', ru: '1', kg: '1' },
-      D: { en: '5', ru: '5', kg: '5' }
-    },
-    correct: 'C',
-    explanation: { en: 'Any expression to the power of 0 equals 1', ru: 'Любое выражение в степени 0 равно 1', kg: 'Ар кандай туюнтма 0 даражасына барабар 1' }
-  },
-  {
-    id: 'exp-ft-9',
-    question: { en: 'Simplify: 2⁴ × 3⁴', ru: 'Упростите: 2⁴ × 3⁴', kg: 'Жөнөкөйлөтүңүз: 2⁴ × 3⁴' },
-    options: {
-      A: { en: '6⁴', ru: '6⁴', kg: '6⁴' },
-      B: { en: '6⁸', ru: '6⁸', kg: '6⁸' },
-      C: { en: '5⁸', ru: '5⁸', kg: '5⁸' },
-      D: { en: '2⁴ + 3⁴', ru: '2⁴ + 3⁴', kg: '2⁴ + 3⁴' }
-    },
-    correct: 'A',
-    explanation: { en: 'Same exponent: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴', ru: 'Одинаковый показатель: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴', kg: 'Бирдей даража: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴' }
-  },
-  {
-    id: 'exp-ft-10',
-    question: { en: 'What is 10⁻¹?', ru: 'Чему равно 10⁻¹?', kg: '10⁻¹ канча?' },
-    options: {
-      A: { en: '-10', ru: '-10', kg: '-10' },
-      B: { en: '0.1', ru: '0,1', kg: '0.1' },
-      C: { en: '-1', ru: '-1', kg: '-1' },
-      D: { en: '10', ru: '10', kg: '10' }
-    },
-    correct: 'B',
-    explanation: { en: '10⁻¹ = 1/10 = 0.1', ru: '10⁻¹ = 1/10 = 0,1', kg: '10⁻¹ = 1/10 = 0.1' }
-  },
-  {
-    id: 'exp-ft-11',
-    question: { en: 'Simplify: x⁵ × x³', ru: 'Упростите: x⁵ × x³', kg: 'Жөнөкөйлөтүңүз: x⁵ × x³' },
-    options: {
-      A: { en: 'x¹⁵', ru: 'x¹⁵', kg: 'x¹⁵' },
-      B: { en: 'x⁸', ru: 'x⁸', kg: 'x⁸' },
-      C: { en: 'x²', ru: 'x²', kg: 'x²' },
-      D: { en: '2x⁸', ru: '2x⁸', kg: '2x⁸' }
-    },
-    correct: 'B',
-    explanation: { en: 'x⁵ × x³ = x⁵⁺³ = x⁸', ru: 'x⁵ × x³ = x⁵⁺³ = x⁸', kg: 'x⁵ × x³ = x⁵⁺³ = x⁸' }
-  },
-  {
-    id: 'exp-ft-12',
-    question: { en: 'What is (1/2)²?', ru: 'Чему равно (1/2)²?', kg: '(1/2)² канча?' },
-    options: {
-      A: { en: '1', ru: '1', kg: '1' },
-      B: { en: '1/4', ru: '1/4', kg: '1/4' },
-      C: { en: '2', ru: '2', kg: '2' },
-      D: { en: '1/2', ru: '1/2', kg: '1/2' }
-    },
-    correct: 'B',
-    explanation: { en: '(1/2)² = 1²/2² = 1/4', ru: '(1/2)² = 1²/2² = 1/4', kg: '(1/2)² = 1²/2² = 1/4' }
-  },
-  {
-    id: 'exp-ft-13',
-    question: { en: 'Simplify: a⁶ ÷ a²', ru: 'Упростите: a⁶ ÷ a²', kg: 'Жөнөкөйлөтүңүз: a⁶ ÷ a²' },
-    options: {
-      A: { en: 'a⁴', ru: 'a⁴', kg: 'a⁴' },
-      B: { en: 'a³', ru: 'a³', kg: 'a³' },
-      C: { en: 'a⁸', ru: 'a⁸', kg: 'a⁸' },
-      D: { en: 'a¹²', ru: 'a¹²', kg: 'a¹²' }
-    },
-    correct: 'A',
-    explanation: { en: 'a⁶ ÷ a² = a⁶⁻² = a⁴', ru: 'a⁶ ÷ a² = a⁶⁻² = a⁴', kg: 'a⁶ ÷ a² = a⁶⁻² = a⁴' }
-  },
-  {
-    id: 'exp-ft-14',
-    question: { en: 'What is 4⁻¹?', ru: 'Чему равно 4⁻¹?', kg: '4⁻¹ канча?' },
-    options: {
-      A: { en: '-4', ru: '-4', kg: '-4' },
-      B: { en: '1/4', ru: '1/4', kg: '1/4' },
-      C: { en: '4', ru: '4', kg: '4' },
-      D: { en: '-1/4', ru: '-1/4', kg: '-1/4' }
-    },
-    correct: 'B',
-    explanation: { en: '4⁻¹ = 1/4', ru: '4⁻¹ = 1/4', kg: '4⁻¹ = 1/4' }
-  },
-  {
-    id: 'exp-ft-15',
-    question: { en: 'Simplify: (xy)³', ru: 'Упростите: (xy)³', kg: 'Жөнөкөйлөтүңүз: (xy)³' },
-    options: {
-      A: { en: 'x³y', ru: 'x³y', kg: 'x³y' },
-      B: { en: 'xy³', ru: 'xy³', kg: 'xy³' },
-      C: { en: 'x³y³', ru: 'x³y³', kg: 'x³y³' },
-      D: { en: '3xy', ru: '3xy', kg: '3xy' }
-    },
-    correct: 'C',
-    explanation: { en: '(xy)³ = x³y³', ru: '(xy)³ = x³y³', kg: '(xy)³ = x³y³' }
-  },
-  {
-    id: 'exp-ft-16',
-    question: { en: 'What is 9^(1/2)?', ru: 'Чему равно 9^(1/2)?', kg: '9^(1/2) канча?' },
-    options: {
-      A: { en: '4.5', ru: '4,5', kg: '4.5' },
-      B: { en: '3', ru: '3', kg: '3' },
-      C: { en: '81', ru: '81', kg: '81' },
-      D: { en: '18', ru: '18', kg: '18' }
-    },
-    correct: 'B',
-    explanation: { en: '9^(1/2) = √9 = 3', ru: '9^(1/2) = √9 = 3', kg: '9^(1/2) = √9 = 3' }
-  },
-  {
-    id: 'exp-ft-17',
-    question: { en: 'Simplify: (2³)⁴', ru: 'Упростите: (2³)⁴', kg: 'Жөнөкөйлөтүңүз: (2³)⁴' },
-    options: {
-      A: { en: '2⁷', ru: '2⁷', kg: '2⁷' },
-      B: { en: '2¹²', ru: '2¹²', kg: '2¹²' },
-      C: { en: '8⁴', ru: '8⁴', kg: '8⁴' },
-      D: { en: '6⁴', ru: '6⁴', kg: '6⁴' }
-    },
-    correct: 'B',
-    explanation: { en: '(2³)⁴ = 2³ˣ⁴ = 2¹²', ru: '(2³)⁴ = 2³ˣ⁴ = 2¹²', kg: '(2³)⁴ = 2³ˣ⁴ = 2¹²' }
-  },
-  {
-    id: 'exp-ft-18',
-    question: { en: 'What is 5² + 5³?', ru: 'Чему равно 5² + 5³?', kg: '5² + 5³ канча?' },
-    options: {
-      A: { en: '5⁵', ru: '5⁵', kg: '5⁵' },
-      B: { en: '150', ru: '150', kg: '150' },
-      C: { en: '10⁵', ru: '10⁵', kg: '10⁵' },
-      D: { en: '250', ru: '250', kg: '250' }
-    },
-    correct: 'B',
-    explanation: { en: '5² + 5³ = 25 + 125 = 150', ru: '5² + 5³ = 25 + 125 = 150', kg: '5² + 5³ = 25 + 125 = 150' }
-  },
-  {
-    id: 'exp-ft-19',
-    question: { en: 'Simplify: (a/b)³', ru: 'Упростите: (a/b)³', kg: 'Жөнөкөйлөтүңүз: (a/b)³' },
-    options: {
-      A: { en: 'a³/b', ru: 'a³/b', kg: 'a³/b' },
-      B: { en: 'a/b³', ru: 'a/b³', kg: 'a/b³' },
-      C: { en: 'a³/b³', ru: 'a³/b³', kg: 'a³/b³' },
-      D: { en: '3a/3b', ru: '3a/3b', kg: '3a/3b' }
-    },
-    correct: 'C',
-    explanation: { en: '(a/b)³ = a³/b³', ru: '(a/b)³ = a³/b³', kg: '(a/b)³ = a³/b³' }
-  },
-  {
-    id: 'exp-ft-20',
-    question: { en: 'If 2ˣ = 16, what is x?', ru: 'Если 2ˣ = 16, чему равен x?', kg: 'Эгер 2ˣ = 16 болсо, x канча?' },
-    options: {
-      A: { en: '2', ru: '2', kg: '2' },
-      B: { en: '3', ru: '3', kg: '3' },
-      C: { en: '4', ru: '4', kg: '4' },
-      D: { en: '8', ru: '8', kg: '8' }
-    },
-    correct: 'C',
-    explanation: { en: '2⁴ = 16, so x = 4', ru: '2⁴ = 16, значит x = 4', kg: '2⁴ = 16, ошондуктан x = 4' }
-  }
-];
-
-// Fallback mini test questions for quadratics (9 questions: 3 easy, 3 medium, 3 hard)
-const quadraticsMiniTests = [
-  {
-    id: 'quad-mt-1',
-    difficulty: 'easy',
-    question: { en: 'What is the standard form of a quadratic equation?', ru: 'Какова стандартная форма квадратного уравнения?', kg: 'Квадраттык теңдеменин стандарттык формасы кандай?' },
-    options: {
-      A: { en: 'ax + b = 0', ru: 'ax + b = 0', kg: 'ax + b = 0' },
-      B: { en: 'ax² + bx + c = 0', ru: 'ax² + bx + c = 0', kg: 'ax² + bx + c = 0' },
-      C: { en: 'ax³ + bx² + cx = 0', ru: 'ax³ + bx² + cx = 0', kg: 'ax³ + bx² + cx = 0' },
-      D: { en: 'a/x + b = 0', ru: 'a/x + b = 0', kg: 'a/x + b = 0' }
-    },
-    correct: 'B',
-    explanation: { en: 'A quadratic equation has the form ax² + bx + c = 0 where a ≠ 0', ru: 'Квадратное уравнение имеет вид ax² + bx + c = 0, где a ≠ 0', kg: 'Квадраттык теңдеме ax² + bx + c = 0 формасында, мында a ≠ 0' }
-  },
-  {
-    id: 'quad-mt-2',
-    difficulty: 'easy',
-    question: { en: 'Solve: x² = 16', ru: 'Решите: x² = 16', kg: 'Чечиңиз: x² = 16' },
-    options: {
-      A: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
-      B: { en: 'x = -4', ru: 'x = -4', kg: 'x = -4' },
-      C: { en: 'x = ±4', ru: 'x = ±4', kg: 'x = ±4' },
-      D: { en: 'x = 8', ru: 'x = 8', kg: 'x = 8' }
-    },
-    correct: 'C',
-    explanation: { en: 'x² = 16 means x = √16 = ±4 (both positive and negative roots)', ru: 'x² = 16 означает x = √16 = ±4 (положительный и отрицательный корни)', kg: 'x² = 16 болсо x = √16 = ±4 (оң жана терс тамырлар)' }
-  },
-  {
-    id: 'quad-mt-3',
-    difficulty: 'easy',
-    question: { en: 'In x² - 5x + 6 = 0, what is c?', ru: 'В уравнении x² - 5x + 6 = 0, чему равен c?', kg: 'x² - 5x + 6 = 0 теңдемесинде c канча?' },
-    options: {
-      A: { en: '1', ru: '1', kg: '1' },
-      B: { en: '-5', ru: '-5', kg: '-5' },
-      C: { en: '6', ru: '6', kg: '6' },
-      D: { en: '0', ru: '0', kg: '0' }
-    },
-    correct: 'C',
-    explanation: { en: 'In ax² + bx + c = 0, c is the constant term. Here c = 6', ru: 'В ax² + bx + c = 0, c — свободный член. Здесь c = 6', kg: 'ax² + bx + c = 0 теңдемесинде c — эркин мүчө. Бул жерде c = 6' }
-  },
-  {
-    id: 'quad-mt-4',
-    difficulty: 'medium',
-    question: { en: 'Solve: x² - 5x + 6 = 0', ru: 'Решите: x² - 5x + 6 = 0', kg: 'Чечиңиз: x² - 5x + 6 = 0' },
-    options: {
-      A: { en: 'x = 2, x = 3', ru: 'x = 2, x = 3', kg: 'x = 2, x = 3' },
-      B: { en: 'x = -2, x = -3', ru: 'x = -2, x = -3', kg: 'x = -2, x = -3' },
-      C: { en: 'x = 1, x = 6', ru: 'x = 1, x = 6', kg: 'x = 1, x = 6' },
-      D: { en: 'x = -1, x = -6', ru: 'x = -1, x = -6', kg: 'x = -1, x = -6' }
-    },
-    correct: 'A',
-    explanation: { en: 'Factor: (x-2)(x-3) = 0, so x = 2 or x = 3', ru: 'Разложение: (x-2)(x-3) = 0, значит x = 2 или x = 3', kg: 'Көбөйтүндүгө: (x-2)(x-3) = 0, ошондуктан x = 2 же x = 3' }
-  },
-  {
-    id: 'quad-mt-5',
-    difficulty: 'medium',
-    question: { en: 'What is the discriminant of x² - 4x + 4 = 0?', ru: 'Чему равен дискриминант x² - 4x + 4 = 0?', kg: 'x² - 4x + 4 = 0 теңдемесинин дискриминанты канча?' },
-    options: {
-      A: { en: '0', ru: '0', kg: '0' },
-      B: { en: '8', ru: '8', kg: '8' },
-      C: { en: '16', ru: '16', kg: '16' },
-      D: { en: '-16', ru: '-16', kg: '-16' }
-    },
-    correct: 'A',
-    explanation: { en: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0', ru: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0', kg: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0' }
-  },
-  {
-    id: 'quad-mt-6',
-    difficulty: 'medium',
-    question: { en: 'If discriminant D < 0, the equation has:', ru: 'Если дискриминант D < 0, уравнение имеет:', kg: 'Эгер дискриминант D < 0 болсо, теңдеме:' },
-    options: {
-      A: { en: 'Two real roots', ru: 'Два действительных корня', kg: 'Эки чыныгы тамыр' },
-      B: { en: 'One real root', ru: 'Один действительный корень', kg: 'Бир чыныгы тамыр' },
-      C: { en: 'No real roots', ru: 'Нет действительных корней', kg: 'Чыныгы тамырлар жок' },
-      D: { en: 'Infinite roots', ru: 'Бесконечно много корней', kg: 'Чексиз көп тамыр' }
-    },
-    correct: 'C',
-    explanation: { en: 'When D < 0, the square root of a negative number is not real, so no real solutions exist', ru: 'Когда D < 0, квадратный корень из отрицательного числа не является действительным, поэтому действительных решений нет', kg: 'D < 0 болгондо, терс сандын квадраттык тамыры чыныгы эмес, ошондуктан чыныгы чечимдер жок' }
-  },
-  {
-    id: 'quad-mt-7',
-    difficulty: 'hard',
-    question: { en: 'Use the quadratic formula to solve: x² + 2x - 3 = 0', ru: 'Используя формулу корней, решите: x² + 2x - 3 = 0', kg: 'Квадраттык формула менен чечиңиз: x² + 2x - 3 = 0' },
-    options: {
-      A: { en: 'x = 1, x = -3', ru: 'x = 1, x = -3', kg: 'x = 1, x = -3' },
-      B: { en: 'x = -1, x = 3', ru: 'x = -1, x = 3', kg: 'x = -1, x = 3' },
-      C: { en: 'x = 2, x = -1', ru: 'x = 2, x = -1', kg: 'x = 2, x = -1' },
-      D: { en: 'x = -2, x = 1', ru: 'x = -2, x = 1', kg: 'x = -2, x = 1' }
-    },
-    correct: 'A',
-    explanation: { en: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, so x = 1 or x = -3', ru: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, значит x = 1 или x = -3', kg: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, ошондуктан x = 1 же x = -3' }
-  },
-  {
-    id: 'quad-mt-8',
-    difficulty: 'hard',
-    question: { en: 'Find the sum of roots: x² - 7x + 12 = 0', ru: 'Найдите сумму корней: x² - 7x + 12 = 0', kg: 'Тамырлардын суммасын табыңыз: x² - 7x + 12 = 0' },
-    options: {
-      A: { en: '12', ru: '12', kg: '12' },
-      B: { en: '7', ru: '7', kg: '7' },
-      C: { en: '-7', ru: '-7', kg: '-7' },
-      D: { en: '5', ru: '5', kg: '5' }
-    },
-    correct: 'B',
-    explanation: { en: 'By Vieta\'s formulas, sum of roots = -b/a = -(-7)/1 = 7', ru: 'По формулам Виета, сумма корней = -b/a = -(-7)/1 = 7', kg: 'Виета формуласы боюнча, тамырлардын суммасы = -b/a = -(-7)/1 = 7' }
-  },
-  {
-    id: 'quad-mt-9',
-    difficulty: 'hard',
-    question: { en: 'Find the product of roots: x² - 7x + 12 = 0', ru: 'Найдите произведение корней: x² - 7x + 12 = 0', kg: 'Тамырлардын көбөйтүндүсүн табыңыз: x² - 7x + 12 = 0' },
-    options: {
-      A: { en: '7', ru: '7', kg: '7' },
-      B: { en: '-12', ru: '-12', kg: '-12' },
-      C: { en: '12', ru: '12', kg: '12' },
-      D: { en: '-7', ru: '-7', kg: '-7' }
-    },
-    correct: 'C',
-    explanation: { en: 'By Vieta\'s formulas, product of roots = c/a = 12/1 = 12', ru: 'По формулам Виета, произведение корней = c/a = 12/1 = 12', kg: 'Виета формуласы боюнча, тамырлардын көбөйтүндүсү = c/a = 12/1 = 12' }
-  }
-];
-
-// Fallback full test questions for quadratics (20 questions)
-const quadraticsFullTest = [
-  {
-    id: 'quad-ft-1',
-    question: { en: 'Which is a quadratic equation?', ru: 'Какое из уравнений квадратное?', kg: 'Кайсынысы квадраттык теңдеме?' },
-    options: {
-      A: { en: '3x + 2 = 0', ru: '3x + 2 = 0', kg: '3x + 2 = 0' },
-      B: { en: 'x² + 5x - 6 = 0', ru: 'x² + 5x - 6 = 0', kg: 'x² + 5x - 6 = 0' },
-      C: { en: 'x³ - x = 0', ru: 'x³ - x = 0', kg: 'x³ - x = 0' },
-      D: { en: '1/x + 2 = 0', ru: '1/x + 2 = 0', kg: '1/x + 2 = 0' }
-    },
-    correct: 'B',
-    explanation: { en: 'A quadratic equation has the highest power of x as 2', ru: 'Квадратное уравнение имеет наивысшую степень x равную 2', kg: 'Квадраттык теңдеменин эң жогорку даражасы 2' }
-  },
-  {
-    id: 'quad-ft-2',
-    question: { en: 'Solve: x² - 9 = 0', ru: 'Решите: x² - 9 = 0', kg: 'Чечиңиз: x² - 9 = 0' },
-    options: {
-      A: { en: 'x = 3', ru: 'x = 3', kg: 'x = 3' },
-      B: { en: 'x = -3', ru: 'x = -3', kg: 'x = -3' },
-      C: { en: 'x = ±3', ru: 'x = ±3', kg: 'x = ±3' },
-      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
-    },
-    correct: 'C',
-    explanation: { en: 'x² = 9, so x = ±√9 = ±3', ru: 'x² = 9, значит x = ±√9 = ±3', kg: 'x² = 9, ошондуктан x = ±√9 = ±3' }
-  },
-  {
-    id: 'quad-ft-3',
-    question: { en: 'Solve: x² + 4x = 0', ru: 'Решите: x² + 4x = 0', kg: 'Чечиңиз: x² + 4x = 0' },
-    options: {
-      A: { en: 'x = 0, x = 4', ru: 'x = 0, x = 4', kg: 'x = 0, x = 4' },
-      B: { en: 'x = 0, x = -4', ru: 'x = 0, x = -4', kg: 'x = 0, x = -4' },
-      C: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
-      D: { en: 'x = -4', ru: 'x = -4', kg: 'x = -4' }
-    },
-    correct: 'B',
-    explanation: { en: 'Factor: x(x + 4) = 0, so x = 0 or x = -4', ru: 'Разложение: x(x + 4) = 0, значит x = 0 или x = -4', kg: 'Көбөйтүндүгө: x(x + 4) = 0, ошондуктан x = 0 же x = -4' }
-  },
-  {
-    id: 'quad-ft-4',
-    question: { en: 'Solve: x² - 6x + 9 = 0', ru: 'Решите: x² - 6x + 9 = 0', kg: 'Чечиңиз: x² - 6x + 9 = 0' },
-    options: {
-      A: { en: 'x = 3 (double root)', ru: 'x = 3 (кратный корень)', kg: 'x = 3 (кош тамыр)' },
-      B: { en: 'x = -3 (double root)', ru: 'x = -3 (кратный корень)', kg: 'x = -3 (кош тамыр)' },
-      C: { en: 'x = 3, x = -3', ru: 'x = 3, x = -3', kg: 'x = 3, x = -3' },
-      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
-    },
-    correct: 'A',
-    explanation: { en: '(x-3)² = 0, so x = 3 is a double root', ru: '(x-3)² = 0, значит x = 3 — кратный корень', kg: '(x-3)² = 0, ошондуктан x = 3 кош тамыр' }
-  },
-  {
-    id: 'quad-ft-5',
-    question: { en: 'What is the discriminant formula?', ru: 'Какова формула дискриминанта?', kg: 'Дискриминанттын формуласы кандай?' },
-    options: {
-      A: { en: 'D = b² - 4ac', ru: 'D = b² - 4ac', kg: 'D = b² - 4ac' },
-      B: { en: 'D = b² + 4ac', ru: 'D = b² + 4ac', kg: 'D = b² + 4ac' },
-      C: { en: 'D = a² - 4bc', ru: 'D = a² - 4bc', kg: 'D = a² - 4bc' },
-      D: { en: 'D = 2b² - ac', ru: 'D = 2b² - ac', kg: 'D = 2b² - ac' }
-    },
-    correct: 'A',
-    explanation: { en: 'The discriminant D = b² - 4ac determines the nature of roots', ru: 'Дискриминант D = b² - 4ac определяет характер корней', kg: 'Дискриминант D = b² - 4ac тамырлардын мүнөзүн аныктайт' }
-  },
-  {
-    id: 'quad-ft-6',
-    question: { en: 'Calculate D for: 2x² - 5x + 2 = 0', ru: 'Вычислите D для: 2x² - 5x + 2 = 0', kg: 'D ны эсептеңиз: 2x² - 5x + 2 = 0' },
-    options: {
-      A: { en: '9', ru: '9', kg: '9' },
-      B: { en: '25', ru: '25', kg: '25' },
-      C: { en: '16', ru: '16', kg: '16' },
-      D: { en: '1', ru: '1', kg: '1' }
-    },
-    correct: 'A',
-    explanation: { en: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9', ru: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9', kg: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9' }
-  },
-  {
-    id: 'quad-ft-7',
-    question: { en: 'Solve using quadratic formula: x² - 5x + 6 = 0', ru: 'Решите по формуле: x² - 5x + 6 = 0', kg: 'Формула менен чечиңиз: x² - 5x + 6 = 0' },
-    options: {
-      A: { en: 'x = 2, x = 3', ru: 'x = 2, x = 3', kg: 'x = 2, x = 3' },
-      B: { en: 'x = -2, x = -3', ru: 'x = -2, x = -3', kg: 'x = -2, x = -3' },
-      C: { en: 'x = 1, x = 6', ru: 'x = 1, x = 6', kg: 'x = 1, x = 6' },
-      D: { en: 'x = 5, x = 1', ru: 'x = 5, x = 1', kg: 'x = 5, x = 1' }
-    },
-    correct: 'A',
-    explanation: { en: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, so x = 3 or x = 2', ru: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, значит x = 3 или x = 2', kg: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, ошондуктан x = 3 же x = 2' }
-  },
-  {
-    id: 'quad-ft-8',
-    question: { en: 'If D > 0, how many real roots?', ru: 'Если D > 0, сколько действительных корней?', kg: 'Эгер D > 0 болсо, канча чыныгы тамыр бар?' },
-    options: {
-      A: { en: 'No real roots', ru: 'Нет корней', kg: 'Тамыр жок' },
-      B: { en: 'One root', ru: 'Один корень', kg: 'Бир тамыр' },
-      C: { en: 'Two roots', ru: 'Два корня', kg: 'Эки тамыр' },
-      D: { en: 'Three roots', ru: 'Три корня', kg: 'Үч тамыр' }
-    },
-    correct: 'C',
-    explanation: { en: 'When D > 0, there are two distinct real roots', ru: 'Когда D > 0, есть два различных действительных корня', kg: 'D > 0 болгондо, эки ар түрдүү чыныгы тамыр бар' }
-  },
-  {
-    id: 'quad-ft-9',
-    question: { en: 'Solve: 2x² - 8 = 0', ru: 'Решите: 2x² - 8 = 0', kg: 'Чечиңиз: 2x² - 8 = 0' },
-    options: {
-      A: { en: 'x = ±2', ru: 'x = ±2', kg: 'x = ±2' },
-      B: { en: 'x = ±4', ru: 'x = ±4', kg: 'x = ±4' },
-      C: { en: 'x = 2', ru: 'x = 2', kg: 'x = 2' },
-      D: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' }
-    },
-    correct: 'A',
-    explanation: { en: '2x² = 8, x² = 4, x = ±2', ru: '2x² = 8, x² = 4, x = ±2', kg: '2x² = 8, x² = 4, x = ±2' }
-  },
-  {
-    id: 'quad-ft-10',
-    question: { en: 'Factor: x² - 4x - 5', ru: 'Разложите: x² - 4x - 5', kg: 'Көбөйтүндүгө ажыратыңыз: x² - 4x - 5' },
-    options: {
-      A: { en: '(x - 5)(x + 1)', ru: '(x - 5)(x + 1)', kg: '(x - 5)(x + 1)' },
-      B: { en: '(x + 5)(x - 1)', ru: '(x + 5)(x - 1)', kg: '(x + 5)(x - 1)' },
-      C: { en: '(x - 4)(x - 1)', ru: '(x - 4)(x - 1)', kg: '(x - 4)(x - 1)' },
-      D: { en: '(x + 4)(x + 1)', ru: '(x + 4)(x + 1)', kg: '(x + 4)(x + 1)' }
-    },
-    correct: 'A',
-    explanation: { en: 'Find factors of -5 that add to -4: -5 and 1. So (x - 5)(x + 1)', ru: 'Найдите множители -5, дающие -4: -5 и 1. Значит (x - 5)(x + 1)', kg: '-5тин көбөйткүчтөрүн табыңыз: -5 жана 1. Ошондуктан (x - 5)(x + 1)' }
-  },
-  {
-    id: 'quad-ft-11',
-    question: { en: 'Sum of roots for ax² + bx + c = 0?', ru: 'Сумма корней для ax² + bx + c = 0?', kg: 'ax² + bx + c = 0 үчүн тамырлардын суммасы?' },
-    options: {
-      A: { en: '-b/a', ru: '-b/a', kg: '-b/a' },
-      B: { en: 'b/a', ru: 'b/a', kg: 'b/a' },
-      C: { en: 'c/a', ru: 'c/a', kg: 'c/a' },
-      D: { en: '-c/a', ru: '-c/a', kg: '-c/a' }
-    },
-    correct: 'A',
-    explanation: { en: 'By Vieta\'s formulas, x₁ + x₂ = -b/a', ru: 'По формулам Виета, x₁ + x₂ = -b/a', kg: 'Виета формуласы боюнча, x₁ + x₂ = -b/a' }
-  },
-  {
-    id: 'quad-ft-12',
-    question: { en: 'Product of roots for ax² + bx + c = 0?', ru: 'Произведение корней для ax² + bx + c = 0?', kg: 'ax² + bx + c = 0 үчүн тамырлардын көбөйтүндүсү?' },
-    options: {
-      A: { en: '-b/a', ru: '-b/a', kg: '-b/a' },
-      B: { en: 'b/a', ru: 'b/a', kg: 'b/a' },
-      C: { en: 'c/a', ru: 'c/a', kg: 'c/a' },
-      D: { en: '-c/a', ru: '-c/a', kg: '-c/a' }
-    },
-    correct: 'C',
-    explanation: { en: 'By Vieta\'s formulas, x₁ × x₂ = c/a', ru: 'По формулам Виета, x₁ × x₂ = c/a', kg: 'Виета формуласы боюнча, x₁ × x₂ = c/a' }
-  },
-  {
-    id: 'quad-ft-13',
-    question: { en: 'Solve: x² + 6x + 9 = 0', ru: 'Решите: x² + 6x + 9 = 0', kg: 'Чечиңиз: x² + 6x + 9 = 0' },
-    options: {
-      A: { en: 'x = 3', ru: 'x = 3', kg: 'x = 3' },
-      B: { en: 'x = -3', ru: 'x = -3', kg: 'x = -3' },
-      C: { en: 'x = ±3', ru: 'x = ±3', kg: 'x = ±3' },
-      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
-    },
-    correct: 'B',
-    explanation: { en: '(x + 3)² = 0, so x = -3 is a double root', ru: '(x + 3)² = 0, значит x = -3 — кратный корень', kg: '(x + 3)² = 0, ошондуктан x = -3 кош тамыр' }
-  },
-  {
-    id: 'quad-ft-14',
-    question: { en: 'What is the quadratic formula?', ru: 'Какова формула корней квадратного уравнения?', kg: 'Квадраттык формула кандай?' },
-    options: {
-      A: { en: 'x = -b/2a', ru: 'x = -b/2a', kg: 'x = -b/2a' },
-      B: { en: 'x = (-b ± √D)/2a', ru: 'x = (-b ± √D)/2a', kg: 'x = (-b ± √D)/2a' },
-      C: { en: 'x = b ± √D/a', ru: 'x = b ± √D/a', kg: 'x = b ± √D/a' },
-      D: { en: 'x = -b ± √D/a', ru: 'x = -b ± √D/a', kg: 'x = -b ± √D/a' }
-    },
-    correct: 'B',
-    explanation: { en: 'The quadratic formula is x = (-b ± √(b²-4ac))/2a', ru: 'Формула корней: x = (-b ± √(b²-4ac))/2a', kg: 'Квадраттык формула: x = (-b ± √(b²-4ac))/2a' }
-  },
-  {
-    id: 'quad-ft-15',
-    question: { en: 'Solve: x² - 2x - 15 = 0', ru: 'Решите: x² - 2x - 15 = 0', kg: 'Чечиңиз: x² - 2x - 15 = 0' },
-    options: {
-      A: { en: 'x = 5, x = -3', ru: 'x = 5, x = -3', kg: 'x = 5, x = -3' },
-      B: { en: 'x = -5, x = 3', ru: 'x = -5, x = 3', kg: 'x = -5, x = 3' },
-      C: { en: 'x = 3, x = 5', ru: 'x = 3, x = 5', kg: 'x = 3, x = 5' },
-      D: { en: 'x = -3, x = -5', ru: 'x = -3, x = -5', kg: 'x = -3, x = -5' }
-    },
-    correct: 'A',
-    explanation: { en: 'Factor: (x - 5)(x + 3) = 0, so x = 5 or x = -3', ru: 'Разложение: (x - 5)(x + 3) = 0, значит x = 5 или x = -3', kg: 'Көбөйтүндүгө: (x - 5)(x + 3) = 0, ошондуктан x = 5 же x = -3' }
-  },
-  {
-    id: 'quad-ft-16',
-    question: { en: 'Solve: 3x² - 12x = 0', ru: 'Решите: 3x² - 12x = 0', kg: 'Чечиңиз: 3x² - 12x = 0' },
-    options: {
-      A: { en: 'x = 0, x = 4', ru: 'x = 0, x = 4', kg: 'x = 0, x = 4' },
-      B: { en: 'x = 0, x = -4', ru: 'x = 0, x = -4', kg: 'x = 0, x = -4' },
-      C: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
-      D: { en: 'x = 12', ru: 'x = 12', kg: 'x = 12' }
-    },
-    correct: 'A',
-    explanation: { en: 'Factor: 3x(x - 4) = 0, so x = 0 or x = 4', ru: 'Разложение: 3x(x - 4) = 0, значит x = 0 или x = 4', kg: 'Көбөйтүндүгө: 3x(x - 4) = 0, ошондуктан x = 0 же x = 4' }
-  },
-  {
-    id: 'quad-ft-17',
-    question: { en: 'Calculate D for: x² + x + 1 = 0', ru: 'Вычислите D для: x² + x + 1 = 0', kg: 'D ны эсептеңиз: x² + x + 1 = 0' },
-    options: {
-      A: { en: '-3', ru: '-3', kg: '-3' },
-      B: { en: '3', ru: '3', kg: '3' },
-      C: { en: '5', ru: '5', kg: '5' },
-      D: { en: '0', ru: '0', kg: '0' }
-    },
-    correct: 'A',
-    explanation: { en: 'D = 1² - 4(1)(1) = 1 - 4 = -3', ru: 'D = 1² - 4(1)(1) = 1 - 4 = -3', kg: 'D = 1² - 4(1)(1) = 1 - 4 = -3' }
-  },
-  {
-    id: 'quad-ft-18',
-    question: { en: 'If roots are 2 and 5, what is the equation?', ru: 'Если корни 2 и 5, какое уравнение?', kg: 'Эгер тамырлар 2 жана 5 болсо, теңдеме кандай?' },
-    options: {
-      A: { en: 'x² - 7x + 10 = 0', ru: 'x² - 7x + 10 = 0', kg: 'x² - 7x + 10 = 0' },
-      B: { en: 'x² + 7x + 10 = 0', ru: 'x² + 7x + 10 = 0', kg: 'x² + 7x + 10 = 0' },
-      C: { en: 'x² - 7x - 10 = 0', ru: 'x² - 7x - 10 = 0', kg: 'x² - 7x - 10 = 0' },
-      D: { en: 'x² + 7x - 10 = 0', ru: 'x² + 7x - 10 = 0', kg: 'x² + 7x - 10 = 0' }
-    },
-    correct: 'A',
-    explanation: { en: '(x - 2)(x - 5) = x² - 7x + 10 = 0', ru: '(x - 2)(x - 5) = x² - 7x + 10 = 0', kg: '(x - 2)(x - 5) = x² - 7x + 10 = 0' }
-  },
-  {
-    id: 'quad-ft-19',
-    question: { en: 'Solve: x² - 1 = 0', ru: 'Решите: x² - 1 = 0', kg: 'Чечиңиз: x² - 1 = 0' },
-    options: {
-      A: { en: 'x = 1', ru: 'x = 1', kg: 'x = 1' },
-      B: { en: 'x = -1', ru: 'x = -1', kg: 'x = -1' },
-      C: { en: 'x = ±1', ru: 'x = ±1', kg: 'x = ±1' },
-      D: { en: 'x = 0', ru: 'x = 0', kg: 'x = 0' }
-    },
-    correct: 'C',
-    explanation: { en: 'Difference of squares: (x-1)(x+1) = 0, so x = ±1', ru: 'Разность квадратов: (x-1)(x+1) = 0, значит x = ±1', kg: 'Квадраттар айырмасы: (x-1)(x+1) = 0, ошондуктан x = ±1' }
-  },
-  {
-    id: 'quad-ft-20',
-    question: { en: 'Complete the square: x² + 8x + ___ = (x + 4)²', ru: 'Выделите полный квадрат: x² + 8x + ___ = (x + 4)²', kg: 'Толук квадратты белгилеңиз: x² + 8x + ___ = (x + 4)²' },
-    options: {
-      A: { en: '4', ru: '4', kg: '4' },
-      B: { en: '8', ru: '8', kg: '8' },
-      C: { en: '16', ru: '16', kg: '16' },
-      D: { en: '64', ru: '64', kg: '64' }
-    },
-    correct: 'C',
-    explanation: { en: '(x + 4)² = x² + 8x + 16, so the missing number is 16', ru: '(x + 4)² = x² + 8x + 16, значит пропущенное число 16', kg: '(x + 4)² = x² + 8x + 16, ошондуктан жетишпеген сан 16' }
-  }
-];
+// Use imported test data from lessonTestsData.ts
+// Tests are now in simple format: { id, question, options: string[], correct: string, explanation, difficulty? }
 
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
@@ -1510,13 +421,11 @@ export default function DynamicLessonViewer() {
     saveNotes: language === 'ru' ? 'Сохранить заметки' : language === 'kg' ? 'Жазууларды сактоо' : 'Save Notes',
   };
 
-  // Mini-test logic - use fallback questions for fractions if no mini_tests in data
+  // Mini-test logic - use imported test data from lessonTestsData.ts
   // Helper to get fallback mini tests by topic
-  const getMiniTestFallback = () => {
-    if (normalizedTopicId === 'fractions') return fractionsMiniTests;
-    if (normalizedTopicId === 'exponents') return exponentsMiniTests;
-    if (normalizedTopicId === 'quadratics') return quadraticsMiniTests;
-    return [];
+  const getMiniTestFallback = (): SimpleTestQuestion[] => {
+    const topicKey = normalizedTopicId as keyof typeof lessonTests;
+    return lessonTests[topicKey]?.miniTests || [];
   };
   
   const miniTestSource = (data?.mini_tests && data.mini_tests.length > 0) 
@@ -1570,11 +479,9 @@ export default function DynamicLessonViewer() {
   };
 
   // Helper to get fallback full test by topic
-  const getFullTestFallback = () => {
-    if (normalizedTopicId === 'fractions') return fractionsFullTest;
-    if (normalizedTopicId === 'exponents') return exponentsFullTest;
-    if (normalizedTopicId === 'quadratics') return quadraticsFullTest;
-    return [];
+  const getFullTestFallback = (): SimpleTestQuestion[] => {
+    const topicKey = normalizedTopicId as keyof typeof lessonTests;
+    return lessonTests[topicKey]?.fullTest || [];
   };
   
   // Full test logic - use fallback questions if no full_test in data
@@ -1971,52 +878,64 @@ export default function DynamicLessonViewer() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {currentMiniTestQuestion ? (
-                      <>
-                        <div className="p-4 bg-muted rounded-lg">
-                          <p className="font-medium">{getText(currentMiniTestQuestion.question, language)}</p>
-                        </div>
+                      (() => {
+                        // Handle both simple format (string[]) and old format (object with A/B/C/D)
+                        const isSimpleFormat = Array.isArray(currentMiniTestQuestion.options);
+                        const options: string[] = isSimpleFormat 
+                          ? (currentMiniTestQuestion.options as string[])
+                          : ['A', 'B', 'C', 'D'].map(key => getText((currentMiniTestQuestion.options as any)[key], language));
+                        const questionText = typeof currentMiniTestQuestion.question === 'string' 
+                          ? currentMiniTestQuestion.question 
+                          : getText(currentMiniTestQuestion.question, language);
+                        const explanationText = typeof currentMiniTestQuestion.explanation === 'string'
+                          ? currentMiniTestQuestion.explanation
+                          : getText(currentMiniTestQuestion.explanation, language);
                         
-                        <div className="grid gap-2">
-                          {(['A', 'B', 'C', 'D'] as const).map((option) => (
-                            <Button
-                              key={option}
-                              variant="outline"
-                              className={cn(
-                                'justify-start h-auto py-3 px-4',
-                                miniTestAnswer === option && !miniTestShowResult && 'border-primary bg-primary/10',
-                                miniTestShowResult && option === currentMiniTestQuestion.correct && 'border-green-500 bg-green-500/10',
-                                miniTestShowResult && miniTestAnswer === option && option !== currentMiniTestQuestion.correct && 'border-destructive bg-destructive/10'
-                              )}
-                              onClick={() => handleMiniTestAnswer(option)}
-                              disabled={miniTestShowResult}
-                            >
-                              <span className="font-bold mr-2">{option}.</span>
-                              {getText(currentMiniTestQuestion.options[option], language)}
-                            </Button>
-                          ))}
-                        </div>
+                        return (
+                          <>
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="font-medium">{questionText}</p>
+                            </div>
+                            
+                            <div className="grid gap-2">
+                              {options.map((optionText: string, idx: number) => (
+                                <Button
+                                  key={idx}
+                                  variant="outline"
+                                  className={cn(
+                                    'justify-start h-auto py-3 px-4',
+                                    miniTestAnswer === optionText && !miniTestShowResult && 'border-primary bg-primary/10',
+                                    miniTestShowResult && optionText === currentMiniTestQuestion.correct && 'border-green-500 bg-green-500/10',
+                                    miniTestShowResult && miniTestAnswer === optionText && optionText !== currentMiniTestQuestion.correct && 'border-destructive bg-destructive/10'
+                                  )}
+                                  onClick={() => handleMiniTestAnswer(optionText)}
+                                  disabled={miniTestShowResult}
+                                >
+                                  <span className="font-bold mr-2">{String.fromCharCode(65 + idx)}.</span>
+                                  {optionText}
+                                </Button>
+                              ))}
+                            </div>
 
-                        {miniTestShowResult && (
-                          <div className={cn(
-                            'p-4 rounded-lg',
-                            miniTestAnswer === currentMiniTestQuestion.correct ? 'bg-green-500/10' : 'bg-destructive/10'
-                          )}>
-                            {miniTestAnswer === currentMiniTestQuestion.correct ? (
-                              <div className="flex items-center gap-2 text-green-500">
-                                <CheckCircle className="h-5 w-5" />
-                                <span className="font-medium">{language === 'ru' ? 'Правильно!' : 'Correct!'}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 text-destructive">
-                                <XCircle className="h-5 w-5" />
-                                <span className="font-medium">{language === 'ru' ? 'Неправильно' : 'Incorrect'}</span>
+                            {miniTestShowResult && (
+                              <div className={cn(
+                                'p-4 rounded-lg',
+                                miniTestAnswer === currentMiniTestQuestion.correct ? 'bg-green-500/10' : 'bg-destructive/10'
+                              )}>
+                                {miniTestAnswer === currentMiniTestQuestion.correct ? (
+                                  <div className="flex items-center gap-2 text-green-500">
+                                    <CheckCircle className="h-5 w-5" />
+                                    <span className="font-medium">{language === 'ru' ? 'Правильно!' : 'Correct!'}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-destructive">
+                                    <XCircle className="h-5 w-5" />
+                                    <span className="font-medium">{language === 'ru' ? 'Неправильно' : 'Incorrect'}</span>
+                                  </div>
+                                )}
+                                <p className="mt-2 text-sm text-muted-foreground">{explanationText}</p>
                               </div>
                             )}
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              {getText(currentMiniTestQuestion.explanation, language)}
-                            </p>
-                          </div>
-                        )}
 
                         <div className="flex gap-2">
                           {!miniTestShowResult ? (
@@ -2030,7 +949,9 @@ export default function DynamicLessonViewer() {
                             </Button>
                           )}
                         </div>
-                      </>
+                          </>
+                        );
+                      })()
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         {language === 'ru' ? 'Нет вопросов для текущего уровня сложности' : 'No questions for current difficulty'}
@@ -2092,11 +1013,11 @@ export default function DynamicLessonViewer() {
                                   <XCircle className="h-5 w-5 text-destructive mt-0.5" />
                                 )}
                                 <div className="flex-1">
-                                  <p className="font-medium">{idx + 1}. {getText(q.question, language)}</p>
+                                  <p className="font-medium">{idx + 1}. {q.question}</p>
                                   <p className="text-sm text-muted-foreground mt-1">
                                     {language === 'ru' ? 'Ваш ответ' : 'Your answer'}: {userAnswer || '-'} | {language === 'ru' ? 'Правильный' : 'Correct'}: {q.correct}
                                   </p>
-                                  <p className="text-sm mt-2">{getText(q.explanation, language)}</p>
+                                  <p className="text-sm mt-2">{q.explanation}</p>
                                 </div>
                               </div>
                             </div>
@@ -2123,24 +1044,34 @@ export default function DynamicLessonViewer() {
                       {currentFullTestQuestion && (
                         <>
                           <div className="p-4 bg-muted rounded-lg">
-                            <p className="font-medium">{getText(currentFullTestQuestion.question, language)}</p>
+                            <p className="font-medium">
+                              {typeof currentFullTestQuestion.question === 'string' 
+                                ? currentFullTestQuestion.question 
+                                : getText(currentFullTestQuestion.question, language)}
+                            </p>
                           </div>
 
                           <div className="grid gap-2">
-                            {(['A', 'B', 'C', 'D'] as const).map((option) => (
-                              <Button
-                                key={option}
-                                variant="outline"
-                                className={cn(
-                                  'justify-start h-auto py-3 px-4',
-                                  fullTestAnswers[fullTestIndex] === option && 'border-primary bg-primary/10'
-                                )}
-                                onClick={() => handleFullTestAnswer(option)}
-                              >
-                                <span className="font-bold mr-2">{option}.</span>
-                                {getText(currentFullTestQuestion.options[option], language)}
-                              </Button>
-                            ))}
+                            {(() => {
+                              const isSimple = Array.isArray(currentFullTestQuestion.options);
+                              const opts: string[] = isSimple 
+                                ? (currentFullTestQuestion.options as string[])
+                                : ['A', 'B', 'C', 'D'].map(k => getText((currentFullTestQuestion.options as any)[k], language));
+                              return opts.map((optText, idx) => (
+                                <Button
+                                  key={idx}
+                                  variant="outline"
+                                  className={cn(
+                                    'justify-start h-auto py-3 px-4',
+                                    fullTestAnswers[fullTestIndex] === optText && 'border-primary bg-primary/10'
+                                  )}
+                                  onClick={() => handleFullTestAnswer(optText)}
+                                >
+                                  <span className="font-bold mr-2">{String.fromCharCode(65 + idx)}.</span>
+                                  {optText}
+                                </Button>
+                              ));
+                            })()}
                           </div>
 
                           <div className="flex justify-between pt-4">
