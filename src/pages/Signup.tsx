@@ -22,8 +22,10 @@ export default function Signup() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // If user is already logged in, redirect appropriately
+    // New users will be redirected to diagnostic-test by ProtectedRoute
     if (user) {
-      navigate('/dashboard');
+      navigate('/diagnostic-test');
     }
   }, [user, navigate]);
 
@@ -56,7 +58,8 @@ export default function Signup() {
     setIsLoading(false);
     
     if (!signUpError) {
-      navigate('/dashboard');
+      // Redirect new users to diagnostic test
+      navigate('/diagnostic-test');
     }
   };
 
