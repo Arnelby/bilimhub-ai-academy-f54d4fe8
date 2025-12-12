@@ -38,6 +38,8 @@ import {
 import { cn } from '@/lib/utils';
 import { Language } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // Import exponent images
 import exponentRulesCheatsheet from '@/assets/lessons/exponent-rules-cheatsheet.png';
@@ -589,6 +591,7 @@ function StorageImage({ path, alt }: { path: string; alt: string }) {
 export default function DynamicLessonViewer() {
   const { topicId } = useParams<{ topicId: string }>();
   const { language, setLanguage } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
   // Mapping from topic IDs to lesson JSON files in storage (exact paths in bucket)
@@ -619,6 +622,10 @@ export default function DynamicLessonViewer() {
   
   // Dynamic lesson state
   const [selectedStyle, setSelectedStyle] = useState<LearningStyle | null>(null);
+  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
+  const [aiPracticeAnswers, setAiPracticeAnswers] = useState<Record<number, number>>({});
+  const [showAiResults, setShowAiResults] = useState(false);
   
   // Notes state
   const [lessonNotes, setLessonNotes] = useState<string>(() => {
@@ -629,6 +636,96 @@ export default function DynamicLessonViewer() {
     localStorage.setItem(`${topicId}_lesson_notes`, lessonNotes);
     toast.success(language === 'ru' ? 'Заметки сохранены!' : 'Notes saved!');
   };
+
+  // AI Lesson generation
+  const fetchStudentResults = async () => {
+    if (!user) return null;
+    try {
+      const { data: miniTestResults } = await supabase
+        .from('mini_test_results')
+        .select('score, total_questions')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(5);
+
+      const { data: testResults } = await supabase
+        .from('user_tests')
+        .select('score, total_questions')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(5);
+
+      let totalCorrect = 0;
+      let totalQuestions = 0;
+      if (miniTestResults) {
+        miniTestResults.forEach(r => {
+          totalCorrect += r.score || 0;
+          totalQuestions += r.total_questions || 0;
+        });
+      }
+      if (testResults) {
+        testResults.forEach(r => {
+          totalCorrect += r.score || 0;
+          totalQuestions += r.total_questions || 0;
+        });
+      }
+
+      const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 50;
+      const weakAreas = accuracy < 60 ? ['Сложение дробей', 'Вычитание дробей'] : accuracy < 80 ? ['Умножение дробей'] : [];
+
+      return {
+        accuracy,
+        testsCompleted: (miniTestResults?.length || 0) + (testResults?.length || 0),
+        weakAreas,
+        strongAreas: accuracy > 70 ? ['Основы дробей'] : [],
+        recentMistakes: []
+      };
+    } catch (error) {
+      console.error('Error fetching student results:', error);
+      return null;
+    }
+  };
+
+  const generateAILesson = async (style: LearningStyle) => {
+    setIsGeneratingLesson(true);
+    setGeneratedLesson(null);
+    setAiPracticeAnswers({});
+    setShowAiResults(false);
+
+    try {
+      const studentResults = await fetchStudentResults();
+      const topicName = topicId === 'fractions' ? 'Дроби (Fractions)' : topicId === 'exponents' ? 'Степени (Exponents)' : topicId;
+
+      const { data, error } = await supabase.functions.invoke('ai-generate-lesson', {
+        body: { topic: topicName, learningStyle: style, studentResults, language }
+      });
+
+      if (error) throw error;
+      if (data.status === 'ok') {
+        setGeneratedLesson(data);
+      } else {
+        throw new Error(data.error || 'Failed to generate lesson');
+      }
+    } catch (error) {
+      console.error('Error generating lesson:', error);
+      toast.error(language === 'ru' ? 'Ошибка генерации урока' : 'Error generating lesson');
+    } finally {
+      setIsGeneratingLesson(false);
+    }
+  };
+
+  const handleStyleSelect = (style: LearningStyle) => {
+    setSelectedStyle(style);
+    generateAILesson(style);
+  };
+
+  const handleAiAnswerSelect = (qIdx: number, oIdx: number) => {
+    if (showAiResults) return;
+    setAiPracticeAnswers(prev => ({ ...prev, [qIdx]: oIdx }));
+  };
+
+  const checkAiAnswers = () => setShowAiResults(true);
+  const resetAiPractice = () => { setAiPracticeAnswers({}); setShowAiResults(false); };
 
   const t = {
     title: data ? getText({ en: data.topic, ru: data.topic_ru || data.topic, kg: data.topic_kg || data.topic }, language) : '',
@@ -1321,7 +1418,6 @@ export default function DynamicLessonViewer() {
                 </div>
 
                 {!selectedStyle ? (
-                  // Style selection
                   <Card>
                     <CardHeader>
                       <CardTitle>{t.selectStyle}</CardTitle>
@@ -1329,78 +1425,88 @@ export default function DynamicLessonViewer() {
                     <CardContent>
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {(Object.keys(styleIcons) as LearningStyle[]).map((style) => (
-                          <Button
+                          <button
                             key={style}
-                            variant="outline"
-                            className="h-auto flex-col gap-3 py-6"
-                            onClick={() => setSelectedStyle(style)}
+                            onClick={() => handleStyleSelect(style)}
+                            className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-card p-6 hover:bg-accent hover:border-primary cursor-pointer transition-all"
                           >
-                            <div className="p-3 rounded-full bg-primary/10">
+                            <div className="p-3 rounded-full bg-primary/10 text-primary mb-3">
                               {styleIcons[style]}
                             </div>
-                            <span className="font-semibold">{t.styleNames[style]}</span>
-                            <span className="text-xs text-muted-foreground">{t.styleDescriptions[style]}</span>
-                          </Button>
+                            <span className="font-semibold mb-2">{t.styleNames[style]}</span>
+                            <span className="text-xs text-muted-foreground text-center">{t.styleDescriptions[style]}</span>
+                          </button>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
-                ) : (
-                  // Dynamic lesson content
-                  <>
+                ) : isGeneratingLesson ? (
+                  <Card>
+                    <CardContent className="py-16 flex flex-col items-center justify-center gap-4">
+                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                      <p className="text-lg text-muted-foreground">{language === 'ru' ? 'Генерация урока...' : 'Generating lesson...'}</p>
+                      <p className="text-sm text-muted-foreground">{language === 'ru' ? 'Анализируем ваш прогресс и создаем персональный урок...' : 'Analyzing your progress...'}</p>
+                    </CardContent>
+                  </Card>
+                ) : generatedLesson ? (
+                  <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-base py-1 px-3">
-                        {styleIcons[selectedStyle]}
-                        <span className="ml-2">{t.styleNames[selectedStyle]}</span>
-                      </Badge>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedStyle(null)}>
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        {t.changeStyle}
-                      </Button>
+                      <Badge variant="secondary" className="text-base py-1 px-3">{styleIcons[selectedStyle]}<span className="ml-2">{t.styleNames[selectedStyle]}</span></Badge>
+                      <Button variant="ghost" size="sm" onClick={() => { setSelectedStyle(null); setGeneratedLesson(null); }}><RotateCcw className="h-4 w-4 mr-1" />{t.changeStyle}</Button>
                     </div>
 
-                    {data.dynamic_lessons && selectedStyle && (() => {
-                      const styleKey = selectedStyle as keyof LessonData['dynamic_lessons'];
-                      const lessonContent = data.dynamic_lessons[styleKey];
-                      
-                      if (!lessonContent) return (
-                        <div className="text-center py-8 text-muted-foreground">
-                          {language === 'ru' ? 'Контент для этого стиля не найден' : 'Content for this style not found'}
-                        </div>
-                      );
+                    <Card><CardHeader><CardTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" />{language === 'ru' ? 'Введение' : 'Introduction'}</CardTitle></CardHeader>
+                      <CardContent><p className="text-foreground text-lg leading-relaxed">{generatedLesson.lesson.introduction}</p></CardContent></Card>
 
-                      return (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>{getText(lessonContent.title, language)}</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-6">
-                            <div className="prose prose-sm max-w-none">
-                              <p className="whitespace-pre-wrap">{getText(lessonContent.content, language)}</p>
+                    <Card><CardHeader><CardTitle>{language === 'ru' ? 'Основной материал' : 'Core Lesson'}</CardTitle></CardHeader>
+                      <CardContent><p className="text-foreground whitespace-pre-wrap leading-relaxed">{generatedLesson.lesson.core_lesson}</p></CardContent></Card>
+
+                    {generatedLesson.lesson.weakness_training?.length > 0 && (
+                      <Card><CardHeader><CardTitle>{language === 'ru' ? 'Работа над слабыми местами' : 'Weakness Training'}</CardTitle></CardHeader>
+                        <CardContent className="space-y-6">
+                          {generatedLesson.lesson.weakness_training.map((item: any, idx: number) => (
+                            <div key={idx} className="p-4 bg-muted/50 rounded-lg space-y-3">
+                              <Badge variant="secondary">{item.area}</Badge>
+                              <p className="text-foreground">{item.explanation}</p>
+                              <div className="p-3 bg-background rounded border"><p className="font-medium text-sm text-muted-foreground mb-1">{language === 'ru' ? 'Пример:' : 'Example:'}</p><p className="text-foreground">{item.example}</p></div>
+                              {item.exercises?.length > 0 && (<ul className="list-disc list-inside space-y-1">{item.exercises.map((ex: string, i: number) => (<li key={i} className="text-foreground">{ex}</li>))}</ul>)}
+                              {item.tip && (<div className="flex items-start gap-2 p-2 bg-primary/10 rounded"><span className="text-primary">💡</span><p className="text-sm text-foreground"><strong>{language === 'ru' ? 'Совет:' : 'Tip:'}</strong> {item.tip}</p></div>)}
                             </div>
-                            
-                            {lessonContent.examples?.length > 0 && (
-                              <>
-                                <Separator />
-                                <div>
-                                  <h4 className="font-semibold mb-3">{t.examples}</h4>
-                                  <div className="space-y-3">
-                                    {lessonContent.examples.map((example, idx) => (
-                                      <div key={idx} className="p-3 bg-muted/50 rounded-lg">
-                                        <Badge variant="outline" className="mb-2">{idx + 1}</Badge>
-                                        <p>{getText(example, language)}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })()}
-                  </>
-                )}
+                          ))}
+                        </CardContent></Card>
+                    )}
+
+                    {generatedLesson.lesson.practice_questions?.length > 0 && (
+                      <Card><CardHeader><CardTitle>{language === 'ru' ? 'Практика' : 'Practice'}</CardTitle></CardHeader>
+                        <CardContent className="space-y-6">
+                          {generatedLesson.lesson.practice_questions.map((q: any, qIdx: number) => (
+                            <div key={qIdx} className="p-4 border rounded-lg space-y-3">
+                              <p className="font-medium text-foreground">{qIdx + 1}. {q.question}</p>
+                              <div className="grid gap-2">
+                                {q.options.map((option: string, oIdx: number) => {
+                                  const isSelected = aiPracticeAnswers[qIdx] === oIdx;
+                                  const isCorrect = q.correct === oIdx;
+                                  let cls = "text-left p-3 rounded border transition-all ";
+                                  if (showAiResults) { cls += isCorrect ? "bg-green-100 border-green-500 dark:bg-green-900/30" : isSelected ? "bg-red-100 border-red-500 dark:bg-red-900/30" : "bg-muted/50"; }
+                                  else { cls += isSelected ? "bg-primary/20 border-primary" : "bg-muted/50 hover:bg-muted"; }
+                                  return (<button key={oIdx} onClick={() => handleAiAnswerSelect(qIdx, oIdx)} className={cls} disabled={showAiResults}>
+                                    <div className="flex items-center gap-2">{showAiResults && isCorrect && <CheckCircle className="h-4 w-4 text-green-600" />}{showAiResults && isSelected && !isCorrect && <XCircle className="h-4 w-4 text-red-600" />}<span>{String.fromCharCode(65 + oIdx)}. {option}</span></div>
+                                  </button>);
+                                })}
+                              </div>
+                              {showAiResults && (<div className="p-3 bg-muted/50 rounded text-sm"><strong>{language === 'ru' ? 'Объяснение:' : 'Explanation:'}</strong> {q.explanation}</div>)}
+                            </div>
+                          ))}
+                          <div className="flex gap-3 pt-4">
+                            {!showAiResults ? (<Button onClick={checkAiAnswers} disabled={Object.keys(aiPracticeAnswers).length < generatedLesson.lesson.practice_questions.length}>{language === 'ru' ? 'Проверить ответы' : 'Check Answers'}</Button>) : (<Button variant="outline" onClick={resetAiPractice}>{language === 'ru' ? 'Попробовать снова' : 'Try Again'}</Button>)}
+                          </div>
+                        </CardContent></Card>
+                    )}
+
+                    <Card><CardHeader><CardTitle>{language === 'ru' ? 'Итоги' : 'Summary'}</CardTitle></CardHeader>
+                      <CardContent><p className="text-foreground whitespace-pre-wrap leading-relaxed">{generatedLesson.lesson.final_summary}</p></CardContent></Card>
+                  </div>
+                ) : null}
               </TabsContent>
             </Tabs>
           </div>

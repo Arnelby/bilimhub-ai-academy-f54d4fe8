@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, level, weakAreas, language = 'ru' } = await req.json();
+    const { topic, learningStyle, studentResults, language = 'ru' } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -24,42 +24,78 @@ serve(async (req) => {
       en: "Respond entirely in English."
     };
 
-    const prompt = `Create an interactive math lesson on "${topic}" for ORT exam preparation.
+    const styleInstructions: Record<string, string> = {
+      visual: `Use diagrams descriptions, visual metaphors, spatial layout, arrows, color-coded steps. Format with clear visual separation, use bullet points and numbered lists.`,
+      auditory: `Use spoken-style explanations ("Imagine you hear this…"). Write in a conversational, natural speech pattern as if explaining aloud.`,
+      'text-based': `Provide detailed definitions, long thorough explanations, structured paragraphs with comprehensive coverage.`,
+      'problem-solver': `Minimum theory (20%). Focus on exercises (80%) with step-by-step solutions. Practical tasks first.`,
+      'adhd-friendly': `Ultra-short blocks (1-3 sentences max). Bullet points only. No heavy text. Immediate quick wins. Use emojis for engagement. Frequent breaks between sections.`
+    };
 
-Student Level: ${level}/5
-${weakAreas ? `Areas needing focus: ${weakAreas.join(', ')}` : ''}
+    // Build personalized context from student results
+    let studentContext = '';
+    if (studentResults) {
+      const { accuracy, weakAreas, strongAreas, recentMistakes, testsCompleted } = studentResults;
+      studentContext = `
+STUDENT PERFORMANCE DATA:
+- Accuracy: ${accuracy || 0}%
+- Tests Completed: ${testsCompleted || 0}
+- Weak Areas: ${weakAreas?.length ? weakAreas.join(', ') : 'None identified yet'}
+- Strong Areas: ${strongAreas?.length ? strongAreas.join(', ') : 'None identified yet'}
+- Recent Mistakes: ${recentMistakes?.length ? recentMistakes.join(', ') : 'None'}
 
-Create a comprehensive lesson with this JSON structure:
+DIFFICULTY CALIBRATION:
+${accuracy < 40 ? '→ Use VERY EASY examples and explanations' : 
+  accuracy < 70 ? '→ Use MEDIUM difficulty with gradual progression' :
+  accuracy < 90 ? '→ Use MIXED difficulty with some challenges' :
+  '→ Use HARD problems to push growth'}
+`;
+    }
+
+    const prompt = `You are an expert math tutor creating a PERSONALIZED adaptive lesson on "${topic}".
+
+${studentContext}
+
+LEARNING STYLE SELECTED: ${learningStyle}
+STYLE REQUIREMENTS: ${styleInstructions[learningStyle] || styleInstructions['text-based']}
+
+${languageInstructions[language as keyof typeof languageInstructions] || languageInstructions.ru}
+
+CREATE A COMPLETE LESSON with this EXACT JSON structure:
 {
-  "title": "Lesson title",
-  "introduction": "Brief engaging introduction (2-3 sentences)",
-  "sections": [
-    {
-      "title": "Section title",
-      "content": "Detailed explanation with examples",
-      "keyPoints": ["Point 1", "Point 2"],
-      "example": {
-        "problem": "Example problem",
-        "solution": "Step-by-step solution"
+  "status": "ok",
+  "topic": "${topic}",
+  "learning_style": "${learningStyle}",
+  "lesson": {
+    "introduction": "2-3 sentences greeting the student, acknowledging their weak areas if any, encouraging them, and briefly outlining what they'll learn",
+    "core_lesson": "Main lesson content adapted to the ${learningStyle} learning style. This should be 3-5 paragraphs explaining the core concepts of ${topic} using the specified style approach.",
+    "weakness_training": [
+      {
+        "area": "Name of weak area",
+        "explanation": "Very short targeted explanation",
+        "example": "One clear worked example",
+        "exercises": ["Exercise 1", "Exercise 2"],
+        "tip": "Quick tip to remember"
       }
-    }
-  ],
-  "quiz": [
-    {
-      "question": "Quiz question",
-      "options": ["A", "B", "C", "D"],
-      "correctOption": 0,
-      "explanation": "Why this is correct"
-    }
-  ],
-  "summary": "Key takeaways (3-4 bullet points)",
-  "vocabulary": [
-    { "term": "Math term", "definition": "Definition" }
-  ]
+    ],
+    "practice_questions": [
+      {
+        "question": "Question text",
+        "options": ["A", "B", "C", "D"],
+        "correct": 0,
+        "explanation": "Why this answer is correct"
+      }
+    ],
+    "final_summary": "3 key rules/takeaways, one final challenge question"
+  }
 }
 
-Include 3-4 sections and 3-5 quiz questions.
-${languageInstructions[language as keyof typeof languageInstructions] || languageInstructions.ru}`;
+IMPORTANT:
+- Generate 2-3 weakness_training items (even if no weak areas, cover common trouble spots)
+- Generate 4-6 practice_questions at the appropriate difficulty
+- Keep the ${learningStyle} style consistent throughout
+- Make it engaging and encouraging
+- Return ONLY valid JSON, no markdown`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -70,7 +106,7 @@ ${languageInstructions[language as keyof typeof languageInstructions] || languag
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are an expert math teacher creating engaging lessons. Always respond with valid JSON." },
+          { role: "system", content: "You are an expert math teacher creating engaging personalized lessons. Always respond with valid JSON only." },
           { role: "user", content: prompt },
         ],
       }),
@@ -89,14 +125,17 @@ ${languageInstructions[language as keyof typeof languageInstructions] || languag
     const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
     const lesson = JSON.parse(jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content);
 
-    console.log("Lesson generated for topic:", topic);
+    console.log("Personalized lesson generated for topic:", topic, "style:", learningStyle);
 
     return new Response(JSON.stringify(lesson), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Lesson generation error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ 
+      status: "error",
+      error: error instanceof Error ? error.message : "Unknown error" 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
