@@ -111,6 +111,9 @@ export function useLessonData(bucketPath: string) {
     async function fetchLessonData() {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log('Fetching lesson from path:', bucketPath);
         
         // Get signed URL for the JSON file
         const { data: signedUrlData, error: urlError } = await supabase.storage
@@ -118,25 +121,34 @@ export function useLessonData(bucketPath: string) {
           .createSignedUrl(bucketPath, 3600);
 
         if (urlError) {
+          console.error('Storage error:', urlError);
           throw new Error(`Failed to get signed URL: ${urlError.message}`);
+        }
+
+        if (!signedUrlData?.signedUrl) {
+          throw new Error('No signed URL returned');
         }
 
         // Fetch the JSON content
         const response = await fetch(signedUrlData.signedUrl);
         if (!response.ok) {
-          throw new Error('Failed to fetch lesson data');
+          throw new Error(`Failed to fetch lesson data: ${response.status} ${response.statusText}`);
         }
 
         const jsonData = await response.json();
+        console.log('Lesson data loaded successfully');
         setData(jsonData);
       } catch (err) {
+        console.error('Error loading lesson:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
     }
 
-    fetchLessonData();
+    if (bucketPath) {
+      fetchLessonData();
+    }
   }, [bucketPath]);
 
   return { data, loading, error };
