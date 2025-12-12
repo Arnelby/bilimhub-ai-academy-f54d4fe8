@@ -2,6 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ImageIcon } from 'lucide-react';
 
+// Import local assets for exponents diagrams
+import exponentRulesCheatsheet from '@/assets/lessons/exponent-rules-cheatsheet.png';
+import exponentSimplificationFlowchart from '@/assets/lessons/exponent-simplification-flowchart.png';
+import exponentNegativeZeroDiagram from '@/assets/lessons/exponent-negative-zero-diagram.png';
+
+// Map of local asset paths
+const localAssets: Record<string, string> = {
+  'exponents/exponent-rules-cheatsheet.png': exponentRulesCheatsheet,
+  'exponents/exponent-simplification-flowchart.png': exponentSimplificationFlowchart,
+  'exponents/exponent-negative-zero-diagram.png': exponentNegativeZeroDiagram,
+};
+
 interface StorageImageProps {
   path: string;
   alt: string;
@@ -26,15 +38,22 @@ export function StorageImage({ path, alt, className = '' }: StorageImageProps) {
           .replace(/^storage\/lessons\//, '')
           .replace(/^\//, '');
 
-        const { data, error: urlError } = await supabase.storage
-          .from('lessons')
-          .createSignedUrl(cleanPath, 3600);
+        // Check if this is a local asset first
+        if (localAssets[cleanPath]) {
+          setUrl(localAssets[cleanPath]);
+          setLoading(false);
+          return;
+        }
 
-        if (urlError) {
-          console.error('Error getting signed URL:', urlError);
+        // Use public URL since bucket is public
+        const { data } = supabase.storage
+          .from('lessons')
+          .getPublicUrl(cleanPath);
+
+        if (data?.publicUrl) {
+          setUrl(data.publicUrl);
+        } else {
           setError(true);
-        } else if (data?.signedUrl) {
-          setUrl(data.signedUrl);
         }
       } catch (err) {
         console.error('Error loading image:', err);
