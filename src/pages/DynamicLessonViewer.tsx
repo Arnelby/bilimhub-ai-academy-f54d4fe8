@@ -959,6 +959,9 @@ export default function DynamicLessonViewer() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
+  // Normalize topicId to handle singular/plural variants
+  const normalizedTopicId = topicId === 'exponent' ? 'exponents' : topicId;
+  
   // Mapping from topic IDs to lesson JSON files in storage (exact paths in bucket)
   const lessonPathMap: Record<string, string> = {
     fractions: 'fractions/fraction.json',
@@ -967,8 +970,8 @@ export default function DynamicLessonViewer() {
 
   // Fetch lesson data from storage (JSON is the single source of truth)
   const bucketPath =
-    (topicId && lessonPathMap[topicId]) ||
-    (topicId ? `${topicId}/${topicId}.json` : '');
+    (normalizedTopicId && lessonPathMap[normalizedTopicId]) ||
+    (normalizedTopicId ? `${normalizedTopicId}/${normalizedTopicId}.json` : '');
 
   const { data, loading, error } = useLessonData(bucketPath);
   
@@ -994,11 +997,11 @@ export default function DynamicLessonViewer() {
   
   // Notes state
   const [lessonNotes, setLessonNotes] = useState<string>(() => {
-    return localStorage.getItem(`${topicId}_lesson_notes`) || '';
+    return localStorage.getItem(`${normalizedTopicId}_lesson_notes`) || '';
   });
 
   const saveNotes = () => {
-    localStorage.setItem(`${topicId}_lesson_notes`, lessonNotes);
+    localStorage.setItem(`${normalizedTopicId}_lesson_notes`, lessonNotes);
     toast.success(language === 'ru' ? 'Заметки сохранены!' : 'Notes saved!');
   };
 
@@ -1059,7 +1062,7 @@ export default function DynamicLessonViewer() {
 
     try {
       const studentResults = await fetchStudentResults();
-      const topicName = topicId === 'fractions' ? 'Дроби (Fractions)' : topicId === 'exponents' ? 'Степени (Exponents)' : topicId;
+      const topicName = normalizedTopicId === 'fractions' ? 'Дроби (Fractions)' : normalizedTopicId === 'exponents' ? 'Степени (Exponents)' : normalizedTopicId;
 
       const { data, error } = await supabase.functions.invoke('ai-generate-lesson', {
         body: { topic: topicName, learningStyle: style, studentResults, language }
@@ -1142,8 +1145,8 @@ export default function DynamicLessonViewer() {
   // Mini-test logic - use fallback questions for fractions if no mini_tests in data
   // Helper to get fallback mini tests by topic
   const getMiniTestFallback = () => {
-    if (topicId === 'fractions') return fractionsMiniTests;
-    if (topicId === 'exponents') return exponentsMiniTests;
+    if (normalizedTopicId === 'fractions') return fractionsMiniTests;
+    if (normalizedTopicId === 'exponents') return exponentsMiniTests;
     return [];
   };
   
@@ -1199,8 +1202,8 @@ export default function DynamicLessonViewer() {
 
   // Helper to get fallback full test by topic
   const getFullTestFallback = () => {
-    if (topicId === 'fractions') return fractionsFullTest;
-    if (topicId === 'exponents') return exponentsFullTest;
+    if (normalizedTopicId === 'fractions') return fractionsFullTest;
+    if (normalizedTopicId === 'exponents') return exponentsFullTest;
     return [];
   };
   
@@ -1327,7 +1330,7 @@ export default function DynamicLessonViewer() {
                 {data.basic_lesson.video && (
                   <Card>
                     <CardContent className="pt-6">
-                      <VideoEmbed url={topicVideos[topicId!] || data.basic_lesson.video} />
+                      <VideoEmbed url={topicVideos[normalizedTopicId!] || data.basic_lesson.video} />
                     </CardContent>
                   </Card>
                 )}
@@ -1482,7 +1485,7 @@ export default function DynamicLessonViewer() {
                           imagePath={diagram.image} 
                           diagramId={diagram.id}
                           title={getText(diagram.title, language)} 
-                          topicId={topicId || ''} 
+                          topicId={normalizedTopicId || ''} 
                         />
                       </CardContent>
                     </Card>
