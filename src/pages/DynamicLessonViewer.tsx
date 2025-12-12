@@ -69,6 +69,127 @@ const topicVideos: Record<string, string> = {
   exponents: 'https://youtu.be/4-j-tKt6gIo',
 };
 
+// Fallback mini test questions for fractions
+const fractionsMiniTests = [
+  {
+    id: 'frac-mt-1',
+    difficulty: 'easy',
+    question: { en: 'What is 1/2 + 1/4?', ru: 'Чему равно 1/2 + 1/4?', kg: '1/2 + 1/4 канча?' },
+    options: {
+      A: { en: '3/4', ru: '3/4', kg: '3/4' },
+      B: { en: '2/6', ru: '2/6', kg: '2/6' },
+      C: { en: '1/6', ru: '1/6', kg: '1/6' },
+      D: { en: '2/4', ru: '2/4', kg: '2/4' }
+    },
+    correct: 'A',
+    explanation: { en: '1/2 = 2/4, so 2/4 + 1/4 = 3/4', ru: '1/2 = 2/4, поэтому 2/4 + 1/4 = 3/4', kg: '1/2 = 2/4, ошондуктан 2/4 + 1/4 = 3/4' }
+  },
+  {
+    id: 'frac-mt-2',
+    difficulty: 'easy',
+    question: { en: 'Simplify 4/8', ru: 'Сократите дробь 4/8', kg: '4/8 кыскартыңыз' },
+    options: {
+      A: { en: '2/4', ru: '2/4', kg: '2/4' },
+      B: { en: '1/2', ru: '1/2', kg: '1/2' },
+      C: { en: '1/4', ru: '1/4', kg: '1/4' },
+      D: { en: '4/4', ru: '4/4', kg: '4/4' }
+    },
+    correct: 'B',
+    explanation: { en: '4/8 ÷ 4/4 = 1/2', ru: '4/8 ÷ 4/4 = 1/2', kg: '4/8 ÷ 4/4 = 1/2' }
+  },
+  {
+    id: 'frac-mt-3',
+    difficulty: 'easy',
+    question: { en: 'What is 3/5 × 2?', ru: 'Чему равно 3/5 × 2?', kg: '3/5 × 2 канча?' },
+    options: {
+      A: { en: '5/5', ru: '5/5', kg: '5/5' },
+      B: { en: '3/10', ru: '3/10', kg: '3/10' },
+      C: { en: '6/5', ru: '6/5', kg: '6/5' },
+      D: { en: '6/10', ru: '6/10', kg: '6/10' }
+    },
+    correct: 'C',
+    explanation: { en: '3/5 × 2 = 6/5 = 1 1/5', ru: '3/5 × 2 = 6/5 = 1 1/5', kg: '3/5 × 2 = 6/5 = 1 1/5' }
+  },
+  {
+    id: 'frac-mt-4',
+    difficulty: 'medium',
+    question: { en: 'What is 2/3 ÷ 1/2?', ru: 'Чему равно 2/3 ÷ 1/2?', kg: '2/3 ÷ 1/2 канча?' },
+    options: {
+      A: { en: '1/3', ru: '1/3', kg: '1/3' },
+      B: { en: '4/3', ru: '4/3', kg: '4/3' },
+      C: { en: '2/6', ru: '2/6', kg: '2/6' },
+      D: { en: '3/4', ru: '3/4', kg: '3/4' }
+    },
+    correct: 'B',
+    explanation: { en: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3', ru: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3', kg: '2/3 ÷ 1/2 = 2/3 × 2/1 = 4/3' }
+  },
+  {
+    id: 'frac-mt-5',
+    difficulty: 'medium',
+    question: { en: 'What is 3/4 - 1/3?', ru: 'Чему равно 3/4 - 1/3?', kg: '3/4 - 1/3 канча?' },
+    options: {
+      A: { en: '2/1', ru: '2/1', kg: '2/1' },
+      B: { en: '5/12', ru: '5/12', kg: '5/12' },
+      C: { en: '2/7', ru: '2/7', kg: '2/7' },
+      D: { en: '1/12', ru: '1/12', kg: '1/12' }
+    },
+    correct: 'B',
+    explanation: { en: '3/4 = 9/12, 1/3 = 4/12, so 9/12 - 4/12 = 5/12', ru: '3/4 = 9/12, 1/3 = 4/12, поэтому 9/12 - 4/12 = 5/12', kg: '3/4 = 9/12, 1/3 = 4/12, ошондуктан 9/12 - 4/12 = 5/12' }
+  },
+  {
+    id: 'frac-mt-6',
+    difficulty: 'medium',
+    question: { en: 'Convert 7/4 to a mixed number', ru: 'Преобразуйте 7/4 в смешанное число', kg: '7/4 аралаш санга айландырыңыз' },
+    options: {
+      A: { en: '1 3/4', ru: '1 3/4', kg: '1 3/4' },
+      B: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
+      C: { en: '1 1/2', ru: '1 1/2', kg: '1 1/2' },
+      D: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' }
+    },
+    correct: 'A',
+    explanation: { en: '7 ÷ 4 = 1 remainder 3, so 7/4 = 1 3/4', ru: '7 ÷ 4 = 1 остаток 3, поэтому 7/4 = 1 3/4', kg: '7 ÷ 4 = 1 калдык 3, ошондуктан 7/4 = 1 3/4' }
+  },
+  {
+    id: 'frac-mt-7',
+    difficulty: 'hard',
+    question: { en: 'What is (2/3 + 1/4) × 6?', ru: 'Чему равно (2/3 + 1/4) × 6?', kg: '(2/3 + 1/4) × 6 канча?' },
+    options: {
+      A: { en: '5 1/2', ru: '5 1/2', kg: '5 1/2' },
+      B: { en: '11/2', ru: '11/2', kg: '11/2' },
+      C: { en: '6', ru: '6', kg: '6' },
+      D: { en: '4', ru: '4', kg: '4' }
+    },
+    correct: 'B',
+    explanation: { en: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Then 11/12 × 6 = 66/12 = 11/2', ru: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Затем 11/12 × 6 = 66/12 = 11/2', kg: '2/3 + 1/4 = 8/12 + 3/12 = 11/12. Анан 11/12 × 6 = 66/12 = 11/2' }
+  },
+  {
+    id: 'frac-mt-8',
+    difficulty: 'hard',
+    question: { en: 'Simplify: (5/6 - 1/3) ÷ 1/2', ru: 'Упростите: (5/6 - 1/3) ÷ 1/2', kg: 'Жөнөкөйлөтүңүз: (5/6 - 1/3) ÷ 1/2' },
+    options: {
+      A: { en: '1', ru: '1', kg: '1' },
+      B: { en: '1/4', ru: '1/4', kg: '1/4' },
+      C: { en: '1/2', ru: '1/2', kg: '1/2' },
+      D: { en: '2', ru: '2', kg: '2' }
+    },
+    correct: 'A',
+    explanation: { en: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Then 1/2 ÷ 1/2 = 1', ru: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Затем 1/2 ÷ 1/2 = 1', kg: '5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2. Анан 1/2 ÷ 1/2 = 1' }
+  },
+  {
+    id: 'frac-mt-9',
+    difficulty: 'hard',
+    question: { en: 'If 3/x = 1/4, what is x?', ru: 'Если 3/x = 1/4, чему равен x?', kg: 'Эгер 3/x = 1/4 болсо, x канча?' },
+    options: {
+      A: { en: '12', ru: '12', kg: '12' },
+      B: { en: '3/4', ru: '3/4', kg: '3/4' },
+      C: { en: '4/3', ru: '4/3', kg: '4/3' },
+      D: { en: '7', ru: '7', kg: '7' }
+    },
+    correct: 'A',
+    explanation: { en: '3/x = 1/4 → x = 3 × 4 = 12', ru: '3/x = 1/4 → x = 3 × 4 = 12', kg: '3/x = 1/4 → x = 3 × 4 = 12' }
+  }
+];
+
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -312,8 +433,11 @@ export default function DynamicLessonViewer() {
     saveNotes: language === 'ru' ? 'Сохранить заметки' : language === 'kg' ? 'Жазууларды сактоо' : 'Save Notes',
   };
 
-  // Mini-test logic
-  const filteredMiniTestQuestions = data?.mini_tests?.filter(q => q.difficulty === currentDifficulty) || [];
+  // Mini-test logic - use fallback questions for fractions if no mini_tests in data
+  const miniTestSource = (data?.mini_tests && data.mini_tests.length > 0) 
+    ? data.mini_tests 
+    : (topicId === 'fractions' ? fractionsMiniTests : []);
+  const filteredMiniTestQuestions = miniTestSource.filter((q: any) => q.difficulty === currentDifficulty) || [];
   const currentMiniTestQuestion = filteredMiniTestQuestions[miniTestIndex];
 
   const handleMiniTestAnswer = (answer: string) => {
@@ -338,7 +462,10 @@ export default function DynamicLessonViewer() {
   };
 
   const nextMiniTestQuestion = () => {
-    const newFilteredQuestions = data?.mini_tests?.filter(q => q.difficulty === currentDifficulty) || [];
+    const miniTestSrc = (data?.mini_tests && data.mini_tests.length > 0) 
+      ? data.mini_tests 
+      : (topicId === 'fractions' ? fractionsMiniTests : []);
+    const newFilteredQuestions = miniTestSrc.filter((q: any) => q.difficulty === currentDifficulty) || [];
     if (newFilteredQuestions.length === 0) {
       setMiniTestIndex(0);
     } else {
