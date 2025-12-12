@@ -226,7 +226,7 @@ export default function Lessons() {
         </div>
 
         {/* Featured Interactive Lessons */}
-        <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
           <Card className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
             <CardContent className="p-6">
               <div className="flex flex-col gap-4">
@@ -271,6 +271,32 @@ export default function Lessons() {
                 </div>
                 <Button asChild variant="outline">
                   <Link to="/lessons/topic/exponents">
+                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-blue-500/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-blue-500/20">
+                    <span className="text-3xl">📈</span>
+                  </div>
+                  <div>
+                    <Badge variant="secondary" className="mb-2 bg-blue-500/20 text-blue-600">
+                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
+                    </Badge>
+                    <h3 className="text-xl font-bold">
+                      {language === 'ru' ? 'Квадратные уравнения' : language === 'kg' ? 'Квадраттык теңдемелер' : 'Quadratic Equations'}
+                    </h3>
+                  </div>
+                </div>
+                <Button asChild variant="outline">
+                  <Link to="/lessons/topic/quadratics">
                     {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Link>
