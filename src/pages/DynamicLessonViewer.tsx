@@ -63,6 +63,12 @@ const topicImages: Record<string, Record<string, string>> = {
   },
 };
 
+// Video URL overrides per topic (overrides JSON values)
+const topicVideos: Record<string, string> = {
+  fractions: 'https://youtu.be/UJbYTA-1rYc',
+  exponents: 'https://youtu.be/4-j-tKt6gIo',
+};
+
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -471,7 +477,7 @@ export default function DynamicLessonViewer() {
                 {data.basic_lesson.video && (
                   <Card>
                     <CardContent className="pt-6">
-                      <VideoEmbed url={data.basic_lesson.video} />
+                      <VideoEmbed url={topicVideos[topicId!] || data.basic_lesson.video} />
                     </CardContent>
                   </Card>
                 )}
