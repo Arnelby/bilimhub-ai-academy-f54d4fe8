@@ -190,6 +190,250 @@ const fractionsMiniTests = [
   }
 ];
 
+// Fallback full test questions for fractions (20 questions)
+const fractionsFullTest = [
+  {
+    id: 'ft-1',
+    question: { en: 'What is 1/2 + 1/3?', ru: 'Чему равно 1/2 + 1/3?', kg: '1/2 + 1/3 канча?' },
+    options: {
+      A: { en: '2/5', ru: '2/5', kg: '2/5' },
+      B: { en: '5/6', ru: '5/6', kg: '5/6' },
+      C: { en: '2/6', ru: '2/6', kg: '2/6' },
+      D: { en: '1/5', ru: '1/5', kg: '1/5' }
+    },
+    correct: 'B',
+    explanation: { en: '1/2 = 3/6, 1/3 = 2/6, so 3/6 + 2/6 = 5/6', ru: '1/2 = 3/6, 1/3 = 2/6, поэтому 3/6 + 2/6 = 5/6', kg: '1/2 = 3/6, 1/3 = 2/6, ошондуктан 3/6 + 2/6 = 5/6' }
+  },
+  {
+    id: 'ft-2',
+    question: { en: 'Which fraction is equivalent to 4/6?', ru: 'Какая дробь равна 4/6?', kg: 'Кайсы бөлчөк 4/6 барабар?' },
+    options: {
+      A: { en: '2/3', ru: '2/3', kg: '2/3' },
+      B: { en: '3/4', ru: '3/4', kg: '3/4' },
+      C: { en: '1/2', ru: '1/2', kg: '1/2' },
+      D: { en: '4/8', ru: '4/8', kg: '4/8' }
+    },
+    correct: 'A',
+    explanation: { en: '4/6 ÷ 2/2 = 2/3', ru: '4/6 ÷ 2/2 = 2/3', kg: '4/6 ÷ 2/2 = 2/3' }
+  },
+  {
+    id: 'ft-3',
+    question: { en: 'What is 3/4 × 2/5?', ru: 'Чему равно 3/4 × 2/5?', kg: '3/4 × 2/5 канча?' },
+    options: {
+      A: { en: '6/20', ru: '6/20', kg: '6/20' },
+      B: { en: '5/9', ru: '5/9', kg: '5/9' },
+      C: { en: '3/10', ru: '3/10', kg: '3/10' },
+      D: { en: '6/9', ru: '6/9', kg: '6/9' }
+    },
+    correct: 'C',
+    explanation: { en: '3/4 × 2/5 = 6/20 = 3/10', ru: '3/4 × 2/5 = 6/20 = 3/10', kg: '3/4 × 2/5 = 6/20 = 3/10' }
+  },
+  {
+    id: 'ft-4',
+    question: { en: 'What is 5/6 - 1/2?', ru: 'Чему равно 5/6 - 1/2?', kg: '5/6 - 1/2 канча?' },
+    options: {
+      A: { en: '4/4', ru: '4/4', kg: '4/4' },
+      B: { en: '1/3', ru: '1/3', kg: '1/3' },
+      C: { en: '2/6', ru: '2/6', kg: '2/6' },
+      D: { en: '4/6', ru: '4/6', kg: '4/6' }
+    },
+    correct: 'B',
+    explanation: { en: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3', ru: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3', kg: '5/6 - 1/2 = 5/6 - 3/6 = 2/6 = 1/3' }
+  },
+  {
+    id: 'ft-5',
+    question: { en: 'What is 3/5 ÷ 1/2?', ru: 'Чему равно 3/5 ÷ 1/2?', kg: '3/5 ÷ 1/2 канча?' },
+    options: {
+      A: { en: '3/10', ru: '3/10', kg: '3/10' },
+      B: { en: '6/5', ru: '6/5', kg: '6/5' },
+      C: { en: '5/6', ru: '5/6', kg: '5/6' },
+      D: { en: '1/5', ru: '1/5', kg: '1/5' }
+    },
+    correct: 'B',
+    explanation: { en: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5', ru: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5', kg: '3/5 ÷ 1/2 = 3/5 × 2/1 = 6/5' }
+  },
+  {
+    id: 'ft-6',
+    question: { en: 'Simplify 12/18', ru: 'Сократите 12/18', kg: '12/18 кыскартыңыз' },
+    options: {
+      A: { en: '6/9', ru: '6/9', kg: '6/9' },
+      B: { en: '4/6', ru: '4/6', kg: '4/6' },
+      C: { en: '2/3', ru: '2/3', kg: '2/3' },
+      D: { en: '3/4', ru: '3/4', kg: '3/4' }
+    },
+    correct: 'C',
+    explanation: { en: '12/18 ÷ 6/6 = 2/3', ru: '12/18 ÷ 6/6 = 2/3', kg: '12/18 ÷ 6/6 = 2/3' }
+  },
+  {
+    id: 'ft-7',
+    question: { en: 'Convert 11/4 to a mixed number', ru: 'Преобразуйте 11/4 в смешанное число', kg: '11/4 аралаш санга айландырыңыз' },
+    options: {
+      A: { en: '2 3/4', ru: '2 3/4', kg: '2 3/4' },
+      B: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
+      C: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
+      D: { en: '1 3/4', ru: '1 3/4', kg: '1 3/4' }
+    },
+    correct: 'A',
+    explanation: { en: '11 ÷ 4 = 2 remainder 3, so 11/4 = 2 3/4', ru: '11 ÷ 4 = 2 остаток 3, поэтому 11/4 = 2 3/4', kg: '11 ÷ 4 = 2 калдык 3, ошондуктан 11/4 = 2 3/4' }
+  },
+  {
+    id: 'ft-8',
+    question: { en: 'What is 2 1/2 + 1 3/4?', ru: 'Чему равно 2 1/2 + 1 3/4?', kg: '2 1/2 + 1 3/4 канча?' },
+    options: {
+      A: { en: '3 5/4', ru: '3 5/4', kg: '3 5/4' },
+      B: { en: '4 1/4', ru: '4 1/4', kg: '4 1/4' },
+      C: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
+      D: { en: '4 3/4', ru: '4 3/4', kg: '4 3/4' }
+    },
+    correct: 'B',
+    explanation: { en: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, so 10/4 + 7/4 = 17/4 = 4 1/4', ru: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, поэтому 10/4 + 7/4 = 17/4 = 4 1/4', kg: '2 1/2 = 5/2 = 10/4, 1 3/4 = 7/4, ошондуктан 10/4 + 7/4 = 17/4 = 4 1/4' }
+  },
+  {
+    id: 'ft-9',
+    question: { en: 'Which fraction is greater: 3/5 or 2/3?', ru: 'Какая дробь больше: 3/5 или 2/3?', kg: 'Кайсы бөлчөк чоңураак: 3/5 же 2/3?' },
+    options: {
+      A: { en: '3/5', ru: '3/5', kg: '3/5' },
+      B: { en: '2/3', ru: '2/3', kg: '2/3' },
+      C: { en: 'They are equal', ru: 'Они равны', kg: 'Алар барабар' },
+      D: { en: 'Cannot determine', ru: 'Нельзя определить', kg: 'Аныктоого мүмкүн эмес' }
+    },
+    correct: 'B',
+    explanation: { en: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, so 2/3 > 3/5', ru: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, поэтому 2/3 > 3/5', kg: '3/5 = 9/15, 2/3 = 10/15. 10/15 > 9/15, ошондуктан 2/3 > 3/5' }
+  },
+  {
+    id: 'ft-10',
+    question: { en: 'What is 7/8 × 4/7?', ru: 'Чему равно 7/8 × 4/7?', kg: '7/8 × 4/7 канча?' },
+    options: {
+      A: { en: '1/2', ru: '1/2', kg: '1/2' },
+      B: { en: '28/56', ru: '28/56', kg: '28/56' },
+      C: { en: '4/8', ru: '4/8', kg: '4/8' },
+      D: { en: '11/15', ru: '11/15', kg: '11/15' }
+    },
+    correct: 'A',
+    explanation: { en: '7/8 × 4/7 = 28/56 = 1/2 (or cancel 7s: 4/8 = 1/2)', ru: '7/8 × 4/7 = 28/56 = 1/2 (или сокращаем 7: 4/8 = 1/2)', kg: '7/8 × 4/7 = 28/56 = 1/2 (же 7 кыскартылат: 4/8 = 1/2)' }
+  },
+  {
+    id: 'ft-11',
+    question: { en: 'Convert 3 2/5 to an improper fraction', ru: 'Преобразуйте 3 2/5 в неправильную дробь', kg: '3 2/5 туура эмес бөлчөккө айландырыңыз' },
+    options: {
+      A: { en: '15/5', ru: '15/5', kg: '15/5' },
+      B: { en: '17/5', ru: '17/5', kg: '17/5' },
+      C: { en: '13/5', ru: '13/5', kg: '13/5' },
+      D: { en: '11/5', ru: '11/5', kg: '11/5' }
+    },
+    correct: 'B',
+    explanation: { en: '3 2/5 = (3 × 5 + 2)/5 = 17/5', ru: '3 2/5 = (3 × 5 + 2)/5 = 17/5', kg: '3 2/5 = (3 × 5 + 2)/5 = 17/5' }
+  },
+  {
+    id: 'ft-12',
+    question: { en: 'What is 5/8 - 3/8?', ru: 'Чему равно 5/8 - 3/8?', kg: '5/8 - 3/8 канча?' },
+    options: {
+      A: { en: '2/8', ru: '2/8', kg: '2/8' },
+      B: { en: '1/4', ru: '1/4', kg: '1/4' },
+      C: { en: '1/8', ru: '1/8', kg: '1/8' },
+      D: { en: '2/16', ru: '2/16', kg: '2/16' }
+    },
+    correct: 'B',
+    explanation: { en: '5/8 - 3/8 = 2/8 = 1/4', ru: '5/8 - 3/8 = 2/8 = 1/4', kg: '5/8 - 3/8 = 2/8 = 1/4' }
+  },
+  {
+    id: 'ft-13',
+    question: { en: 'What is 2/3 ÷ 4/5?', ru: 'Чему равно 2/3 ÷ 4/5?', kg: '2/3 ÷ 4/5 канча?' },
+    options: {
+      A: { en: '8/15', ru: '8/15', kg: '8/15' },
+      B: { en: '10/12', ru: '10/12', kg: '10/12' },
+      C: { en: '5/6', ru: '5/6', kg: '5/6' },
+      D: { en: '6/5', ru: '6/5', kg: '6/5' }
+    },
+    correct: 'C',
+    explanation: { en: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6', ru: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6', kg: '2/3 ÷ 4/5 = 2/3 × 5/4 = 10/12 = 5/6' }
+  },
+  {
+    id: 'ft-14',
+    question: { en: 'If 1/4 of a number is 12, what is the number?', ru: 'Если 1/4 числа равна 12, чему равно число?', kg: 'Эгерде сандын 1/4 12ге барабар болсо, ал сан канча?' },
+    options: {
+      A: { en: '3', ru: '3', kg: '3' },
+      B: { en: '48', ru: '48', kg: '48' },
+      C: { en: '16', ru: '16', kg: '16' },
+      D: { en: '36', ru: '36', kg: '36' }
+    },
+    correct: 'B',
+    explanation: { en: 'If 1/4 × x = 12, then x = 12 × 4 = 48', ru: 'Если 1/4 × x = 12, тогда x = 12 × 4 = 48', kg: 'Эгерде 1/4 × x = 12 болсо, анда x = 12 × 4 = 48' }
+  },
+  {
+    id: 'ft-15',
+    question: { en: 'What is 1/6 + 1/4 + 1/3?', ru: 'Чему равно 1/6 + 1/4 + 1/3?', kg: '1/6 + 1/4 + 1/3 канча?' },
+    options: {
+      A: { en: '3/13', ru: '3/13', kg: '3/13' },
+      B: { en: '3/4', ru: '3/4', kg: '3/4' },
+      C: { en: '9/12', ru: '9/12', kg: '9/12' },
+      D: { en: '1/2', ru: '1/2', kg: '1/2' }
+    },
+    correct: 'B',
+    explanation: { en: 'LCD = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Sum = 9/12 = 3/4', ru: 'НОЗ = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Сумма = 9/12 = 3/4', kg: 'ЭКБ = 12. 1/6 = 2/12, 1/4 = 3/12, 1/3 = 4/12. Сумма = 9/12 = 3/4' }
+  },
+  {
+    id: 'ft-16',
+    question: { en: 'Simplify (2/3)²', ru: 'Упростите (2/3)²', kg: '(2/3)² жөнөкөйлөтүңүз' },
+    options: {
+      A: { en: '4/6', ru: '4/6', kg: '4/6' },
+      B: { en: '4/9', ru: '4/9', kg: '4/9' },
+      C: { en: '2/6', ru: '2/6', kg: '2/6' },
+      D: { en: '6/9', ru: '6/9', kg: '6/9' }
+    },
+    correct: 'B',
+    explanation: { en: '(2/3)² = 2²/3² = 4/9', ru: '(2/3)² = 2²/3² = 4/9', kg: '(2/3)² = 2²/3² = 4/9' }
+  },
+  {
+    id: 'ft-17',
+    question: { en: 'What is 5 - 2 3/4?', ru: 'Чему равно 5 - 2 3/4?', kg: '5 - 2 3/4 канча?' },
+    options: {
+      A: { en: '2 1/4', ru: '2 1/4', kg: '2 1/4' },
+      B: { en: '3 1/4', ru: '3 1/4', kg: '3 1/4' },
+      C: { en: '2 3/4', ru: '2 3/4', kg: '2 3/4' },
+      D: { en: '3 3/4', ru: '3 3/4', kg: '3 3/4' }
+    },
+    correct: 'A',
+    explanation: { en: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4', ru: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4', kg: '5 = 20/4, 2 3/4 = 11/4. 20/4 - 11/4 = 9/4 = 2 1/4' }
+  },
+  {
+    id: 'ft-18',
+    question: { en: 'What is 3/4 of 24?', ru: 'Чему равно 3/4 от 24?', kg: '24дүн 3/4 канча?' },
+    options: {
+      A: { en: '16', ru: '16', kg: '16' },
+      B: { en: '18', ru: '18', kg: '18' },
+      C: { en: '20', ru: '20', kg: '20' },
+      D: { en: '6', ru: '6', kg: '6' }
+    },
+    correct: 'B',
+    explanation: { en: '3/4 × 24 = 72/4 = 18', ru: '3/4 × 24 = 72/4 = 18', kg: '3/4 × 24 = 72/4 = 18' }
+  },
+  {
+    id: 'ft-19',
+    question: { en: 'What is the reciprocal of 5/7?', ru: 'Чему равна обратная дробь от 5/7?', kg: '5/7дин карама-каршы бөлчөгү канча?' },
+    options: {
+      A: { en: '-5/7', ru: '-5/7', kg: '-5/7' },
+      B: { en: '7/5', ru: '7/5', kg: '7/5' },
+      C: { en: '1/5', ru: '1/5', kg: '1/5' },
+      D: { en: '5/1', ru: '5/1', kg: '5/1' }
+    },
+    correct: 'B',
+    explanation: { en: 'The reciprocal of a/b is b/a. So reciprocal of 5/7 is 7/5', ru: 'Обратная дробь к a/b равна b/a. Поэтому обратная к 5/7 равна 7/5', kg: 'a/b бөлчөгүнүн карама-каршысы b/a. Ошондуктан 5/7дин карама-каршысы 7/5' }
+  },
+  {
+    id: 'ft-20',
+    question: { en: 'Solve: x/3 = 4/9', ru: 'Решите: x/3 = 4/9', kg: 'Чечиңиз: x/3 = 4/9' },
+    options: {
+      A: { en: 'x = 4/3', ru: 'x = 4/3', kg: 'x = 4/3' },
+      B: { en: 'x = 12/9', ru: 'x = 12/9', kg: 'x = 12/9' },
+      C: { en: 'x = 4/27', ru: 'x = 4/27', kg: 'x = 4/27' },
+      D: { en: 'x = 12/27', ru: 'x = 12/27', kg: 'x = 12/27' }
+    },
+    correct: 'A',
+    explanation: { en: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3', ru: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3', kg: 'x/3 = 4/9 → x = 3 × 4/9 = 12/9 = 4/3' }
+  }
+];
+
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -484,8 +728,11 @@ export default function DynamicLessonViewer() {
     setMiniTestTotal(0);
   };
 
-  // Full test logic
-  const currentFullTestQuestion = data?.full_test?.[fullTestIndex];
+  // Full test logic - use fallback questions for fractions if no full_test in data
+  const fullTestSource = (data?.full_test && data.full_test.length > 0)
+    ? data.full_test
+    : (topicId === 'fractions' ? fractionsFullTest : []);
+  const currentFullTestQuestion = fullTestSource[fullTestIndex];
   const fullTestAnsweredCount = Object.keys(fullTestAnswers).length;
 
   const handleFullTestAnswer = (answer: string) => {
@@ -494,7 +741,7 @@ export default function DynamicLessonViewer() {
 
   const calculateFullTestScore = () => {
     let correct = 0;
-    data?.full_test?.forEach((q, idx) => {
+    fullTestSource.forEach((q: any, idx: number) => {
       if (fullTestAnswers[idx] === q.correct) correct++;
     });
     return correct;
@@ -916,7 +1163,7 @@ export default function DynamicLessonViewer() {
                 <div className="flex items-center gap-3">
                   <FileText className="h-6 w-6 text-primary" />
                   <h2 className="text-2xl font-bold">{t.tabs.fullTest}</h2>
-                  <Badge variant="outline">{data.full_test?.length || 0} {language === 'ru' ? 'вопросов' : 'questions'}</Badge>
+                  <Badge variant="outline">{fullTestSource.length} {language === 'ru' ? 'вопросов' : 'questions'}</Badge>
                 </div>
 
                 {fullTestSubmitted ? (
@@ -928,13 +1175,13 @@ export default function DynamicLessonViewer() {
                     <CardContent className="space-y-6">
                       <div className="text-center py-6">
                         <div className="text-5xl font-bold text-primary mb-2">
-                          {calculateFullTestScore()}/{data.full_test?.length || 0}
+                          {calculateFullTestScore()}/{fullTestSource.length}
                         </div>
                         <div className="text-2xl text-muted-foreground">
-                          {Math.round((calculateFullTestScore() / (data.full_test?.length || 1)) * 100)}%
+                          {Math.round((calculateFullTestScore() / (fullTestSource.length || 1)) * 100)}%
                         </div>
                         <Progress 
-                          value={(calculateFullTestScore() / (data.full_test?.length || 1)) * 100} 
+                          value={(calculateFullTestScore() / (fullTestSource.length || 1)) * 100} 
                           className="h-3 mt-4"
                         />
                       </div>
@@ -948,7 +1195,7 @@ export default function DynamicLessonViewer() {
 
                       <div className="space-y-4">
                         <h3 className="font-semibold">{language === 'ru' ? 'Обзор ответов' : 'Answer Review'}</h3>
-                        {data.full_test?.map((q, idx) => {
+                        {fullTestSource.map((q: any, idx: number) => {
                           const userAnswer = fullTestAnswers[idx];
                           const isCorrect = userAnswer === q.correct;
                           return (
@@ -982,13 +1229,13 @@ export default function DynamicLessonViewer() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>
-                          {language === 'ru' ? 'Вопрос' : 'Question'} {fullTestIndex + 1}/{data.full_test?.length || 0}
+                          {language === 'ru' ? 'Вопрос' : 'Question'} {fullTestIndex + 1}/{fullTestSource.length}
                         </CardTitle>
                         <Badge variant="outline">
-                          {fullTestAnsweredCount}/{data.full_test?.length || 0} {language === 'ru' ? 'отвечено' : 'answered'}
+                          {fullTestAnsweredCount}/{fullTestSource.length} {language === 'ru' ? 'отвечено' : 'answered'}
                         </Badge>
                       </div>
-                      <Progress value={(fullTestAnsweredCount / (data.full_test?.length || 1)) * 100} className="h-2" />
+                      <Progress value={(fullTestAnsweredCount / (fullTestSource.length || 1)) * 100} className="h-2" />
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {currentFullTestQuestion && (
@@ -1024,10 +1271,10 @@ export default function DynamicLessonViewer() {
                               {language === 'ru' ? 'Назад' : 'Previous'}
                             </Button>
 
-                            {fullTestIndex === (data.full_test?.length || 0) - 1 ? (
+                            {fullTestIndex === fullTestSource.length - 1 ? (
                               <Button 
                                 onClick={() => setFullTestSubmitted(true)}
-                                disabled={fullTestAnsweredCount < (data.full_test?.length || 0)}
+                                disabled={fullTestAnsweredCount < fullTestSource.length}
                               >
                                 {t.submit}
                               </Button>
@@ -1041,7 +1288,7 @@ export default function DynamicLessonViewer() {
 
                           {/* Question navigation */}
                           <div className="flex flex-wrap gap-2 pt-4 border-t">
-                            {data.full_test?.map((_, idx) => (
+                            {fullTestSource.map((_: any, idx: number) => (
                               <Button
                                 key={idx}
                                 variant={fullTestAnswers[idx] ? 'default' : 'outline'}
