@@ -225,39 +225,60 @@ export default function Lessons() {
           </Select>
         </div>
 
-        {/* Featured Interactive Lesson */}
-        <Card className="mb-8 bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full bg-primary/20">
-                  <span className="text-3xl">📐</span>
+        {/* Featured Interactive Lessons */}
+        <div className="grid gap-4 md:grid-cols-2 mb-8">
+          <Card className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-primary/20">
+                    <span className="text-3xl">📐</span>
+                  </div>
+                  <div>
+                    <Badge variant="secondary" className="mb-2 bg-primary/20 text-primary">
+                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
+                    </Badge>
+                    <h3 className="text-xl font-bold">
+                      {language === 'ru' ? 'Дроби' : language === 'kg' ? 'Бөлчөктөр' : 'Fractions'}
+                    </h3>
+                  </div>
                 </div>
-                <div>
-                  <Badge variant="secondary" className="mb-2 bg-primary/20 text-primary">
-                    {language === 'ru' ? '✨ Интерактивный урок' : language === 'kg' ? '✨ Интерактивдик сабак' : '✨ Interactive Lesson'}
-                  </Badge>
-                  <h3 className="text-xl font-bold">
-                    {language === 'ru' ? 'Дроби - Полный курс' : language === 'kg' ? 'Бөлчөктөр - Толук курс' : 'Fractions - Complete Course'}
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    {language === 'ru' 
-                      ? 'Теория, мини-уроки, диаграммы, тесты и AI-адаптивные уроки' 
-                      : language === 'kg' 
-                        ? 'Теория, мини-сабактар, диаграммалар, тесттер жана AI-адаптивдик сабактар'
-                        : 'Theory, mini-lessons, diagrams, tests and AI-adaptive lessons'}
-                  </p>
-                </div>
+                <Button asChild>
+                  <Link to="/lessons/topic/fractions">
+                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
-              <Button asChild size="lg">
-                <Link to="/lessons/fractions">
-                  {language === 'ru' ? 'Начать урок' : language === 'kg' ? 'Сабакты баштоо' : 'Start Lesson'}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-yellow-500/10 border-orange-500/20">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-orange-500/20">
+                    <span className="text-3xl">🔢</span>
+                  </div>
+                  <div>
+                    <Badge variant="secondary" className="mb-2 bg-orange-500/20 text-orange-600">
+                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
+                    </Badge>
+                    <h3 className="text-xl font-bold">
+                      {language === 'ru' ? 'Степени' : language === 'kg' ? 'Даражалар' : 'Exponents'}
+                    </h3>
+                  </div>
+                </div>
+                <Button asChild variant="outline">
+                  <Link to="/lessons/topic/exponents">
+                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Lessons Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
