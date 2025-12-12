@@ -13,7 +13,9 @@ interface DynamicLessonsTabProps {
   data: LessonData['dynamic_lessons'];
 }
 
-function getText(obj: { en: string; ru: string; kg: string }, lang: Language): string {
+function getText(obj: { en: string; ru: string; kg: string } | string | undefined, lang: Language): string {
+  if (!obj) return '';
+  if (typeof obj === 'string') return obj;
   return obj[lang] || obj.en || '';
 }
 
