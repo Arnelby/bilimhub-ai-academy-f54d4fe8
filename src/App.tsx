@@ -30,6 +30,7 @@ import AISmartTutor from "./pages/AISmartTutor";
 import Homework from "./pages/Homework";
 import MathLessons from "./pages/MathLessons";
 import FractionsLesson from "./pages/FractionsLesson";
+import DynamicLessonViewer from "./pages/DynamicLessonViewer";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -71,6 +72,7 @@ const App = () => (
                   <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
                   <Route path="/math-lessons" element={<ProtectedRoute><MathLessons /></ProtectedRoute>} />
                   <Route path="/lessons/fractions" element={<ProtectedRoute><FractionsLesson /></ProtectedRoute>} />
+                  <Route path="/lessons/topic/:topicId" element={<ProtectedRoute><DynamicLessonViewer /></ProtectedRoute>} />
                   
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
