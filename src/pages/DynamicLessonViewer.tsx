@@ -85,10 +85,43 @@ const styleIcons: Record<LearningStyle, React.ReactNode> = {
   'adhd-friendly': <Zap className="h-5 w-5" />,
 };
 
-// Helper to get text from multilang object
-function getText(obj: { en: string; ru: string; kg: string } | undefined, lang: Language): string {
+// Helper to get text from multilang object or string
+function getText(obj: { en: string; ru: string; kg: string } | string | undefined, lang: Language): string {
   if (!obj) return '';
+  if (typeof obj === 'string') return obj;
   return obj[lang] || obj.en || '';
+}
+
+// Helper to get rules as array (handles both array of multilang objects and multilang object with arrays)
+function getRulesArray(rules: any, lang: Language): string[] {
+  if (!rules) return [];
+  // If it's a multilang object with arrays (like exponents)
+  if (rules[lang] && Array.isArray(rules[lang])) {
+    return rules[lang];
+  }
+  // If it's an array of multilang objects (like fractions)
+  if (Array.isArray(rules)) {
+    return rules.map(r => getText(r, lang));
+  }
+  return [];
+}
+
+// Helper to get examples from either examples or worked_examples
+function getExamples(basicLesson: any): any[] {
+  if (basicLesson.examples && Array.isArray(basicLesson.examples)) {
+    return basicLesson.examples;
+  }
+  if (basicLesson.worked_examples && Array.isArray(basicLesson.worked_examples)) {
+    return basicLesson.worked_examples;
+  }
+  return [];
+}
+
+// Helper to get theory/content
+function getTheoryText(basicLesson: any, lang: Language): string {
+  if (basicLesson.theory) return getText(basicLesson.theory, lang);
+  if (basicLesson.content) return getText(basicLesson.content, lang);
+  return '';
 }
 
 // Video Embed component
@@ -443,18 +476,18 @@ export default function DynamicLessonViewer() {
                   </Card>
                 )}
 
-                {/* Theory */}
+                {/* Theory/Content */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">📚 {t.theory}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{getText(data.basic_lesson.theory, language)}</p>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{getTheoryText(data.basic_lesson, language)}</p>
                   </CardContent>
                 </Card>
 
                 {/* Definitions */}
-                {data.basic_lesson.definitions?.length > 0 && (
+                {data.basic_lesson.definitions && data.basic_lesson.definitions.length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">📖 {t.definitions}</CardTitle>
@@ -471,47 +504,51 @@ export default function DynamicLessonViewer() {
                 )}
 
                 {/* Rules */}
-                {data.basic_lesson.rules?.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">📐 {t.rules}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {data.basic_lesson.rules.map((rule, idx) => (
-                        <div key={idx} className="p-4 border rounded-lg space-y-2">
-                          <h4 className="font-semibold">{getText(rule.name, language)}</h4>
-                          <p className="text-muted-foreground">{getText(rule.description, language)}</p>
-                          {rule.formula && (
-                            <div className="bg-muted p-2 rounded font-mono text-sm">{rule.formula}</div>
-                          )}
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
+                {(() => {
+                  const rulesArr = getRulesArray(data.basic_lesson.rules, language);
+                  if (rulesArr.length === 0) return null;
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">📐 {t.rules}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {rulesArr.map((rule, idx) => (
+                          <div key={idx} className="p-3 border rounded-lg">
+                            <p className="text-muted-foreground">{rule}</p>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Examples */}
-                {data.basic_lesson.examples?.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">💡 {t.examples}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {data.basic_lesson.examples.map((example, idx) => (
-                        <div key={idx} className="p-4 border rounded-lg space-y-3">
-                          <Badge variant="outline">{t.examples} {idx + 1}</Badge>
-                          <h4 className="font-semibold">{getText(example.title, language)}</h4>
-                          <div className="bg-muted/50 p-3 rounded">
-                            <p className="font-medium">{getText(example.problem, language)}</p>
+                {(() => {
+                  const examples = getExamples(data.basic_lesson);
+                  if (examples.length === 0) return null;
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">💡 {t.examples}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {examples.map((example, idx) => (
+                          <div key={idx} className="p-4 border rounded-lg space-y-3">
+                            <Badge variant="outline">{t.examples} {idx + 1}</Badge>
+                            <h4 className="font-semibold">{getText(example.title, language)}</h4>
+                            <div className="bg-muted/50 p-3 rounded">
+                              <p className="font-medium">{getText(example.problem, language)}</p>
+                            </div>
+                            <div className="bg-green-500/10 p-3 rounded border-l-4 border-green-500">
+                              <p>{getText(example.solution, language)}</p>
+                            </div>
                           </div>
-                          <div className="bg-green-500/10 p-3 rounded border-l-4 border-green-500">
-                            <p>{getText(example.solution, language)}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Notes */}
                 <Card>

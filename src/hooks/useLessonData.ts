@@ -1,103 +1,106 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Flexible lesson data interface that matches actual JSON structures
+export interface MultiLangText {
+  en: string;
+  ru: string;
+  kg: string;
+}
+
 export interface LessonData {
   topic: string;
+  title?: MultiLangText;
   topic_ru?: string;
   topic_kg?: string;
+  
   basic_lesson: {
-    title: { en: string; ru: string; kg: string };
+    title: MultiLangText;
     video?: string;
-    theory: { en: string; ru: string; kg: string };
-    definitions: Array<{
-      term: { en: string; ru: string; kg: string };
-      definition: { en: string; ru: string; kg: string };
+    content?: MultiLangText;
+    theory?: MultiLangText;
+    // Rules can be array of multilang strings OR multilang object with arrays
+    rules?: MultiLangText[] | { en: string[]; ru: string[]; kg: string[] };
+    definitions?: Array<{
+      term: MultiLangText;
+      definition: MultiLangText;
     }>;
-    examples: Array<{
-      title: { en: string; ru: string; kg: string };
-      problem: { en: string; ru: string; kg: string };
-      solution: { en: string; ru: string; kg: string };
+    // Examples / worked_examples
+    examples?: Array<{
+      title: MultiLangText;
+      problem: MultiLangText | string;
+      solution: MultiLangText | string;
       image?: string;
     }>;
-    rules: Array<{
-      name: { en: string; ru: string; kg: string };
-      description: { en: string; ru: string; kg: string };
-      formula?: string;
-      image?: string;
+    worked_examples?: Array<{
+      title: MultiLangText;
+      problem: string;
+      solution: string;
     }>;
   };
-  mini_lessons: Array<{
+  
+  mini_lessons?: Array<{
     id: string;
-    title: { en: string; ru: string; kg: string };
-    summary: { en: string; ru: string; kg: string };
-    duration: string;
+    title: MultiLangText;
+    summary: MultiLangText;
+    duration?: string;
+    duration_min?: number;
     video?: string;
-    content: { en: string; ru: string; kg: string };
-  }>;
-  diagrams: Array<{
-    id: string;
-    title: { en: string; ru: string; kg: string };
-    description: { en: string; ru: string; kg: string };
-    image: string;
-  }>;
-  common_mistakes: Array<{
-    id: string;
-    mistake: { en: string; ru: string; kg: string };
-    why: { en: string; ru: string; kg: string };
-    fix: { en: string; ru: string; kg: string };
-    example: { en: string; ru: string; kg: string };
+    content?: MultiLangText;
     image?: string;
   }>;
-  mini_tests: Array<{
+  
+  diagrams?: Array<{
     id: string;
-    difficulty: 'easy' | 'medium' | 'hard';
-    question: { en: string; ru: string; kg: string };
-    options: {
-      A: { en: string; ru: string; kg: string };
-      B: { en: string; ru: string; kg: string };
-      C: { en: string; ru: string; kg: string };
-      D: { en: string; ru: string; kg: string };
-    };
-    correct: 'A' | 'B' | 'C' | 'D';
-    explanation: { en: string; ru: string; kg: string };
+    title: MultiLangText;
+    description: MultiLangText;
+    image: string;
   }>;
-  full_test: Array<{
-    id: string;
-    question: { en: string; ru: string; kg: string };
-    options: {
-      A: { en: string; ru: string; kg: string };
-      B: { en: string; ru: string; kg: string };
-      C: { en: string; ru: string; kg: string };
-      D: { en: string; ru: string; kg: string };
-    };
-    correct: 'A' | 'B' | 'C' | 'D';
-    explanation: { en: string; ru: string; kg: string };
+  
+  common_mistakes?: Array<{
+    id?: string;
+    mistake: MultiLangText;
+    why: MultiLangText;
+    fix: MultiLangText;
+    example?: MultiLangText;
+    image?: string;
   }>;
-  dynamic_lessons: {
-    visual: {
-      title: { en: string; ru: string; kg: string };
-      content: { en: string; ru: string; kg: string };
-      examples: Array<{ en: string; ru: string; kg: string }>;
+  
+  // Mini tests can have flexible structure
+  mini_tests?: Array<{
+    id?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    question: MultiLangText;
+    options: string[] | {
+      A: MultiLangText;
+      B: MultiLangText;
+      C: MultiLangText;
+      D: MultiLangText;
     };
-    auditory: {
-      title: { en: string; ru: string; kg: string };
-      content: { en: string; ru: string; kg: string };
-      examples: Array<{ en: string; ru: string; kg: string }>;
+    correct: string;
+    explanation: MultiLangText;
+  }>;
+  
+  full_test?: Array<{
+    id?: string;
+    question: MultiLangText;
+    options: string[] | {
+      A: MultiLangText;
+      B: MultiLangText;
+      C: MultiLangText;
+      D: MultiLangText;
     };
-    'text-based': {
-      title: { en: string; ru: string; kg: string };
-      content: { en: string; ru: string; kg: string };
-      examples: Array<{ en: string; ru: string; kg: string }>;
-    };
-    'problem-solver': {
-      title: { en: string; ru: string; kg: string };
-      content: { en: string; ru: string; kg: string };
-      examples: Array<{ en: string; ru: string; kg: string }>;
-    };
-    'adhd-friendly': {
-      title: { en: string; ru: string; kg: string };
-      content: { en: string; ru: string; kg: string };
-      examples: Array<{ en: string; ru: string; kg: string }>;
+    correct: string;
+    explanation: MultiLangText;
+  }>;
+  
+  // Dynamic lessons with flexible keys
+  dynamic_lessons?: {
+    [key: string]: {
+      title?: MultiLangText;
+      summary?: MultiLangText;
+      content?: MultiLangText;
+      examples?: Array<MultiLangText | string>;
     };
   };
 }
@@ -109,48 +112,56 @@ export function useLessonData(bucketPath: string) {
 
   useEffect(() => {
     async function fetchLessonData() {
+      if (!bucketPath) {
+        setLoading(false);
+        setError('No bucket path provided');
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching lesson from path:', bucketPath);
+        console.log('[useLessonData] Fetching lesson from path:', bucketPath);
         
-        // Get public URL for the JSON file (bucket is public)
-        // Clean bucket path in case it includes a full storage prefix
+        // Clean bucket path - remove any 'storage/lessons/' prefix
         const cleanPath = bucketPath
           .replace(/^storage\/lessons\//, '')
           .replace(/^\//, '');
+
+        console.log('[useLessonData] Clean path:', cleanPath);
 
         const { data: publicUrlData } = supabase.storage
           .from('lessons')
           .getPublicUrl(cleanPath);
 
         if (!publicUrlData?.publicUrl) {
-          throw new Error('No public URL returned');
+          throw new Error('No public URL returned from Supabase');
         }
 
-        console.log('Fetching from URL:', publicUrlData.publicUrl);
+        console.log('[useLessonData] Fetching from URL:', publicUrlData.publicUrl);
 
-        // Fetch the JSON content
-        const response = await fetch(publicUrlData.publicUrl);
+        // Fetch the JSON content with cache busting
+        const response = await fetch(`${publicUrlData.publicUrl}?t=${Date.now()}`);
+        
         if (!response.ok) {
-          throw new Error(`Failed to fetch lesson data: ${response.status} ${response.statusText}`);
+          const text = await response.text();
+          console.error('[useLessonData] Fetch failed:', response.status, text);
+          throw new Error(`Failed to fetch lesson: ${response.status}`);
         }
 
         const jsonData = await response.json();
-        console.log('Lesson data loaded successfully');
+        console.log('[useLessonData] Lesson data loaded successfully:', jsonData?.topic);
         setData(jsonData);
       } catch (err) {
-        console.error('Error loading lesson:', err);
+        console.error('[useLessonData] Error loading lesson:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
     }
 
-    if (bucketPath) {
-      fetchLessonData();
-    }
+    fetchLessonData();
   }, [bucketPath]);
 
   return { data, loading, error };
