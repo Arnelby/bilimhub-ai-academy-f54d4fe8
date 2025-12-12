@@ -436,6 +436,371 @@ const fractionsFullTest = [
   }
 ];
 
+// Fallback mini test questions for exponents (9 questions: 3 easy, 3 medium, 3 hard)
+const exponentsMiniTests = [
+  {
+    id: 'exp-mt-1',
+    difficulty: 'easy',
+    question: { en: 'What is 2³?', ru: 'Чему равно 2³?', kg: '2³ канча?' },
+    options: {
+      A: { en: '6', ru: '6', kg: '6' },
+      B: { en: '8', ru: '8', kg: '8' },
+      C: { en: '9', ru: '9', kg: '9' },
+      D: { en: '5', ru: '5', kg: '5' }
+    },
+    correct: 'B',
+    explanation: { en: '2³ = 2 × 2 × 2 = 8', ru: '2³ = 2 × 2 × 2 = 8', kg: '2³ = 2 × 2 × 2 = 8' }
+  },
+  {
+    id: 'exp-mt-2',
+    difficulty: 'easy',
+    question: { en: 'What is 5⁰?', ru: 'Чему равно 5⁰?', kg: '5⁰ канча?' },
+    options: {
+      A: { en: '0', ru: '0', kg: '0' },
+      B: { en: '5', ru: '5', kg: '5' },
+      C: { en: '1', ru: '1', kg: '1' },
+      D: { en: 'undefined', ru: 'не определено', kg: 'аныкталбаган' }
+    },
+    correct: 'C',
+    explanation: { en: 'Any number raised to power 0 equals 1 (except 0⁰)', ru: 'Любое число в степени 0 равно 1 (кроме 0⁰)', kg: 'Ар кандай сан 0 даражасына барабар 1 (0⁰ден башка)' }
+  },
+  {
+    id: 'exp-mt-3',
+    difficulty: 'easy',
+    question: { en: 'What is 10²?', ru: 'Чему равно 10²?', kg: '10² канча?' },
+    options: {
+      A: { en: '20', ru: '20', kg: '20' },
+      B: { en: '100', ru: '100', kg: '100' },
+      C: { en: '1000', ru: '1000', kg: '1000' },
+      D: { en: '12', ru: '12', kg: '12' }
+    },
+    correct: 'B',
+    explanation: { en: '10² = 10 × 10 = 100', ru: '10² = 10 × 10 = 100', kg: '10² = 10 × 10 = 100' }
+  },
+  {
+    id: 'exp-mt-4',
+    difficulty: 'medium',
+    question: { en: 'Simplify: 2³ × 2⁴', ru: 'Упростите: 2³ × 2⁴', kg: 'Жөнөкөйлөтүңүз: 2³ × 2⁴' },
+    options: {
+      A: { en: '2⁷', ru: '2⁷', kg: '2⁷' },
+      B: { en: '2¹²', ru: '2¹²', kg: '2¹²' },
+      C: { en: '4⁷', ru: '4⁷', kg: '4⁷' },
+      D: { en: '2¹', ru: '2¹', kg: '2¹' }
+    },
+    correct: 'A',
+    explanation: { en: 'When multiplying with same base, add exponents: 2³ × 2⁴ = 2³⁺⁴ = 2⁷', ru: 'При умножении с одинаковым основанием складываем показатели: 2³ × 2⁴ = 2³⁺⁴ = 2⁷', kg: 'Бирдей негиз менен көбөйтүүдө даражаларды кошобуз: 2³ × 2⁴ = 2³⁺⁴ = 2⁷' }
+  },
+  {
+    id: 'exp-mt-5',
+    difficulty: 'medium',
+    question: { en: 'What is 3⁻²?', ru: 'Чему равно 3⁻²?', kg: '3⁻² канча?' },
+    options: {
+      A: { en: '-9', ru: '-9', kg: '-9' },
+      B: { en: '1/9', ru: '1/9', kg: '1/9' },
+      C: { en: '-6', ru: '-6', kg: '-6' },
+      D: { en: '9', ru: '9', kg: '9' }
+    },
+    correct: 'B',
+    explanation: { en: 'Negative exponent means reciprocal: 3⁻² = 1/3² = 1/9', ru: 'Отрицательный показатель означает обратное число: 3⁻² = 1/3² = 1/9', kg: 'Терс даража карама-каршыны билдирет: 3⁻² = 1/3² = 1/9' }
+  },
+  {
+    id: 'exp-mt-6',
+    difficulty: 'medium',
+    question: { en: 'Simplify: (2³)²', ru: 'Упростите: (2³)²', kg: 'Жөнөкөйлөтүңүз: (2³)²' },
+    options: {
+      A: { en: '2⁵', ru: '2⁵', kg: '2⁵' },
+      B: { en: '2⁶', ru: '2⁶', kg: '2⁶' },
+      C: { en: '2⁹', ru: '2⁹', kg: '2⁹' },
+      D: { en: '4⁶', ru: '4⁶', kg: '4⁶' }
+    },
+    correct: 'B',
+    explanation: { en: 'Power of a power: multiply exponents: (2³)² = 2³ˣ² = 2⁶', ru: 'Степень степени: умножаем показатели: (2³)² = 2³ˣ² = 2⁶', kg: 'Даражанын даражасы: даражаларды көбөйтөбүз: (2³)² = 2³ˣ² = 2⁶' }
+  },
+  {
+    id: 'exp-mt-7',
+    difficulty: 'hard',
+    question: { en: 'Simplify: 5⁴ ÷ 5²', ru: 'Упростите: 5⁴ ÷ 5²', kg: 'Жөнөкөйлөтүңүз: 5⁴ ÷ 5²' },
+    options: {
+      A: { en: '5²', ru: '5²', kg: '5²' },
+      B: { en: '5⁶', ru: '5⁶', kg: '5⁶' },
+      C: { en: '1²', ru: '1²', kg: '1²' },
+      D: { en: '5⁸', ru: '5⁸', kg: '5⁸' }
+    },
+    correct: 'A',
+    explanation: { en: 'When dividing with same base, subtract exponents: 5⁴ ÷ 5² = 5⁴⁻² = 5²', ru: 'При делении с одинаковым основанием вычитаем показатели: 5⁴ ÷ 5² = 5⁴⁻² = 5²', kg: 'Бирдей негиз менен бөлүүдө даражаларды кемитебиз: 5⁴ ÷ 5² = 5⁴⁻² = 5²' }
+  },
+  {
+    id: 'exp-mt-8',
+    difficulty: 'hard',
+    question: { en: 'What is (2 × 3)³?', ru: 'Чему равно (2 × 3)³?', kg: '(2 × 3)³ канча?' },
+    options: {
+      A: { en: '18', ru: '18', kg: '18' },
+      B: { en: '36', ru: '36', kg: '36' },
+      C: { en: '216', ru: '216', kg: '216' },
+      D: { en: '72', ru: '72', kg: '72' }
+    },
+    correct: 'C',
+    explanation: { en: '(2 × 3)³ = 6³ = 216, or 2³ × 3³ = 8 × 27 = 216', ru: '(2 × 3)³ = 6³ = 216, или 2³ × 3³ = 8 × 27 = 216', kg: '(2 × 3)³ = 6³ = 216, же 2³ × 3³ = 8 × 27 = 216' }
+  },
+  {
+    id: 'exp-mt-9',
+    difficulty: 'hard',
+    question: { en: 'Simplify: (x²)³ × x⁴', ru: 'Упростите: (x²)³ × x⁴', kg: 'Жөнөкөйлөтүңүз: (x²)³ × x⁴' },
+    options: {
+      A: { en: 'x⁹', ru: 'x⁹', kg: 'x⁹' },
+      B: { en: 'x¹⁰', ru: 'x¹⁰', kg: 'x¹⁰' },
+      C: { en: 'x²⁴', ru: 'x²⁴', kg: 'x²⁴' },
+      D: { en: 'x⁸', ru: 'x⁸', kg: 'x⁸' }
+    },
+    correct: 'B',
+    explanation: { en: '(x²)³ = x⁶, then x⁶ × x⁴ = x¹⁰', ru: '(x²)³ = x⁶, затем x⁶ × x⁴ = x¹⁰', kg: '(x²)³ = x⁶, анан x⁶ × x⁴ = x¹⁰' }
+  }
+];
+
+// Fallback full test questions for exponents (20 questions)
+const exponentsFullTest = [
+  {
+    id: 'exp-ft-1',
+    question: { en: 'What is 3⁴?', ru: 'Чему равно 3⁴?', kg: '3⁴ канча?' },
+    options: {
+      A: { en: '12', ru: '12', kg: '12' },
+      B: { en: '81', ru: '81', kg: '81' },
+      C: { en: '64', ru: '64', kg: '64' },
+      D: { en: '27', ru: '27', kg: '27' }
+    },
+    correct: 'B',
+    explanation: { en: '3⁴ = 3 × 3 × 3 × 3 = 81', ru: '3⁴ = 3 × 3 × 3 × 3 = 81', kg: '3⁴ = 3 × 3 × 3 × 3 = 81' }
+  },
+  {
+    id: 'exp-ft-2',
+    question: { en: 'What is 2⁵?', ru: 'Чему равно 2⁵?', kg: '2⁵ канча?' },
+    options: {
+      A: { en: '10', ru: '10', kg: '10' },
+      B: { en: '25', ru: '25', kg: '25' },
+      C: { en: '32', ru: '32', kg: '32' },
+      D: { en: '16', ru: '16', kg: '16' }
+    },
+    correct: 'C',
+    explanation: { en: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32', ru: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32', kg: '2⁵ = 2 × 2 × 2 × 2 × 2 = 32' }
+  },
+  {
+    id: 'exp-ft-3',
+    question: { en: 'Simplify: 4² × 4³', ru: 'Упростите: 4² × 4³', kg: 'Жөнөкөйлөтүңүз: 4² × 4³' },
+    options: {
+      A: { en: '4⁵', ru: '4⁵', kg: '4⁵' },
+      B: { en: '4⁶', ru: '4⁶', kg: '4⁶' },
+      C: { en: '16⁵', ru: '16⁵', kg: '16⁵' },
+      D: { en: '8⁵', ru: '8⁵', kg: '8⁵' }
+    },
+    correct: 'A',
+    explanation: { en: 'Same base multiplication: 4² × 4³ = 4²⁺³ = 4⁵', ru: 'Умножение с одинаковым основанием: 4² × 4³ = 4²⁺³ = 4⁵', kg: 'Бирдей негиз менен көбөйтүү: 4² × 4³ = 4²⁺³ = 4⁵' }
+  },
+  {
+    id: 'exp-ft-4',
+    question: { en: 'What is 7⁰?', ru: 'Чему равно 7⁰?', kg: '7⁰ канча?' },
+    options: {
+      A: { en: '0', ru: '0', kg: '0' },
+      B: { en: '7', ru: '7', kg: '7' },
+      C: { en: '1', ru: '1', kg: '1' },
+      D: { en: '-1', ru: '-1', kg: '-1' }
+    },
+    correct: 'C',
+    explanation: { en: 'Any non-zero number to the power of 0 equals 1', ru: 'Любое ненулевое число в степени 0 равно 1', kg: 'Ар кандай нөлдөн башка сан 0 даражасына барабар 1' }
+  },
+  {
+    id: 'exp-ft-5',
+    question: { en: 'What is 2⁻³?', ru: 'Чему равно 2⁻³?', kg: '2⁻³ канча?' },
+    options: {
+      A: { en: '-8', ru: '-8', kg: '-8' },
+      B: { en: '1/8', ru: '1/8', kg: '1/8' },
+      C: { en: '-6', ru: '-6', kg: '-6' },
+      D: { en: '8', ru: '8', kg: '8' }
+    },
+    correct: 'B',
+    explanation: { en: '2⁻³ = 1/2³ = 1/8', ru: '2⁻³ = 1/2³ = 1/8', kg: '2⁻³ = 1/2³ = 1/8' }
+  },
+  {
+    id: 'exp-ft-6',
+    question: { en: 'Simplify: (3²)³', ru: 'Упростите: (3²)³', kg: 'Жөнөкөйлөтүңүз: (3²)³' },
+    options: {
+      A: { en: '3⁵', ru: '3⁵', kg: '3⁵' },
+      B: { en: '3⁶', ru: '3⁶', kg: '3⁶' },
+      C: { en: '9⁶', ru: '9⁶', kg: '9⁶' },
+      D: { en: '3⁸', ru: '3⁸', kg: '3⁸' }
+    },
+    correct: 'B',
+    explanation: { en: 'Power of power: (3²)³ = 3²ˣ³ = 3⁶', ru: 'Степень степени: (3²)³ = 3²ˣ³ = 3⁶', kg: 'Даражанын даражасы: (3²)³ = 3²ˣ³ = 3⁶' }
+  },
+  {
+    id: 'exp-ft-7',
+    question: { en: 'What is 6⁸ ÷ 6⁵?', ru: 'Чему равно 6⁸ ÷ 6⁵?', kg: '6⁸ ÷ 6⁵ канча?' },
+    options: {
+      A: { en: '6³', ru: '6³', kg: '6³' },
+      B: { en: '6¹³', ru: '6¹³', kg: '6¹³' },
+      C: { en: '1³', ru: '1³', kg: '1³' },
+      D: { en: '36³', ru: '36³', kg: '36³' }
+    },
+    correct: 'A',
+    explanation: { en: 'Same base division: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³', ru: 'Деление с одинаковым основанием: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³', kg: 'Бирдей негиз менен бөлүү: 6⁸ ÷ 6⁵ = 6⁸⁻⁵ = 6³' }
+  },
+  {
+    id: 'exp-ft-8',
+    question: { en: 'What is (5²)⁰?', ru: 'Чему равно (5²)⁰?', kg: '(5²)⁰ канча?' },
+    options: {
+      A: { en: '25', ru: '25', kg: '25' },
+      B: { en: '0', ru: '0', kg: '0' },
+      C: { en: '1', ru: '1', kg: '1' },
+      D: { en: '5', ru: '5', kg: '5' }
+    },
+    correct: 'C',
+    explanation: { en: 'Any expression to the power of 0 equals 1', ru: 'Любое выражение в степени 0 равно 1', kg: 'Ар кандай туюнтма 0 даражасына барабар 1' }
+  },
+  {
+    id: 'exp-ft-9',
+    question: { en: 'Simplify: 2⁴ × 3⁴', ru: 'Упростите: 2⁴ × 3⁴', kg: 'Жөнөкөйлөтүңүз: 2⁴ × 3⁴' },
+    options: {
+      A: { en: '6⁴', ru: '6⁴', kg: '6⁴' },
+      B: { en: '6⁸', ru: '6⁸', kg: '6⁸' },
+      C: { en: '5⁸', ru: '5⁸', kg: '5⁸' },
+      D: { en: '2⁴ + 3⁴', ru: '2⁴ + 3⁴', kg: '2⁴ + 3⁴' }
+    },
+    correct: 'A',
+    explanation: { en: 'Same exponent: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴', ru: 'Одинаковый показатель: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴', kg: 'Бирдей даража: 2⁴ × 3⁴ = (2 × 3)⁴ = 6⁴' }
+  },
+  {
+    id: 'exp-ft-10',
+    question: { en: 'What is 10⁻¹?', ru: 'Чему равно 10⁻¹?', kg: '10⁻¹ канча?' },
+    options: {
+      A: { en: '-10', ru: '-10', kg: '-10' },
+      B: { en: '0.1', ru: '0,1', kg: '0.1' },
+      C: { en: '-1', ru: '-1', kg: '-1' },
+      D: { en: '10', ru: '10', kg: '10' }
+    },
+    correct: 'B',
+    explanation: { en: '10⁻¹ = 1/10 = 0.1', ru: '10⁻¹ = 1/10 = 0,1', kg: '10⁻¹ = 1/10 = 0.1' }
+  },
+  {
+    id: 'exp-ft-11',
+    question: { en: 'Simplify: x⁵ × x³', ru: 'Упростите: x⁵ × x³', kg: 'Жөнөкөйлөтүңүз: x⁵ × x³' },
+    options: {
+      A: { en: 'x¹⁵', ru: 'x¹⁵', kg: 'x¹⁵' },
+      B: { en: 'x⁸', ru: 'x⁸', kg: 'x⁸' },
+      C: { en: 'x²', ru: 'x²', kg: 'x²' },
+      D: { en: '2x⁸', ru: '2x⁸', kg: '2x⁸' }
+    },
+    correct: 'B',
+    explanation: { en: 'x⁵ × x³ = x⁵⁺³ = x⁸', ru: 'x⁵ × x³ = x⁵⁺³ = x⁸', kg: 'x⁵ × x³ = x⁵⁺³ = x⁸' }
+  },
+  {
+    id: 'exp-ft-12',
+    question: { en: 'What is (1/2)²?', ru: 'Чему равно (1/2)²?', kg: '(1/2)² канча?' },
+    options: {
+      A: { en: '1', ru: '1', kg: '1' },
+      B: { en: '1/4', ru: '1/4', kg: '1/4' },
+      C: { en: '2', ru: '2', kg: '2' },
+      D: { en: '1/2', ru: '1/2', kg: '1/2' }
+    },
+    correct: 'B',
+    explanation: { en: '(1/2)² = 1²/2² = 1/4', ru: '(1/2)² = 1²/2² = 1/4', kg: '(1/2)² = 1²/2² = 1/4' }
+  },
+  {
+    id: 'exp-ft-13',
+    question: { en: 'Simplify: a⁶ ÷ a²', ru: 'Упростите: a⁶ ÷ a²', kg: 'Жөнөкөйлөтүңүз: a⁶ ÷ a²' },
+    options: {
+      A: { en: 'a⁴', ru: 'a⁴', kg: 'a⁴' },
+      B: { en: 'a³', ru: 'a³', kg: 'a³' },
+      C: { en: 'a⁸', ru: 'a⁸', kg: 'a⁸' },
+      D: { en: 'a¹²', ru: 'a¹²', kg: 'a¹²' }
+    },
+    correct: 'A',
+    explanation: { en: 'a⁶ ÷ a² = a⁶⁻² = a⁴', ru: 'a⁶ ÷ a² = a⁶⁻² = a⁴', kg: 'a⁶ ÷ a² = a⁶⁻² = a⁴' }
+  },
+  {
+    id: 'exp-ft-14',
+    question: { en: 'What is 4⁻¹?', ru: 'Чему равно 4⁻¹?', kg: '4⁻¹ канча?' },
+    options: {
+      A: { en: '-4', ru: '-4', kg: '-4' },
+      B: { en: '1/4', ru: '1/4', kg: '1/4' },
+      C: { en: '4', ru: '4', kg: '4' },
+      D: { en: '-1/4', ru: '-1/4', kg: '-1/4' }
+    },
+    correct: 'B',
+    explanation: { en: '4⁻¹ = 1/4', ru: '4⁻¹ = 1/4', kg: '4⁻¹ = 1/4' }
+  },
+  {
+    id: 'exp-ft-15',
+    question: { en: 'Simplify: (xy)³', ru: 'Упростите: (xy)³', kg: 'Жөнөкөйлөтүңүз: (xy)³' },
+    options: {
+      A: { en: 'x³y', ru: 'x³y', kg: 'x³y' },
+      B: { en: 'xy³', ru: 'xy³', kg: 'xy³' },
+      C: { en: 'x³y³', ru: 'x³y³', kg: 'x³y³' },
+      D: { en: '3xy', ru: '3xy', kg: '3xy' }
+    },
+    correct: 'C',
+    explanation: { en: '(xy)³ = x³y³', ru: '(xy)³ = x³y³', kg: '(xy)³ = x³y³' }
+  },
+  {
+    id: 'exp-ft-16',
+    question: { en: 'What is 9^(1/2)?', ru: 'Чему равно 9^(1/2)?', kg: '9^(1/2) канча?' },
+    options: {
+      A: { en: '4.5', ru: '4,5', kg: '4.5' },
+      B: { en: '3', ru: '3', kg: '3' },
+      C: { en: '81', ru: '81', kg: '81' },
+      D: { en: '18', ru: '18', kg: '18' }
+    },
+    correct: 'B',
+    explanation: { en: '9^(1/2) = √9 = 3', ru: '9^(1/2) = √9 = 3', kg: '9^(1/2) = √9 = 3' }
+  },
+  {
+    id: 'exp-ft-17',
+    question: { en: 'Simplify: (2³)⁴', ru: 'Упростите: (2³)⁴', kg: 'Жөнөкөйлөтүңүз: (2³)⁴' },
+    options: {
+      A: { en: '2⁷', ru: '2⁷', kg: '2⁷' },
+      B: { en: '2¹²', ru: '2¹²', kg: '2¹²' },
+      C: { en: '8⁴', ru: '8⁴', kg: '8⁴' },
+      D: { en: '6⁴', ru: '6⁴', kg: '6⁴' }
+    },
+    correct: 'B',
+    explanation: { en: '(2³)⁴ = 2³ˣ⁴ = 2¹²', ru: '(2³)⁴ = 2³ˣ⁴ = 2¹²', kg: '(2³)⁴ = 2³ˣ⁴ = 2¹²' }
+  },
+  {
+    id: 'exp-ft-18',
+    question: { en: 'What is 5² + 5³?', ru: 'Чему равно 5² + 5³?', kg: '5² + 5³ канча?' },
+    options: {
+      A: { en: '5⁵', ru: '5⁵', kg: '5⁵' },
+      B: { en: '150', ru: '150', kg: '150' },
+      C: { en: '10⁵', ru: '10⁵', kg: '10⁵' },
+      D: { en: '250', ru: '250', kg: '250' }
+    },
+    correct: 'B',
+    explanation: { en: '5² + 5³ = 25 + 125 = 150', ru: '5² + 5³ = 25 + 125 = 150', kg: '5² + 5³ = 25 + 125 = 150' }
+  },
+  {
+    id: 'exp-ft-19',
+    question: { en: 'Simplify: (a/b)³', ru: 'Упростите: (a/b)³', kg: 'Жөнөкөйлөтүңүз: (a/b)³' },
+    options: {
+      A: { en: 'a³/b', ru: 'a³/b', kg: 'a³/b' },
+      B: { en: 'a/b³', ru: 'a/b³', kg: 'a/b³' },
+      C: { en: 'a³/b³', ru: 'a³/b³', kg: 'a³/b³' },
+      D: { en: '3a/3b', ru: '3a/3b', kg: '3a/3b' }
+    },
+    correct: 'C',
+    explanation: { en: '(a/b)³ = a³/b³', ru: '(a/b)³ = a³/b³', kg: '(a/b)³ = a³/b³' }
+  },
+  {
+    id: 'exp-ft-20',
+    question: { en: 'If 2ˣ = 16, what is x?', ru: 'Если 2ˣ = 16, чему равен x?', kg: 'Эгер 2ˣ = 16 болсо, x канча?' },
+    options: {
+      A: { en: '2', ru: '2', kg: '2' },
+      B: { en: '3', ru: '3', kg: '3' },
+      C: { en: '4', ru: '4', kg: '4' },
+      D: { en: '8', ru: '8', kg: '8' }
+    },
+    correct: 'C',
+    explanation: { en: '2⁴ = 16, so x = 4', ru: '2⁴ = 16, значит x = 4', kg: '2⁴ = 16, ошондуктан x = 4' }
+  }
+];
+
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -775,9 +1140,16 @@ export default function DynamicLessonViewer() {
   };
 
   // Mini-test logic - use fallback questions for fractions if no mini_tests in data
+  // Helper to get fallback mini tests by topic
+  const getMiniTestFallback = () => {
+    if (topicId === 'fractions') return fractionsMiniTests;
+    if (topicId === 'exponents') return exponentsMiniTests;
+    return [];
+  };
+  
   const miniTestSource = (data?.mini_tests && data.mini_tests.length > 0) 
     ? data.mini_tests 
-    : (topicId === 'fractions' ? fractionsMiniTests : []);
+    : getMiniTestFallback();
   const filteredMiniTestQuestions = miniTestSource.filter((q: any) => q.difficulty === currentDifficulty) || [];
   const currentMiniTestQuestion = filteredMiniTestQuestions[miniTestIndex];
 
@@ -805,7 +1177,7 @@ export default function DynamicLessonViewer() {
   const nextMiniTestQuestion = () => {
     const miniTestSrc = (data?.mini_tests && data.mini_tests.length > 0) 
       ? data.mini_tests 
-      : (topicId === 'fractions' ? fractionsMiniTests : []);
+      : getMiniTestFallback();
     const newFilteredQuestions = miniTestSrc.filter((q: any) => q.difficulty === currentDifficulty) || [];
     if (newFilteredQuestions.length === 0) {
       setMiniTestIndex(0);
@@ -825,10 +1197,17 @@ export default function DynamicLessonViewer() {
     setMiniTestTotal(0);
   };
 
-  // Full test logic - use fallback questions for fractions if no full_test in data
+  // Helper to get fallback full test by topic
+  const getFullTestFallback = () => {
+    if (topicId === 'fractions') return fractionsFullTest;
+    if (topicId === 'exponents') return exponentsFullTest;
+    return [];
+  };
+  
+  // Full test logic - use fallback questions if no full_test in data
   const fullTestSource = (data?.full_test && data.full_test.length > 0)
     ? data.full_test
-    : (topicId === 'fractions' ? fractionsFullTest : []);
+    : getFullTestFallback();
   const currentFullTestQuestion = fullTestSource[fullTestIndex];
   const fullTestAnsweredCount = Object.keys(fullTestAnswers).length;
 
