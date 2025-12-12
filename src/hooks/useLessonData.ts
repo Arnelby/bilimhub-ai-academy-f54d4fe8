@@ -116,9 +116,14 @@ export function useLessonData(bucketPath: string) {
         console.log('Fetching lesson from path:', bucketPath);
         
         // Get public URL for the JSON file (bucket is public)
+        // Clean bucket path in case it includes a full storage prefix
+        const cleanPath = bucketPath
+          .replace(/^storage\/lessons\//, '')
+          .replace(/^\//, '');
+
         const { data: publicUrlData } = supabase.storage
           .from('lessons')
-          .getPublicUrl(bucketPath);
+          .getPublicUrl(cleanPath);
 
         if (!publicUrlData?.publicUrl) {
           throw new Error('No public URL returned');

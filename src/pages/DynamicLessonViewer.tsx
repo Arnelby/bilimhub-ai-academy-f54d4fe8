@@ -187,14 +187,17 @@ export default function DynamicLessonViewer() {
   const { language, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
-  // Mapping for files with different names than the topic ID
-  const fileNameMap: Record<string, string> = {
-    'fractions': 'fraction', // file is fraction.json not fractions.json
+  // Mapping from topic IDs to lesson JSON files in storage
+  const lessonPathMap: Record<string, string> = {
+    fractions: 'storage/lessons/fractions.json',
+    exponents: 'storage/lessons/exponents.json',
   };
-  
-  // Fetch lesson data from Supabase storage
-  const fileName = fileNameMap[topicId || ''] || topicId;
-  const bucketPath = `${topicId}/${fileName}.json`;
+
+  // Fetch lesson data from storage (JSON is the single source of truth)
+  const bucketPath =
+    (topicId && lessonPathMap[topicId]) ||
+    (topicId ? `storage/lessons/${topicId}.json` : '');
+
   const { data, loading, error } = useLessonData(bucketPath);
   
   // Mini-tests state
@@ -939,8 +942,8 @@ export default function DynamicLessonViewer() {
                       </Button>
                     </div>
 
-                    {data.dynamic_lessons && (() => {
-                      const styleKey = selectedStyle.replace('-', '_') as keyof typeof data.dynamic_lessons;
+                    {data.dynamic_lessons && selectedStyle && (() => {
+                      const styleKey = selectedStyle as keyof LessonData['dynamic_lessons'];
                       const lessonContent = data.dynamic_lessons[styleKey];
                       
                       if (!lessonContent) return (
