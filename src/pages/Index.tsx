@@ -11,7 +11,14 @@ import {
   CheckCircle,
   BookOpenCheck,
   Lightbulb,
-  GraduationCap
+  GraduationCap,
+  Flame,
+  Star,
+  Zap,
+  Play,
+  ChevronRight,
+  Award,
+  Rocket
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +28,84 @@ import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import heroPattern from '@/assets/hero-pattern.png';
+import { cn } from '@/lib/utils';
+
+// Animated stat circle component
+function StatCircle({ 
+  value, 
+  label, 
+  icon: Icon, 
+  color, 
+  delay = 0 
+}: { 
+  value: string | number; 
+  label: string; 
+  icon: React.ElementType; 
+  color: string;
+  delay?: number;
+}) {
+  return (
+    <div 
+      className="flex flex-col items-center gap-2 animate-fade-in"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className={cn(
+        "relative flex h-20 w-20 items-center justify-center rounded-full",
+        "bg-gradient-to-br shadow-lg transition-transform hover:scale-110",
+        color
+      )}>
+        <div className="absolute inset-1 rounded-full bg-background/90 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-xl font-bold">{value}</div>
+          </div>
+        </div>
+        <Icon className="absolute -top-1 -right-1 h-6 w-6 text-primary bg-background rounded-full p-1 shadow-md" />
+      </div>
+      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+// Quick action card with hover effect
+function QuickActionCard({ 
+  to, 
+  icon: Icon, 
+  title, 
+  description, 
+  gradient,
+  delay = 0
+}: { 
+  to: string; 
+  icon: React.ElementType; 
+  title: string; 
+  description: string;
+  gradient: string;
+  delay?: number;
+}) {
+  return (
+    <Link 
+      to={to}
+      className="group block animate-fade-in"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <Card className="h-full overflow-hidden border-2 border-transparent transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:-translate-y-1">
+        <CardContent className="p-6">
+          <div className={cn(
+            "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl transition-transform group-hover:scale-110 group-hover:rotate-3",
+            gradient
+          )}>
+            <Icon className="h-7 w-7 text-white" />
+          </div>
+          <h3 className="mb-2 text-lg font-bold group-hover:text-primary transition-colors">{title}</h3>
+          <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+          <div className="mt-4 flex items-center text-sm font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+            Открыть <ChevronRight className="ml-1 h-4 w-4" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
 
 // Component for authenticated users - Dashboard Home
 function AuthenticatedHome() {
@@ -31,220 +116,270 @@ function AuthenticatedHome() {
   const userStreak = profile?.streak || 0;
   const userLevel = profile?.level || 1;
 
-  // Mock data - in real app, fetch from Supabase
   const hasProgress = userPoints > 0;
+  
+  // Calculate progress percentage (mock)
+  const progressPercent = Math.min(Math.round((userPoints / 1000) * 100), 100);
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Personal Greeting */}
-        <section className="mb-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10">
-              <GraduationCap className="h-8 w-8 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">
-                Привет, {userName}! 👋
-              </h1>
-              <p className="text-muted-foreground">
-                Добро пожаловать в BilimHub
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Status Section */}
-        <section className="mb-8">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
-                  <Target className="h-6 w-6 text-accent" />
+      <div className="min-h-screen">
+        {/* Hero Section with Gradient Background */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-background pb-8 pt-8">
+          {/* Decorative elements */}
+          <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+          
+          <div className="container relative mx-auto px-4">
+            {/* Welcome Header */}
+            <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="flex items-center gap-5 animate-fade-in">
+                <div className="relative">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg">
+                    <GraduationCap className="h-10 w-10 text-white" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-success text-white text-xs font-bold shadow-md">
+                    {userLevel}
+                  </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Цель</p>
-                  <p className="font-semibold">Подготовка к ОРТ</p>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      Привет, {userName}!
+                    </h1>
+                    <span className="text-3xl animate-bounce">👋</span>
+                  </div>
+                  <p className="text-muted-foreground mt-1 flex items-center gap-2">
+                    <Rocket className="h-4 w-4 text-accent" />
+                    Готов покорять математику?
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <BookOpen className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Предмет</p>
-                  <p className="font-semibold">Математика</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
-                  <Clock className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Следующий шаг</p>
-                  <p className="font-semibold">Продолжить обучение</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Quick Stats */}
-        <section className="mb-8">
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card variant="interactive">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-accent">{userPoints}</div>
-                <p className="text-sm text-muted-foreground">Баллы</p>
-              </CardContent>
-            </Card>
-            <Card variant="interactive">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-primary">{userStreak}</div>
-                <p className="text-sm text-muted-foreground">Дней подряд</p>
-              </CardContent>
-            </Card>
-            <Card variant="interactive">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-success">{userLevel}</div>
-                <p className="text-sm text-muted-foreground">Уровень</p>
-              </CardContent>
-            </Card>
-            <Card variant="interactive">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-warning">0%</div>
-                <p className="text-sm text-muted-foreground">Прогресс</p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Main Action Button */}
-        <section className="mb-8">
-          <Card variant="gradient" className="overflow-hidden">
-            <CardContent className="flex flex-col items-center gap-6 p-8 md:flex-row md:justify-between">
-              <div className="text-center md:text-left">
-                <h2 className="mb-2 text-2xl font-bold text-primary-foreground">
-                  {hasProgress ? 'Продолжить обучение' : 'Начать обучение'}
-                </h2>
-                <p className="text-primary-foreground/80">
-                  {hasProgress 
-                    ? 'Вернитесь к изучению там, где остановились'
-                    : 'Начните свой путь к успеху на ОРТ'}
-                </p>
               </div>
-              <Button variant="glass" size="xl" asChild>
-                <Link to="/dashboard">
-                  {hasProgress ? 'Продолжить' : 'Начать'}
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Learning Sections */}
-        <section className="mb-8">
-          <h2 className="mb-6 text-2xl font-bold">Разделы обучения</h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card variant="interactive" className="group">
-              <CardHeader>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-                  <BookOpenCheck className="h-6 w-6" />
+              
+              {/* Quick streak indicator */}
+              {userStreak > 0 && (
+                <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-orange-500/10 to-red-500/10 px-5 py-3 border border-orange-500/20 animate-fade-in" style={{ animationDelay: '200ms' }}>
+                  <Flame className="h-8 w-8 text-orange-500 animate-pulse" />
+                  <div>
+                    <div className="text-2xl font-bold text-orange-500">{userStreak}</div>
+                    <div className="text-xs text-muted-foreground">дней подряд 🔥</div>
+                  </div>
                 </div>
-                <CardTitle className="text-lg">Темы</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Изучайте темы по математике с подробными объяснениями
-                </p>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/lessons">
-                    Перейти к темам
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+              )}
+            </div>
 
-            <Card variant="interactive" className="group">
-              <CardHeader>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                  <Trophy className="h-6 w-6" />
-                </div>
-                <CardTitle className="text-lg">Пройденные уроки</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Просмотрите ваш прогресс и завершённые уроки
-                </p>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/dashboard">
-                    Мой прогресс
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Stats Row */}
+            <div className="mb-8 flex flex-wrap items-center justify-center gap-8 md:gap-12 animate-fade-in" style={{ animationDelay: '100ms' }}>
+              <StatCircle value={userPoints} label="Баллы" icon={Star} color="from-yellow-400 to-orange-500" delay={100} />
+              <StatCircle value={userStreak} label="Серия" icon={Flame} color="from-orange-500 to-red-500" delay={200} />
+              <StatCircle value={userLevel} label="Уровень" icon={Award} color="from-green-400 to-emerald-500" delay={300} />
+              <StatCircle value={`${progressPercent}%`} label="Прогресс" icon={TrendingUp} color="from-blue-400 to-primary" delay={400} />
+            </div>
 
-            <Card variant="interactive" className="group">
-              <CardHeader>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success transition-colors group-hover:bg-success group-hover:text-success-foreground">
-                  <Lightbulb className="h-6 w-6" />
+            {/* Main CTA Card */}
+            <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+              <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-primary via-primary/90 to-accent shadow-2xl">
+                {/* Decorative pattern */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl translate-x-1/2 -translate-y-1/2" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-2xl -translate-x-1/2 translate-y-1/2" />
                 </div>
-                <CardTitle className="text-lg">Рекомендации от ИИ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Персональные рекомендации на основе вашего прогресса
-                </p>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/learning-plan">
-                    Смотреть план
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+                
+                <CardContent className="relative flex flex-col md:flex-row items-center justify-between gap-6 p-8">
+                  <div className="flex items-center gap-5 text-center md:text-left">
+                    <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
+                      <Play className="h-8 w-8 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">
+                        {hasProgress ? 'Продолжить путь к успеху!' : 'Начни свой путь к ОРТ!'}
+                      </h2>
+                      <p className="text-white/80">
+                        {hasProgress 
+                          ? 'Ты на правильном пути. Не останавливайся!'
+                          : 'Первый шаг к мечте начинается сейчас'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="xl" 
+                    className="bg-white text-primary hover:bg-white/90 shadow-lg font-bold px-8"
+                    asChild
+                  >
+                    <Link to="/lessons">
+                      <Zap className="mr-2 h-5 w-5" />
+                      {hasProgress ? 'Продолжить' : 'Начать!'}
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </section>
 
-        {/* Quick Actions */}
-        <section>
-          <h2 className="mb-6 text-2xl font-bold">Быстрые действия</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="outline" size="lg" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/tests">
-                <BookOpen className="h-6 w-6" />
-                <span>Пройти тест</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/ai-tutor">
-                <Brain className="h-6 w-6" />
-                <span>ИИ-репетитор</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/homework">
-                <CheckCircle className="h-6 w-6" />
-                <span>Домашка</span>
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="h-auto flex-col gap-2 p-4" asChild>
-              <Link to="/profile">
-                <TrendingUp className="h-6 w-6" />
-                <span>Профиль</span>
-              </Link>
-            </Button>
-          </div>
-        </section>
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-8">
+          {/* Quick Actions Grid */}
+          <section className="mb-12">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-accent" />
+                Что изучаем сегодня?
+              </h2>
+            </div>
+            
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <QuickActionCard
+                to="/lessons"
+                icon={BookOpenCheck}
+                title="Уроки"
+                description="Изучай теорию с примерами и объяснениями"
+                gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
+                delay={100}
+              />
+              <QuickActionCard
+                to="/tests"
+                icon={Target}
+                title="Тесты ОРТ"
+                description="Практикуйся на реальных заданиях ОРТ"
+                gradient="bg-gradient-to-br from-purple-500 to-pink-500"
+                delay={200}
+              />
+              <QuickActionCard
+                to="/ai-tutor"
+                icon={Brain}
+                title="ИИ-репетитор"
+                description="Задавай вопросы и получай объяснения"
+                gradient="bg-gradient-to-br from-orange-500 to-red-500"
+                delay={300}
+              />
+              <QuickActionCard
+                to="/learning-plan"
+                icon={Lightbulb}
+                title="Мой план"
+                description="Персональная траектория обучения"
+                gradient="bg-gradient-to-br from-green-500 to-emerald-500"
+                delay={400}
+              />
+            </div>
+          </section>
+
+          {/* Topics & Progress Section */}
+          <section className="mb-12">
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Topics Card */}
+              <Card className="lg:col-span-2 overflow-hidden animate-fade-in" style={{ animationDelay: '300ms' }}>
+                <CardHeader className="border-b bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                      Доступные темы
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/lessons">
+                        Все темы <ArrowRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {[
+                      { name: 'Дроби', icon: '🔢', progress: 45, color: 'from-blue-500 to-cyan-500' },
+                      { name: 'Степени', icon: '📈', progress: 30, color: 'from-purple-500 to-pink-500' },
+                      { name: 'Квадратные уравнения', icon: '✖️', progress: 15, color: 'from-orange-500 to-red-500' },
+                    ].map((topic, idx) => (
+                      <Link
+                        key={topic.name}
+                        to={`/lessons/topic/${topic.name === 'Дроби' ? 'fractions' : topic.name === 'Степени' ? 'exponents' : 'quadratics'}`}
+                        className="group block"
+                      >
+                        <div className="rounded-xl border-2 border-transparent bg-muted/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                          <div className="mb-3 text-3xl">{topic.icon}</div>
+                          <h4 className="font-semibold group-hover:text-primary transition-colors">{topic.name}</h4>
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                              <span>Прогресс</span>
+                              <span>{topic.progress}%</span>
+                            </div>
+                            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                              <div 
+                                className={cn("h-full rounded-full bg-gradient-to-r transition-all", topic.color)}
+                                style={{ width: `${topic.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Achievements Preview */}
+              <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: '400ms' }}>
+                <CardHeader className="border-b bg-gradient-to-r from-yellow-500/10 to-orange-500/10">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    Достижения
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { icon: '🎯', name: 'Первый тест', unlocked: true },
+                      { icon: '🔥', name: '3 дня подряд', unlocked: userStreak >= 3 },
+                      { icon: '⭐', name: '100 баллов', unlocked: userPoints >= 100 },
+                      { icon: '📚', name: 'Первый урок', unlocked: true },
+                      { icon: '🏆', name: 'Топ-10', unlocked: false },
+                      { icon: '💯', name: 'Отличник', unlocked: false },
+                    ].map((badge, idx) => (
+                      <div 
+                        key={idx}
+                        className={cn(
+                          "flex flex-col items-center justify-center rounded-xl p-3 text-center transition-transform hover:scale-105",
+                          badge.unlocked ? "bg-gradient-to-br from-yellow-500/20 to-orange-500/20" : "bg-muted/50 opacity-50"
+                        )}
+                      >
+                        <span className={cn("text-2xl mb-1", !badge.unlocked && "grayscale")}>{badge.icon}</span>
+                        <span className="text-xs font-medium">{badge.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button variant="outline" className="w-full mt-4" asChild>
+                    <Link to="/profile">
+                      Все достижения <ChevronRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* Quick Links Row */}
+          <section className="animate-fade-in" style={{ animationDelay: '500ms' }}>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {[
+                { to: '/homework', icon: CheckCircle, label: 'Домашка' },
+                { to: '/dashboard', icon: TrendingUp, label: 'Панель' },
+                { to: '/profile', icon: GraduationCap, label: 'Профиль' },
+                { to: '/tests/testing58', icon: Clock, label: 'ОРТ Тест' },
+              ].map((link, idx) => (
+                <Button 
+                  key={link.to}
+                  variant="outline" 
+                  className="gap-2 rounded-full px-5"
+                  asChild
+                >
+                  <Link to={link.to}>
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </Layout>
   );
