@@ -801,6 +801,371 @@ const exponentsFullTest = [
   }
 ];
 
+// Fallback mini test questions for quadratics (9 questions: 3 easy, 3 medium, 3 hard)
+const quadraticsMiniTests = [
+  {
+    id: 'quad-mt-1',
+    difficulty: 'easy',
+    question: { en: 'What is the standard form of a quadratic equation?', ru: 'Какова стандартная форма квадратного уравнения?', kg: 'Квадраттык теңдеменин стандарттык формасы кандай?' },
+    options: {
+      A: { en: 'ax + b = 0', ru: 'ax + b = 0', kg: 'ax + b = 0' },
+      B: { en: 'ax² + bx + c = 0', ru: 'ax² + bx + c = 0', kg: 'ax² + bx + c = 0' },
+      C: { en: 'ax³ + bx² + cx = 0', ru: 'ax³ + bx² + cx = 0', kg: 'ax³ + bx² + cx = 0' },
+      D: { en: 'a/x + b = 0', ru: 'a/x + b = 0', kg: 'a/x + b = 0' }
+    },
+    correct: 'B',
+    explanation: { en: 'A quadratic equation has the form ax² + bx + c = 0 where a ≠ 0', ru: 'Квадратное уравнение имеет вид ax² + bx + c = 0, где a ≠ 0', kg: 'Квадраттык теңдеме ax² + bx + c = 0 формасында, мында a ≠ 0' }
+  },
+  {
+    id: 'quad-mt-2',
+    difficulty: 'easy',
+    question: { en: 'Solve: x² = 16', ru: 'Решите: x² = 16', kg: 'Чечиңиз: x² = 16' },
+    options: {
+      A: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
+      B: { en: 'x = -4', ru: 'x = -4', kg: 'x = -4' },
+      C: { en: 'x = ±4', ru: 'x = ±4', kg: 'x = ±4' },
+      D: { en: 'x = 8', ru: 'x = 8', kg: 'x = 8' }
+    },
+    correct: 'C',
+    explanation: { en: 'x² = 16 means x = √16 = ±4 (both positive and negative roots)', ru: 'x² = 16 означает x = √16 = ±4 (положительный и отрицательный корни)', kg: 'x² = 16 болсо x = √16 = ±4 (оң жана терс тамырлар)' }
+  },
+  {
+    id: 'quad-mt-3',
+    difficulty: 'easy',
+    question: { en: 'In x² - 5x + 6 = 0, what is c?', ru: 'В уравнении x² - 5x + 6 = 0, чему равен c?', kg: 'x² - 5x + 6 = 0 теңдемесинде c канча?' },
+    options: {
+      A: { en: '1', ru: '1', kg: '1' },
+      B: { en: '-5', ru: '-5', kg: '-5' },
+      C: { en: '6', ru: '6', kg: '6' },
+      D: { en: '0', ru: '0', kg: '0' }
+    },
+    correct: 'C',
+    explanation: { en: 'In ax² + bx + c = 0, c is the constant term. Here c = 6', ru: 'В ax² + bx + c = 0, c — свободный член. Здесь c = 6', kg: 'ax² + bx + c = 0 теңдемесинде c — эркин мүчө. Бул жерде c = 6' }
+  },
+  {
+    id: 'quad-mt-4',
+    difficulty: 'medium',
+    question: { en: 'Solve: x² - 5x + 6 = 0', ru: 'Решите: x² - 5x + 6 = 0', kg: 'Чечиңиз: x² - 5x + 6 = 0' },
+    options: {
+      A: { en: 'x = 2, x = 3', ru: 'x = 2, x = 3', kg: 'x = 2, x = 3' },
+      B: { en: 'x = -2, x = -3', ru: 'x = -2, x = -3', kg: 'x = -2, x = -3' },
+      C: { en: 'x = 1, x = 6', ru: 'x = 1, x = 6', kg: 'x = 1, x = 6' },
+      D: { en: 'x = -1, x = -6', ru: 'x = -1, x = -6', kg: 'x = -1, x = -6' }
+    },
+    correct: 'A',
+    explanation: { en: 'Factor: (x-2)(x-3) = 0, so x = 2 or x = 3', ru: 'Разложение: (x-2)(x-3) = 0, значит x = 2 или x = 3', kg: 'Көбөйтүндүгө: (x-2)(x-3) = 0, ошондуктан x = 2 же x = 3' }
+  },
+  {
+    id: 'quad-mt-5',
+    difficulty: 'medium',
+    question: { en: 'What is the discriminant of x² - 4x + 4 = 0?', ru: 'Чему равен дискриминант x² - 4x + 4 = 0?', kg: 'x² - 4x + 4 = 0 теңдемесинин дискриминанты канча?' },
+    options: {
+      A: { en: '0', ru: '0', kg: '0' },
+      B: { en: '8', ru: '8', kg: '8' },
+      C: { en: '16', ru: '16', kg: '16' },
+      D: { en: '-16', ru: '-16', kg: '-16' }
+    },
+    correct: 'A',
+    explanation: { en: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0', ru: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0', kg: 'D = b² - 4ac = (-4)² - 4(1)(4) = 16 - 16 = 0' }
+  },
+  {
+    id: 'quad-mt-6',
+    difficulty: 'medium',
+    question: { en: 'If discriminant D < 0, the equation has:', ru: 'Если дискриминант D < 0, уравнение имеет:', kg: 'Эгер дискриминант D < 0 болсо, теңдеме:' },
+    options: {
+      A: { en: 'Two real roots', ru: 'Два действительных корня', kg: 'Эки чыныгы тамыр' },
+      B: { en: 'One real root', ru: 'Один действительный корень', kg: 'Бир чыныгы тамыр' },
+      C: { en: 'No real roots', ru: 'Нет действительных корней', kg: 'Чыныгы тамырлар жок' },
+      D: { en: 'Infinite roots', ru: 'Бесконечно много корней', kg: 'Чексиз көп тамыр' }
+    },
+    correct: 'C',
+    explanation: { en: 'When D < 0, the square root of a negative number is not real, so no real solutions exist', ru: 'Когда D < 0, квадратный корень из отрицательного числа не является действительным, поэтому действительных решений нет', kg: 'D < 0 болгондо, терс сандын квадраттык тамыры чыныгы эмес, ошондуктан чыныгы чечимдер жок' }
+  },
+  {
+    id: 'quad-mt-7',
+    difficulty: 'hard',
+    question: { en: 'Use the quadratic formula to solve: x² + 2x - 3 = 0', ru: 'Используя формулу корней, решите: x² + 2x - 3 = 0', kg: 'Квадраттык формула менен чечиңиз: x² + 2x - 3 = 0' },
+    options: {
+      A: { en: 'x = 1, x = -3', ru: 'x = 1, x = -3', kg: 'x = 1, x = -3' },
+      B: { en: 'x = -1, x = 3', ru: 'x = -1, x = 3', kg: 'x = -1, x = 3' },
+      C: { en: 'x = 2, x = -1', ru: 'x = 2, x = -1', kg: 'x = 2, x = -1' },
+      D: { en: 'x = -2, x = 1', ru: 'x = -2, x = 1', kg: 'x = -2, x = 1' }
+    },
+    correct: 'A',
+    explanation: { en: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, so x = 1 or x = -3', ru: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, значит x = 1 или x = -3', kg: 'x = (-2 ± √(4+12))/2 = (-2 ± 4)/2, ошондуктан x = 1 же x = -3' }
+  },
+  {
+    id: 'quad-mt-8',
+    difficulty: 'hard',
+    question: { en: 'Find the sum of roots: x² - 7x + 12 = 0', ru: 'Найдите сумму корней: x² - 7x + 12 = 0', kg: 'Тамырлардын суммасын табыңыз: x² - 7x + 12 = 0' },
+    options: {
+      A: { en: '12', ru: '12', kg: '12' },
+      B: { en: '7', ru: '7', kg: '7' },
+      C: { en: '-7', ru: '-7', kg: '-7' },
+      D: { en: '5', ru: '5', kg: '5' }
+    },
+    correct: 'B',
+    explanation: { en: 'By Vieta\'s formulas, sum of roots = -b/a = -(-7)/1 = 7', ru: 'По формулам Виета, сумма корней = -b/a = -(-7)/1 = 7', kg: 'Виета формуласы боюнча, тамырлардын суммасы = -b/a = -(-7)/1 = 7' }
+  },
+  {
+    id: 'quad-mt-9',
+    difficulty: 'hard',
+    question: { en: 'Find the product of roots: x² - 7x + 12 = 0', ru: 'Найдите произведение корней: x² - 7x + 12 = 0', kg: 'Тамырлардын көбөйтүндүсүн табыңыз: x² - 7x + 12 = 0' },
+    options: {
+      A: { en: '7', ru: '7', kg: '7' },
+      B: { en: '-12', ru: '-12', kg: '-12' },
+      C: { en: '12', ru: '12', kg: '12' },
+      D: { en: '-7', ru: '-7', kg: '-7' }
+    },
+    correct: 'C',
+    explanation: { en: 'By Vieta\'s formulas, product of roots = c/a = 12/1 = 12', ru: 'По формулам Виета, произведение корней = c/a = 12/1 = 12', kg: 'Виета формуласы боюнча, тамырлардын көбөйтүндүсү = c/a = 12/1 = 12' }
+  }
+];
+
+// Fallback full test questions for quadratics (20 questions)
+const quadraticsFullTest = [
+  {
+    id: 'quad-ft-1',
+    question: { en: 'Which is a quadratic equation?', ru: 'Какое из уравнений квадратное?', kg: 'Кайсынысы квадраттык теңдеме?' },
+    options: {
+      A: { en: '3x + 2 = 0', ru: '3x + 2 = 0', kg: '3x + 2 = 0' },
+      B: { en: 'x² + 5x - 6 = 0', ru: 'x² + 5x - 6 = 0', kg: 'x² + 5x - 6 = 0' },
+      C: { en: 'x³ - x = 0', ru: 'x³ - x = 0', kg: 'x³ - x = 0' },
+      D: { en: '1/x + 2 = 0', ru: '1/x + 2 = 0', kg: '1/x + 2 = 0' }
+    },
+    correct: 'B',
+    explanation: { en: 'A quadratic equation has the highest power of x as 2', ru: 'Квадратное уравнение имеет наивысшую степень x равную 2', kg: 'Квадраттык теңдеменин эң жогорку даражасы 2' }
+  },
+  {
+    id: 'quad-ft-2',
+    question: { en: 'Solve: x² - 9 = 0', ru: 'Решите: x² - 9 = 0', kg: 'Чечиңиз: x² - 9 = 0' },
+    options: {
+      A: { en: 'x = 3', ru: 'x = 3', kg: 'x = 3' },
+      B: { en: 'x = -3', ru: 'x = -3', kg: 'x = -3' },
+      C: { en: 'x = ±3', ru: 'x = ±3', kg: 'x = ±3' },
+      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
+    },
+    correct: 'C',
+    explanation: { en: 'x² = 9, so x = ±√9 = ±3', ru: 'x² = 9, значит x = ±√9 = ±3', kg: 'x² = 9, ошондуктан x = ±√9 = ±3' }
+  },
+  {
+    id: 'quad-ft-3',
+    question: { en: 'Solve: x² + 4x = 0', ru: 'Решите: x² + 4x = 0', kg: 'Чечиңиз: x² + 4x = 0' },
+    options: {
+      A: { en: 'x = 0, x = 4', ru: 'x = 0, x = 4', kg: 'x = 0, x = 4' },
+      B: { en: 'x = 0, x = -4', ru: 'x = 0, x = -4', kg: 'x = 0, x = -4' },
+      C: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
+      D: { en: 'x = -4', ru: 'x = -4', kg: 'x = -4' }
+    },
+    correct: 'B',
+    explanation: { en: 'Factor: x(x + 4) = 0, so x = 0 or x = -4', ru: 'Разложение: x(x + 4) = 0, значит x = 0 или x = -4', kg: 'Көбөйтүндүгө: x(x + 4) = 0, ошондуктан x = 0 же x = -4' }
+  },
+  {
+    id: 'quad-ft-4',
+    question: { en: 'Solve: x² - 6x + 9 = 0', ru: 'Решите: x² - 6x + 9 = 0', kg: 'Чечиңиз: x² - 6x + 9 = 0' },
+    options: {
+      A: { en: 'x = 3 (double root)', ru: 'x = 3 (кратный корень)', kg: 'x = 3 (кош тамыр)' },
+      B: { en: 'x = -3 (double root)', ru: 'x = -3 (кратный корень)', kg: 'x = -3 (кош тамыр)' },
+      C: { en: 'x = 3, x = -3', ru: 'x = 3, x = -3', kg: 'x = 3, x = -3' },
+      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
+    },
+    correct: 'A',
+    explanation: { en: '(x-3)² = 0, so x = 3 is a double root', ru: '(x-3)² = 0, значит x = 3 — кратный корень', kg: '(x-3)² = 0, ошондуктан x = 3 кош тамыр' }
+  },
+  {
+    id: 'quad-ft-5',
+    question: { en: 'What is the discriminant formula?', ru: 'Какова формула дискриминанта?', kg: 'Дискриминанттын формуласы кандай?' },
+    options: {
+      A: { en: 'D = b² - 4ac', ru: 'D = b² - 4ac', kg: 'D = b² - 4ac' },
+      B: { en: 'D = b² + 4ac', ru: 'D = b² + 4ac', kg: 'D = b² + 4ac' },
+      C: { en: 'D = a² - 4bc', ru: 'D = a² - 4bc', kg: 'D = a² - 4bc' },
+      D: { en: 'D = 2b² - ac', ru: 'D = 2b² - ac', kg: 'D = 2b² - ac' }
+    },
+    correct: 'A',
+    explanation: { en: 'The discriminant D = b² - 4ac determines the nature of roots', ru: 'Дискриминант D = b² - 4ac определяет характер корней', kg: 'Дискриминант D = b² - 4ac тамырлардын мүнөзүн аныктайт' }
+  },
+  {
+    id: 'quad-ft-6',
+    question: { en: 'Calculate D for: 2x² - 5x + 2 = 0', ru: 'Вычислите D для: 2x² - 5x + 2 = 0', kg: 'D ны эсептеңиз: 2x² - 5x + 2 = 0' },
+    options: {
+      A: { en: '9', ru: '9', kg: '9' },
+      B: { en: '25', ru: '25', kg: '25' },
+      C: { en: '16', ru: '16', kg: '16' },
+      D: { en: '1', ru: '1', kg: '1' }
+    },
+    correct: 'A',
+    explanation: { en: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9', ru: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9', kg: 'D = (-5)² - 4(2)(2) = 25 - 16 = 9' }
+  },
+  {
+    id: 'quad-ft-7',
+    question: { en: 'Solve using quadratic formula: x² - 5x + 6 = 0', ru: 'Решите по формуле: x² - 5x + 6 = 0', kg: 'Формула менен чечиңиз: x² - 5x + 6 = 0' },
+    options: {
+      A: { en: 'x = 2, x = 3', ru: 'x = 2, x = 3', kg: 'x = 2, x = 3' },
+      B: { en: 'x = -2, x = -3', ru: 'x = -2, x = -3', kg: 'x = -2, x = -3' },
+      C: { en: 'x = 1, x = 6', ru: 'x = 1, x = 6', kg: 'x = 1, x = 6' },
+      D: { en: 'x = 5, x = 1', ru: 'x = 5, x = 1', kg: 'x = 5, x = 1' }
+    },
+    correct: 'A',
+    explanation: { en: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, so x = 3 or x = 2', ru: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, значит x = 3 или x = 2', kg: 'x = (5 ± √(25-24))/2 = (5 ± 1)/2, ошондуктан x = 3 же x = 2' }
+  },
+  {
+    id: 'quad-ft-8',
+    question: { en: 'If D > 0, how many real roots?', ru: 'Если D > 0, сколько действительных корней?', kg: 'Эгер D > 0 болсо, канча чыныгы тамыр бар?' },
+    options: {
+      A: { en: 'No real roots', ru: 'Нет корней', kg: 'Тамыр жок' },
+      B: { en: 'One root', ru: 'Один корень', kg: 'Бир тамыр' },
+      C: { en: 'Two roots', ru: 'Два корня', kg: 'Эки тамыр' },
+      D: { en: 'Three roots', ru: 'Три корня', kg: 'Үч тамыр' }
+    },
+    correct: 'C',
+    explanation: { en: 'When D > 0, there are two distinct real roots', ru: 'Когда D > 0, есть два различных действительных корня', kg: 'D > 0 болгондо, эки ар түрдүү чыныгы тамыр бар' }
+  },
+  {
+    id: 'quad-ft-9',
+    question: { en: 'Solve: 2x² - 8 = 0', ru: 'Решите: 2x² - 8 = 0', kg: 'Чечиңиз: 2x² - 8 = 0' },
+    options: {
+      A: { en: 'x = ±2', ru: 'x = ±2', kg: 'x = ±2' },
+      B: { en: 'x = ±4', ru: 'x = ±4', kg: 'x = ±4' },
+      C: { en: 'x = 2', ru: 'x = 2', kg: 'x = 2' },
+      D: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' }
+    },
+    correct: 'A',
+    explanation: { en: '2x² = 8, x² = 4, x = ±2', ru: '2x² = 8, x² = 4, x = ±2', kg: '2x² = 8, x² = 4, x = ±2' }
+  },
+  {
+    id: 'quad-ft-10',
+    question: { en: 'Factor: x² - 4x - 5', ru: 'Разложите: x² - 4x - 5', kg: 'Көбөйтүндүгө ажыратыңыз: x² - 4x - 5' },
+    options: {
+      A: { en: '(x - 5)(x + 1)', ru: '(x - 5)(x + 1)', kg: '(x - 5)(x + 1)' },
+      B: { en: '(x + 5)(x - 1)', ru: '(x + 5)(x - 1)', kg: '(x + 5)(x - 1)' },
+      C: { en: '(x - 4)(x - 1)', ru: '(x - 4)(x - 1)', kg: '(x - 4)(x - 1)' },
+      D: { en: '(x + 4)(x + 1)', ru: '(x + 4)(x + 1)', kg: '(x + 4)(x + 1)' }
+    },
+    correct: 'A',
+    explanation: { en: 'Find factors of -5 that add to -4: -5 and 1. So (x - 5)(x + 1)', ru: 'Найдите множители -5, дающие -4: -5 и 1. Значит (x - 5)(x + 1)', kg: '-5тин көбөйткүчтөрүн табыңыз: -5 жана 1. Ошондуктан (x - 5)(x + 1)' }
+  },
+  {
+    id: 'quad-ft-11',
+    question: { en: 'Sum of roots for ax² + bx + c = 0?', ru: 'Сумма корней для ax² + bx + c = 0?', kg: 'ax² + bx + c = 0 үчүн тамырлардын суммасы?' },
+    options: {
+      A: { en: '-b/a', ru: '-b/a', kg: '-b/a' },
+      B: { en: 'b/a', ru: 'b/a', kg: 'b/a' },
+      C: { en: 'c/a', ru: 'c/a', kg: 'c/a' },
+      D: { en: '-c/a', ru: '-c/a', kg: '-c/a' }
+    },
+    correct: 'A',
+    explanation: { en: 'By Vieta\'s formulas, x₁ + x₂ = -b/a', ru: 'По формулам Виета, x₁ + x₂ = -b/a', kg: 'Виета формуласы боюнча, x₁ + x₂ = -b/a' }
+  },
+  {
+    id: 'quad-ft-12',
+    question: { en: 'Product of roots for ax² + bx + c = 0?', ru: 'Произведение корней для ax² + bx + c = 0?', kg: 'ax² + bx + c = 0 үчүн тамырлардын көбөйтүндүсү?' },
+    options: {
+      A: { en: '-b/a', ru: '-b/a', kg: '-b/a' },
+      B: { en: 'b/a', ru: 'b/a', kg: 'b/a' },
+      C: { en: 'c/a', ru: 'c/a', kg: 'c/a' },
+      D: { en: '-c/a', ru: '-c/a', kg: '-c/a' }
+    },
+    correct: 'C',
+    explanation: { en: 'By Vieta\'s formulas, x₁ × x₂ = c/a', ru: 'По формулам Виета, x₁ × x₂ = c/a', kg: 'Виета формуласы боюнча, x₁ × x₂ = c/a' }
+  },
+  {
+    id: 'quad-ft-13',
+    question: { en: 'Solve: x² + 6x + 9 = 0', ru: 'Решите: x² + 6x + 9 = 0', kg: 'Чечиңиз: x² + 6x + 9 = 0' },
+    options: {
+      A: { en: 'x = 3', ru: 'x = 3', kg: 'x = 3' },
+      B: { en: 'x = -3', ru: 'x = -3', kg: 'x = -3' },
+      C: { en: 'x = ±3', ru: 'x = ±3', kg: 'x = ±3' },
+      D: { en: 'x = 9', ru: 'x = 9', kg: 'x = 9' }
+    },
+    correct: 'B',
+    explanation: { en: '(x + 3)² = 0, so x = -3 is a double root', ru: '(x + 3)² = 0, значит x = -3 — кратный корень', kg: '(x + 3)² = 0, ошондуктан x = -3 кош тамыр' }
+  },
+  {
+    id: 'quad-ft-14',
+    question: { en: 'What is the quadratic formula?', ru: 'Какова формула корней квадратного уравнения?', kg: 'Квадраттык формула кандай?' },
+    options: {
+      A: { en: 'x = -b/2a', ru: 'x = -b/2a', kg: 'x = -b/2a' },
+      B: { en: 'x = (-b ± √D)/2a', ru: 'x = (-b ± √D)/2a', kg: 'x = (-b ± √D)/2a' },
+      C: { en: 'x = b ± √D/a', ru: 'x = b ± √D/a', kg: 'x = b ± √D/a' },
+      D: { en: 'x = -b ± √D/a', ru: 'x = -b ± √D/a', kg: 'x = -b ± √D/a' }
+    },
+    correct: 'B',
+    explanation: { en: 'The quadratic formula is x = (-b ± √(b²-4ac))/2a', ru: 'Формула корней: x = (-b ± √(b²-4ac))/2a', kg: 'Квадраттык формула: x = (-b ± √(b²-4ac))/2a' }
+  },
+  {
+    id: 'quad-ft-15',
+    question: { en: 'Solve: x² - 2x - 15 = 0', ru: 'Решите: x² - 2x - 15 = 0', kg: 'Чечиңиз: x² - 2x - 15 = 0' },
+    options: {
+      A: { en: 'x = 5, x = -3', ru: 'x = 5, x = -3', kg: 'x = 5, x = -3' },
+      B: { en: 'x = -5, x = 3', ru: 'x = -5, x = 3', kg: 'x = -5, x = 3' },
+      C: { en: 'x = 3, x = 5', ru: 'x = 3, x = 5', kg: 'x = 3, x = 5' },
+      D: { en: 'x = -3, x = -5', ru: 'x = -3, x = -5', kg: 'x = -3, x = -5' }
+    },
+    correct: 'A',
+    explanation: { en: 'Factor: (x - 5)(x + 3) = 0, so x = 5 or x = -3', ru: 'Разложение: (x - 5)(x + 3) = 0, значит x = 5 или x = -3', kg: 'Көбөйтүндүгө: (x - 5)(x + 3) = 0, ошондуктан x = 5 же x = -3' }
+  },
+  {
+    id: 'quad-ft-16',
+    question: { en: 'Solve: 3x² - 12x = 0', ru: 'Решите: 3x² - 12x = 0', kg: 'Чечиңиз: 3x² - 12x = 0' },
+    options: {
+      A: { en: 'x = 0, x = 4', ru: 'x = 0, x = 4', kg: 'x = 0, x = 4' },
+      B: { en: 'x = 0, x = -4', ru: 'x = 0, x = -4', kg: 'x = 0, x = -4' },
+      C: { en: 'x = 4', ru: 'x = 4', kg: 'x = 4' },
+      D: { en: 'x = 12', ru: 'x = 12', kg: 'x = 12' }
+    },
+    correct: 'A',
+    explanation: { en: 'Factor: 3x(x - 4) = 0, so x = 0 or x = 4', ru: 'Разложение: 3x(x - 4) = 0, значит x = 0 или x = 4', kg: 'Көбөйтүндүгө: 3x(x - 4) = 0, ошондуктан x = 0 же x = 4' }
+  },
+  {
+    id: 'quad-ft-17',
+    question: { en: 'Calculate D for: x² + x + 1 = 0', ru: 'Вычислите D для: x² + x + 1 = 0', kg: 'D ны эсептеңиз: x² + x + 1 = 0' },
+    options: {
+      A: { en: '-3', ru: '-3', kg: '-3' },
+      B: { en: '3', ru: '3', kg: '3' },
+      C: { en: '5', ru: '5', kg: '5' },
+      D: { en: '0', ru: '0', kg: '0' }
+    },
+    correct: 'A',
+    explanation: { en: 'D = 1² - 4(1)(1) = 1 - 4 = -3', ru: 'D = 1² - 4(1)(1) = 1 - 4 = -3', kg: 'D = 1² - 4(1)(1) = 1 - 4 = -3' }
+  },
+  {
+    id: 'quad-ft-18',
+    question: { en: 'If roots are 2 and 5, what is the equation?', ru: 'Если корни 2 и 5, какое уравнение?', kg: 'Эгер тамырлар 2 жана 5 болсо, теңдеме кандай?' },
+    options: {
+      A: { en: 'x² - 7x + 10 = 0', ru: 'x² - 7x + 10 = 0', kg: 'x² - 7x + 10 = 0' },
+      B: { en: 'x² + 7x + 10 = 0', ru: 'x² + 7x + 10 = 0', kg: 'x² + 7x + 10 = 0' },
+      C: { en: 'x² - 7x - 10 = 0', ru: 'x² - 7x - 10 = 0', kg: 'x² - 7x - 10 = 0' },
+      D: { en: 'x² + 7x - 10 = 0', ru: 'x² + 7x - 10 = 0', kg: 'x² + 7x - 10 = 0' }
+    },
+    correct: 'A',
+    explanation: { en: '(x - 2)(x - 5) = x² - 7x + 10 = 0', ru: '(x - 2)(x - 5) = x² - 7x + 10 = 0', kg: '(x - 2)(x - 5) = x² - 7x + 10 = 0' }
+  },
+  {
+    id: 'quad-ft-19',
+    question: { en: 'Solve: x² - 1 = 0', ru: 'Решите: x² - 1 = 0', kg: 'Чечиңиз: x² - 1 = 0' },
+    options: {
+      A: { en: 'x = 1', ru: 'x = 1', kg: 'x = 1' },
+      B: { en: 'x = -1', ru: 'x = -1', kg: 'x = -1' },
+      C: { en: 'x = ±1', ru: 'x = ±1', kg: 'x = ±1' },
+      D: { en: 'x = 0', ru: 'x = 0', kg: 'x = 0' }
+    },
+    correct: 'C',
+    explanation: { en: 'Difference of squares: (x-1)(x+1) = 0, so x = ±1', ru: 'Разность квадратов: (x-1)(x+1) = 0, значит x = ±1', kg: 'Квадраттар айырмасы: (x-1)(x+1) = 0, ошондуктан x = ±1' }
+  },
+  {
+    id: 'quad-ft-20',
+    question: { en: 'Complete the square: x² + 8x + ___ = (x + 4)²', ru: 'Выделите полный квадрат: x² + 8x + ___ = (x + 4)²', kg: 'Толук квадратты белгилеңиз: x² + 8x + ___ = (x + 4)²' },
+    options: {
+      A: { en: '4', ru: '4', kg: '4' },
+      B: { en: '8', ru: '8', kg: '8' },
+      C: { en: '16', ru: '16', kg: '16' },
+      D: { en: '64', ru: '64', kg: '64' }
+    },
+    correct: 'C',
+    explanation: { en: '(x + 4)² = x² + 8x + 16, so the missing number is 16', ru: '(x + 4)² = x² + 8x + 16, значит пропущенное число 16', kg: '(x + 4)² = x² + 8x + 16, ошондуктан жетишпеген сан 16' }
+  }
+];
+
 type TabType = 'basic' | 'mini' | 'diagrams' | 'mistakes' | 'miniTests' | 'fullTest' | 'dynamic';
 type LearningStyle = 'visual' | 'auditory' | 'text-based' | 'problem-solver' | 'adhd-friendly';
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -960,12 +1325,15 @@ export default function DynamicLessonViewer() {
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
   // Normalize topicId to handle singular/plural variants
-  const normalizedTopicId = topicId === 'exponent' ? 'exponents' : topicId;
+  const normalizedTopicId = topicId === 'exponent' ? 'exponents' 
+    : topicId === 'quadratic' ? 'quadratics' 
+    : topicId;
   
   // Mapping from topic IDs to lesson JSON files in storage (exact paths in bucket)
   const lessonPathMap: Record<string, string> = {
     fractions: 'fractions/fraction.json',
     exponents: 'exponents/exponents.json',
+    quadratics: 'quadratics/quadratics.json',
   };
 
   // Fetch lesson data from storage (JSON is the single source of truth)
@@ -1062,7 +1430,7 @@ export default function DynamicLessonViewer() {
 
     try {
       const studentResults = await fetchStudentResults();
-      const topicName = normalizedTopicId === 'fractions' ? 'Дроби (Fractions)' : normalizedTopicId === 'exponents' ? 'Степени (Exponents)' : normalizedTopicId;
+      const topicName = normalizedTopicId === 'fractions' ? 'Дроби (Fractions)' : normalizedTopicId === 'exponents' ? 'Степени (Exponents)' : normalizedTopicId === 'quadratics' ? 'Квадратные уравнения (Quadratic Equations)' : normalizedTopicId;
 
       const { data, error } = await supabase.functions.invoke('ai-generate-lesson', {
         body: { topic: topicName, learningStyle: style, studentResults, language }
@@ -1147,6 +1515,7 @@ export default function DynamicLessonViewer() {
   const getMiniTestFallback = () => {
     if (normalizedTopicId === 'fractions') return fractionsMiniTests;
     if (normalizedTopicId === 'exponents') return exponentsMiniTests;
+    if (normalizedTopicId === 'quadratics') return quadraticsMiniTests;
     return [];
   };
   
@@ -1204,6 +1573,7 @@ export default function DynamicLessonViewer() {
   const getFullTestFallback = () => {
     if (normalizedTopicId === 'fractions') return fractionsFullTest;
     if (normalizedTopicId === 'exponents') return exponentsFullTest;
+    if (normalizedTopicId === 'quadratics') return quadraticsFullTest;
     return [];
   };
   
