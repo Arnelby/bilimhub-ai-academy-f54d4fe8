@@ -5,6 +5,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// MANDATORY Question → Topic Mapping (Q1-Q30)
+const QUESTION_TOPIC_MAP: Record<number, string[]> = {
+  1: ["Decimal fractions"],
+  2: ["Decimal fractions", "Operations with decimals"],
+  3: ["Exponents"],
+  4: ["Operations with fractions"],
+  5: ["Simple equations"],
+  6: ["Order of operations"],
+  7: ["Fractions"],
+  8: ["Similarity", "Triangle angles"],
+  9: ["Operations with fractions"],
+  10: ["Square root"],
+  11: ["Angles", "Logic"],
+  12: ["Coordinates"],
+  13: ["Inequalities"],
+  14: ["Comparing values"],
+  15: ["Functions"],
+  16: ["Percentages"],
+  17: ["Progressions"],
+  18: ["Basic arithmetic operations"],
+  19: ["Exponents"],
+  20: ["Absolute value"],
+  21: ["Proportions"],
+  22: ["Triangles"],
+  23: ["Sum of interior angles"],
+  24: ["Exponents"],
+  25: ["Range of numbers"],
+  26: ["Trapezoid"],
+  27: ["Exponents"],
+  28: ["Rectangles"],
+  29: ["Logic"],
+  30: ["3D geometry"],
+};
+
+interface TopicPerformance {
+  correct: number;
+  total: number;
+  avgTime: number;
+  percentage: number;
+  status: 'strong' | 'medium' | 'weak';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,44 +60,72 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Pre-calculate key metrics for the AI
+    // 1️⃣ GROUP QUESTIONS BY TOPIC using the mandatory mapping
+    const topicPerformance: Record<string, TopicPerformance> = {};
+    
+    mathAnswers?.forEach((a: any) => {
+      // Extract question number from questionId (e.g., "ort_1" -> 1)
+      const qNumMatch = a.questionId?.match(/(\d+)$/);
+      const qNum = qNumMatch ? parseInt(qNumMatch[1]) : null;
+      
+      // Get topics for this question from the mandatory mapping
+      const topics = qNum && QUESTION_TOPIC_MAP[qNum] ? QUESTION_TOPIC_MAP[qNum] : ['General'];
+      
+      // Count for each topic (if question has multiple topics, count for each)
+      topics.forEach(topic => {
+        if (!topicPerformance[topic]) {
+          topicPerformance[topic] = { correct: 0, total: 0, avgTime: 0, percentage: 0, status: 'weak' };
+        }
+        topicPerformance[topic].total += 1;
+        topicPerformance[topic].avgTime += a.timeTaken || 0;
+        if (a.correct) topicPerformance[topic].correct += 1;
+      });
+    });
+    
+    // 2️⃣ CALCULATE MASTERY PERCENTAGE per topic (rounded to whole numbers)
+    Object.keys(topicPerformance).forEach(topic => {
+      const perf = topicPerformance[topic];
+      perf.avgTime = Math.round(perf.avgTime / perf.total);
+      perf.percentage = Math.round((perf.correct / perf.total) * 100);
+      
+      // 3️⃣ ASSIGN MASTERY STATUS
+      if (perf.percentage >= 80) {
+        perf.status = 'strong';   // 🟢 Strong — 80–100%
+      } else if (perf.percentage >= 50) {
+        perf.status = 'medium';   // 🟡 Medium — 50–79%
+      } else {
+        perf.status = 'weak';     // 🔴 Weak — 0–49%
+      }
+    });
+
+    // 4️⃣ IDENTIFY WEAK TOPICS (ranked from weakest to strongest)
+    const weakTopics = Object.entries(topicPerformance)
+      .filter(([_, p]) => p.status === 'weak')
+      .sort((a, b) => a[1].percentage - b[1].percentage)
+      .map(([topic, p]) => ({ topic, percentage: p.percentage }));
+    
+    const mediumTopics = Object.entries(topicPerformance)
+      .filter(([_, p]) => p.status === 'medium')
+      .sort((a, b) => a[1].percentage - b[1].percentage)
+      .map(([topic, p]) => ({ topic, percentage: p.percentage }));
+    
+    const strongTopics = Object.entries(topicPerformance)
+      .filter(([_, p]) => p.status === 'strong')
+      .sort((a, b) => b[1].percentage - a[1].percentage)
+      .map(([topic, p]) => ({ topic, percentage: p.percentage }));
+
+    // Pre-calculate overall metrics
     const totalMathQuestions = mathAnswers?.length || 0;
     const correctMathAnswers = mathAnswers?.filter((a: any) => a.correct).length || 0;
     const mathAccuracy = totalMathQuestions > 0 ? Math.round((correctMathAnswers / totalMathQuestions) * 100) : 0;
-    
-    // Calculate topic-level performance
-    const topicPerformance: Record<string, { correct: number; total: number; avgTime: number }> = {};
-    mathAnswers?.forEach((a: any) => {
-      const topic = a.topic || 'general';
-      if (!topicPerformance[topic]) {
-        topicPerformance[topic] = { correct: 0, total: 0, avgTime: 0 };
-      }
-      topicPerformance[topic].total += 1;
-      topicPerformance[topic].avgTime += a.timeTaken || 0;
-      if (a.correct) topicPerformance[topic].correct += 1;
-    });
-    
-    // Calculate averages
-    Object.keys(topicPerformance).forEach(topic => {
-      topicPerformance[topic].avgTime = Math.round(topicPerformance[topic].avgTime / topicPerformance[topic].total);
-    });
 
-    // Identify weak and strong topics
-    const weakTopics = Object.entries(topicPerformance)
-      .filter(([_, p]) => (p.correct / p.total) < 0.5)
-      .map(([topic]) => topic);
-    
-    const strongTopics = Object.entries(topicPerformance)
-      .filter(([_, p]) => (p.correct / p.total) >= 0.75)
-      .map(([topic]) => topic);
-
-    // Calculate difficulty-weighted score
-    let difficultyScore = 0;
-    mathAnswers?.forEach((a: any) => {
-      if (a.correct) {
-        difficultyScore += (a.difficulty || 1) * 10;
-      }
-    });
+    // 5️⃣ LESSON PROGRESS VISUALIZATION data
+    const lessonProgress = Object.entries(topicPerformance).map(([topic, p]) => ({
+      lesson: topic,
+      mastery: p.percentage,
+      status: p.status,
+      statusEmoji: p.status === 'strong' ? '🟢' : p.status === 'medium' ? '🟡' : '🔴'
+    }));
 
     // Analyze learning style preferences
     const styleCounts: Record<string, number> = {};
@@ -73,88 +143,87 @@ serve(async (req) => {
       }
     });
 
-    const systemPrompt = `You are an expert educational psychologist AI analyzing ORT exam diagnostic results.
+    // 6️⃣ AI PERSONALIZED LEARNING OUTPUT
+    const systemPrompt = `You are an expert educational AI that provides personalized, supportive learning feedback.
 
-Your analysis must be STRICTLY DATA-DRIVEN. Every score and conclusion must be based on the actual test performance data provided.
+Your analysis must be:
+- Supportive and motivating
+- Precise with no fluff  
+- Always show percentages
+- Always link weaknesses to lessons
 
-ANALYSIS REQUIREMENTS:
-1. Math level (1-5) must be calculated from actual accuracy: ${mathAccuracy}% correct
-2. Learning style must be determined from the learning style responses
-3. Psychological traits must come from the psychology assessment
-4. Strengths and weaknesses must reference specific topics from the test
+MANDATORY OUTPUT RULES:
+1. Use ONLY the topic data provided - DO NOT invent topics
+2. Use ONLY the correctness data provided - DO NOT guess results
+3. Always explain results clearly with percentages
+4. Link every weakness to a specific lesson/topic
 
-PRE-CALCULATED DATA:
-- Total Math Questions: ${totalMathQuestions}
-- Correct Answers: ${correctMathAnswers}
-- Accuracy: ${mathAccuracy}%
-- Difficulty Score: ${difficultyScore}
-- Weak Topics: ${weakTopics.join(', ') || 'None identified'}
-- Strong Topics: ${strongTopics.join(', ') || 'None identified'}
-- Total Time: ${timeTaken} seconds
-- Average Time Per Question: ${totalMathQuestions > 0 ? Math.round(timeTaken / totalMathQuestions) : 0} seconds
+TOPIC MASTERY DATA (calculated from the 30-question diagnostic):
+${Object.entries(topicPerformance).map(([topic, p]) => 
+  `- ${topic}: ${p.percentage}% (${p.correct}/${p.total}) ${p.status === 'strong' ? '🟢 Strong' : p.status === 'medium' ? '🟡 Medium' : '🔴 Weak'}`
+).join('\n')}
 
-Return ONLY valid JSON with this exact structure:
+WEAK TOPICS (learning priorities, ranked weakest first):
+${weakTopics.length > 0 ? weakTopics.map(t => `- ${t.topic}: ${t.percentage}%`).join('\n') : 'None'}
+
+STRONG TOPICS:
+${strongTopics.length > 0 ? strongTopics.map(t => `- ${t.topic}: ${t.percentage}%`).join('\n') : 'None'}
+
+OVERALL ACCURACY: ${mathAccuracy}% (${correctMathAnswers}/${totalMathQuestions} correct)
+
+Generate output in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}.
+
+Return ONLY valid JSON with this structure:
 {
-  "math_level": [1-5 based on ${mathAccuracy}% accuracy: 1=0-20%, 2=21-40%, 3=41-60%, 4=61-80%, 5=81-100%],
-  "logic_score": [0-100 based on difficulty-weighted performance],
-  "problem_solving_score": [0-100],
-  "speed_score": [0-100 based on time taken],
+  "math_level": [1-5 based on ${mathAccuracy}%: 1=0-20%, 2=21-40%, 3=41-60%, 4=61-80%, 5=81-100%],
   "accuracy_score": ${mathAccuracy},
-  "learning_style": "[most frequent from responses]",
+  "logic_score": [0-100],
+  "problem_solving_score": [0-100],
+  "speed_score": [0-100],
+  "learning_style": "[dominant style from responses]",
   "visual_preference": [0-100],
   "auditory_preference": [0-100],
   "text_preference": [0-100],
   "example_preference": [0-100],
   "problem_driven_preference": [0-100],
   "step_by_step_preference": [0-100],
-  "attention_level": [from psychology: ${traitScores.attention_level || 'calculate'}],
-  "stress_resistance": [from psychology: ${traitScores.stress_resistance || 'calculate'}],
-  "impulsiveness": [from psychology: ${traitScores.impulsiveness || 'calculate'}],
-  "consistency": [from psychology: ${traitScores.consistency || 'calculate'}],
-  "patience": [from psychology: ${traitScores.patience || 'calculate'}],
-  "confidence": [from psychology: ${traitScores.confidence || 'calculate'}],
-  "motivation_type": "[from psychology responses]",
-  "topic_mastery": {
-    ${Object.entries(topicPerformance).map(([topic, p]) => 
-      `"${topic}": ${Math.round((p.correct / p.total) * 100)}`
-    ).join(',\n    ')}
-  },
-  "weak_topics": ${JSON.stringify(weakTopics)},
-  "strong_topics": ${JSON.stringify(strongTopics)},
-  "summary": "[2-3 sentence personalized summary in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}]",
-  "strengths": ["strength1 based on strong topics", "strength2", "strength3"],
-  "areas_to_improve": ["area1 based on weak topics", "area2", "area3"],
-  "recommended_study_approach": "[Specific recommendation in ${language === 'kg' ? 'Kyrgyz' : language === 'ru' ? 'Russian' : 'English'}]",
-  "estimated_ort_score": [100-200 estimate based on performance]
+  "attention_level": [from psychology],
+  "stress_resistance": [from psychology],
+  "impulsiveness": [from psychology],
+  "consistency": [from psychology],
+  "patience": [from psychology],
+  "confidence": [from psychology],
+  "motivation_type": "[type]",
+  "personalized_summary": "[Student-friendly 2-3 sentences: what they're good at, what they struggle with, what topic to start with, why this order]",
+  "strengths_explanation": "[What the student is good at based on strong topics]",
+  "weaknesses_explanation": "[What the student struggles with based on weak topics]",
+  "recommended_start_topic": "[Which topic to start with - the weakest one]",
+  "recommendation_reasoning": "[Why this order is recommended]",
+  "estimated_ort_score": [100-200]
 }`;
 
-    const userPrompt = `Analyze this complete diagnostic test data:
+    const userPrompt = `Analyze this diagnostic test and generate personalized learning feedback:
 
-MATH SECTION DETAILED RESULTS:
+MATH ANSWERS (30 questions):
 ${JSON.stringify(mathAnswers, null, 2)}
-
-TOPIC PERFORMANCE BREAKDOWN:
-${JSON.stringify(topicPerformance, null, 2)}
 
 LEARNING STYLE RESPONSES:
 ${JSON.stringify(learningAnswers, null, 2)}
 Style Counts: ${JSON.stringify(styleCounts)}
 
-PSYCHOLOGICAL PROFILE RESPONSES:
+PSYCHOLOGY RESPONSES:
 ${JSON.stringify(psychologyAnswers, null, 2)}
 Trait Scores: ${JSON.stringify(traitScores)}
 
-STATED PREFERENCES:
+PREFERENCES:
 ${JSON.stringify(preferences, null, 2)}
 
-TIME ANALYSIS:
-- Total Time: ${timeTaken} seconds
-- Average per question: ${totalMathQuestions > 0 ? Math.round(timeTaken / totalMathQuestions) : 0} seconds
+TIME: ${timeTaken} seconds total
 
-Generate the analysis JSON with all scores calculated from this data.`;
+Generate supportive, precise feedback focusing on their weakest topics first.`;
 
     console.log('Calling AI for diagnostic analysis...');
-    console.log(`Math accuracy: ${mathAccuracy}%, Weak topics: ${weakTopics.length}, Strong topics: ${strongTopics.length}`);
+    console.log(`Accuracy: ${mathAccuracy}%, Weak: ${weakTopics.length}, Medium: ${mediumTopics.length}, Strong: ${strongTopics.length}`);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -212,18 +281,36 @@ Generate the analysis JSON with all scores calculated from this data.`;
       throw new Error('Failed to parse AI analysis');
     }
 
-    // Ensure we have the pre-calculated topic data in the response
-    if (!analysis.topic_mastery) {
-      analysis.topic_mastery = {};
-      Object.entries(topicPerformance).forEach(([topic, p]) => {
-        analysis.topic_mastery[topic] = Math.round((p.correct / p.total) * 100);
-      });
-    }
-    if (!analysis.weak_topics) analysis.weak_topics = weakTopics;
-    if (!analysis.strong_topics) analysis.strong_topics = strongTopics;
+    // Ensure all mandatory calculated data is in the response
+    analysis.topic_mastery = {};
+    Object.entries(topicPerformance).forEach(([topic, p]) => {
+      analysis.topic_mastery[topic] = {
+        percentage: p.percentage,
+        correct: p.correct,
+        total: p.total,
+        status: p.status
+      };
+    });
+    
+    analysis.weak_topics = weakTopics;
+    analysis.medium_topics = mediumTopics;
+    analysis.strong_topics = strongTopics;
+    analysis.lesson_progress = lessonProgress;
+    analysis.overall_accuracy = mathAccuracy;
+
+    // 7️⃣ ADAPTIVE LESSON BEHAVIOR data
+    analysis.adaptive_settings = {
+      emphasize_weak_subtopics: weakTopics.map(t => t.topic),
+      reduce_theory_for: strongTopics.map(t => t.topic),
+      increase_practice_for: [...weakTopics, ...mediumTopics].map(t => t.topic),
+      learning_mode: styleCounts.visual > (styleCounts.text || 0) ? 'visual' :
+                     styleCounts.auditory > (styleCounts.text || 0) ? 'auditory' :
+                     styleCounts.problem_driven > (styleCounts.text || 0) ? 'practical' :
+                     'text-based'
+    };
 
     console.log('Diagnostic analysis completed successfully');
-    console.log(`Math level: ${analysis.math_level}, Estimated ORT: ${analysis.estimated_ort_score}`);
+    console.log(`Math level: ${analysis.math_level}, Weak topics: ${weakTopics.length}, ORT: ${analysis.estimated_ort_score}`);
 
     return new Response(JSON.stringify({ analysis }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
