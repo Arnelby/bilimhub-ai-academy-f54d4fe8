@@ -330,7 +330,10 @@ serve(async (req) => {
     // From diagnostic profile topic performance
     if (diagnosticProfile?.topicPerformance) {
       Object.entries(diagnosticProfile.topicPerformance).forEach(([topic, data]: [string, any]) => {
-        topicMasteryData[topic] = data.percentage || 0;
+        // Support both formats:
+        // - { percentage: number }
+        // - number
+        topicMasteryData[topic] = typeof data === 'number' ? data : (data?.percentage || 0);
       });
     }
     
