@@ -674,11 +674,14 @@ export default function DiagnosticTest() {
         completed_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
+      const { error: profileSaveError } = await supabase
         .from('user_diagnostic_profile')
-        .upsert(profileData);
+        .upsert(profileData, { onConflict: 'user_id' });
 
-      if (error) throw error;
+      if (profileSaveError) {
+        console.error('Diagnostic profile save error:', profileSaveError);
+        throw new Error(profileSaveError.message || 'Failed to save diagnostic profile');
+      }
 
       // Generate learning plan with topic mastery from ORT answers
       // The plan is generated based on ACTUAL test performance, not psychological settings
@@ -687,6 +690,7 @@ export default function DiagnosticTest() {
           diagnosticProfile: {
             ...profileData,
             // Include topic performance data for the plan generator
+            // NOTE: the backend can also infer mastery from testHistory; this is for transparency.
             topicPerformance: topicMasteryData,
           },
           testHistory: [{
@@ -705,20 +709,20 @@ export default function DiagnosticTest() {
             progress_percentage: mastery,
           })),
           targetORTScore: goals.targetORTScore,
-          language
-        }
+          language,
+        },
       });
 
       if (planResponse.error) {
         console.error('Plan generation error:', planResponse.error);
-        throw new Error('Failed to generate learning plan');
+        throw new Error(planResponse.error.message || 'Failed to generate learning plan');
       }
 
       // Save the generated plan to database
       if (planResponse.data) {
-        await supabase
+        const { error: planSaveError } = await supabase
           .from('ai_learning_plans_v2')
-          .upsert({
+          .insert({
             user_id: user.id,
             plan_data: planResponse.data.planData || planResponse.data,
             schedule: planResponse.data.schedule,
@@ -732,6 +736,11 @@ export default function DiagnosticTest() {
             is_active: true,
             generated_at: new Date().toISOString(),
           });
+
+        if (planSaveError) {
+          console.error('Plan save error:', planSaveError);
+          throw new Error(planSaveError.message || 'Failed to save learning plan');
+        }
       }
 
       toast({
@@ -740,11 +749,18 @@ export default function DiagnosticTest() {
       });
 
       setSection('complete');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save profile:', error);
+      const message = typeof error?.message === 'string' ? error.message : '';
       toast({
         title: language === 'ru' ? 'Ошибка' : language === 'kg' ? 'Ката' : 'Error',
-        description: language === 'ru' ? 'Попробуйте снова' : language === 'kg' ? 'Кайра аракет кылыңыз' : 'Please try again',
+        description:
+          (language === 'ru'
+            ? `Не удалось создать план. ${message}`
+            : language === 'kg'
+              ? `Планды түзүү мүмкүн болгон жок. ${message}`
+              : `Could not create the plan. ${message}`
+          ).trim(),
         variant: 'destructive',
       });
       setSaving(false);
