@@ -35,6 +35,23 @@ const CYRILLIC_TO_ENGLISH: Record<string, string> = {
   "Г": "D",
 };
 
+// ORT Question to Topic mapping - based on real ORT Math structure
+// This maps each question number to its topic for mastery calculation
+const ORT_QUESTION_TOPICS: Record<number, string> = {
+  // Арифметика (Arithmetic)
+  1: "Дроби", 2: "Дроби", 3: "Проценты", 4: "Проценты", 5: "Десятичные дроби",
+  // Алгебра базовая
+  6: "Уравнения", 7: "Уравнения", 8: "Степени", 9: "Степени", 10: "Квадратные корни",
+  // Алгебра средняя
+  11: "Неравенства", 12: "Неравенства", 13: "Системы уравнений", 14: "Системы уравнений", 15: "Функции",
+  // Геометрия плоская
+  16: "Треугольники", 17: "Треугольники", 18: "Окружности", 19: "Четырехугольники", 20: "Площади",
+  // Геометрия координатная
+  21: "Координаты", 22: "Координаты", 23: "Графики функций", 24: "Графики функций", 25: "Пропорции",
+  // Комбинаторика и анализ данных
+  26: "Текстовые задачи", 27: "Текстовые задачи", 28: "Последовательности", 29: "Вероятность", 30: "Статистика",
+};
+
 interface LearningQuestion {
   id: string;
   question: { en: string; ru: string; kg: string };
@@ -461,7 +478,9 @@ export default function DiagnosticTest() {
     if (currentQuestion < learningStyleQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      setSection('psychology');
+      // Skip psychology - go directly to preferences
+      // Plan is based on TEST RESULTS, not psychological profiling
+      setSection('preferences');
       setCurrentQuestion(0);
     }
   }, [currentQuestion]);
@@ -569,6 +588,37 @@ export default function DiagnosticTest() {
     }
   };
 
+  // Calculate topic mastery from ORT answers
+  const calculateTopicMastery = useCallback(() => {
+    const topicScores: Record<string, { correct: number; total: number }> = {};
+    
+    // Go through each ORT answer and map to topics
+    Object.entries(ortAnswers).forEach(([qNum, answer]) => {
+      const questionNumber = parseInt(qNum);
+      const topic = ORT_QUESTION_TOPICS[questionNumber];
+      if (!topic) return;
+      
+      if (!topicScores[topic]) {
+        topicScores[topic] = { correct: 0, total: 0 };
+      }
+      
+      topicScores[topic].total += 1;
+      if (answer === ortCorrectAnswers[qNum]) {
+        topicScores[topic].correct += 1;
+      }
+    });
+    
+    // Convert to mastery percentages
+    const topicMasteryResult: Record<string, number> = {};
+    Object.entries(topicScores).forEach(([topic, scores]) => {
+      if (scores.total > 0) {
+        topicMasteryResult[topic] = Math.round((scores.correct / scores.total) * 100);
+      }
+    });
+    
+    return topicMasteryResult;
+  }, [ortAnswers, ortCorrectAnswers]);
+
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
@@ -578,6 +628,9 @@ export default function DiagnosticTest() {
       const analysis = await analyzeWithAI();
       const localResults = calculateLocalResults();
       const results = analysis || localResults;
+      
+      // Calculate topic mastery from ORT answers - THIS IS THE KEY DATA FOR PLAN GENERATION
+      const topicMasteryData = calculateTopicMastery();
 
       setAiAnalysis(analysis);
       
@@ -627,16 +680,59 @@ export default function DiagnosticTest() {
 
       if (error) throw error;
 
-      // Generate learning plan in background
-      supabase.functions.invoke('ai-learning-plan-v2', {
+      // Generate learning plan with topic mastery from ORT answers
+      // The plan is generated based on ACTUAL test performance, not psychological settings
+      const planResponse = await supabase.functions.invoke('ai-learning-plan-v2', {
         body: {
-          diagnosticProfile: profileData,
-          testHistory: [],
+          diagnosticProfile: {
+            ...profileData,
+            // Include topic performance data for the plan generator
+            topicPerformance: topicMasteryData,
+          },
+          testHistory: [{
+            answers: Object.entries(ortAnswers).map(([qNum, answer]) => ({
+              questionId: qNum,
+              answer,
+              correct: answer === ortCorrectAnswers[qNum],
+              topic: ORT_QUESTION_TOPICS[parseInt(qNum)],
+            })),
+            score: calculateOrtScore().correct,
+            total_questions: TOTAL_ORT_QUESTIONS,
+          }],
           lessonProgress: [],
-          topicMastery: [],
+          topicMastery: Object.entries(topicMasteryData).map(([topic, mastery]) => ({
+            topic,
+            progress_percentage: mastery,
+          })),
+          targetORTScore: goals.targetORTScore,
           language
         }
-      }).catch(console.error);
+      });
+
+      if (planResponse.error) {
+        console.error('Plan generation error:', planResponse.error);
+        throw new Error('Failed to generate learning plan');
+      }
+
+      // Save the generated plan to database
+      if (planResponse.data) {
+        await supabase
+          .from('ai_learning_plans_v2')
+          .upsert({
+            user_id: user.id,
+            plan_data: planResponse.data.planData || planResponse.data,
+            schedule: planResponse.data.schedule,
+            target_topics: planResponse.data.targetTopics,
+            daily_tasks: planResponse.data.dailyTasks,
+            mini_tests: planResponse.data.miniTests,
+            predicted_timeline: planResponse.data.predictedTimeline,
+            mastery_goals: planResponse.data.masteryGoals,
+            ort_score_projection: planResponse.data.ortScoreProjection,
+            learning_strategy: planResponse.data.learningStrategy || planResponse.data.explanation,
+            is_active: true,
+            generated_at: new Date().toISOString(),
+          });
+      }
 
       toast({
         title: language === 'ru' ? 'Профиль создан!' : language === 'kg' ? 'Профиль түзүлдү!' : 'Profile Created!',
@@ -656,22 +752,20 @@ export default function DiagnosticTest() {
     }
   };
 
-  // Calculate progress
-  const totalSections = 5;
+  // Calculate progress - simplified flow: intro → ort_test → learning_style → preferences → goals
+  // Psychology section removed - plan is based on TEST RESULTS not psychological profiling
+  const totalSections = 4;
   const currentSectionIndex = 
     section === 'intro' ? 0 : 
     section === 'ort_test' ? 1 : 
     section === 'learning_style' ? 2 : 
-    section === 'psychology' ? 3 : 
-    section === 'preferences' ? 4 : 
-    section === 'goals' ? 5 : 5;
+    section === 'preferences' ? 3 : 
+    section === 'goals' ? 4 : 4;
 
   const sectionProgress = section === 'ort_test' 
     ? (Object.keys(ortAnswers).length / TOTAL_ORT_QUESTIONS) * 100
     : section === 'learning_style'
     ? (currentQuestion / learningStyleQuestions.length) * 100
-    : section === 'psychology'
-    ? (currentQuestion / psychologyQuestions.length) * 100
     : 100;
 
   const overallProgress = ((currentSectionIndex - 1 + sectionProgress / 100) / totalSections) * 100;
@@ -712,15 +806,6 @@ export default function DiagnosticTest() {
             <div>
               <p className="font-medium">{language === 'ru' ? 'Стиль обучения' : language === 'kg' ? 'Окуу стили' : 'Learning Style'}</p>
               <p className="text-sm text-muted-foreground">{learningStyleQuestions.length} {language === 'ru' ? 'вопросов' : language === 'kg' ? 'суроо' : 'questions'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
-            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-              <Heart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="font-medium">{language === 'ru' ? 'Психологический профиль' : language === 'kg' ? 'Психологиялык профиль' : 'Psychology'}</p>
-              <p className="text-sm text-muted-foreground">{psychologyQuestions.length} {language === 'ru' ? 'вопросов' : language === 'kg' ? 'суроо' : 'questions'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-4 bg-orange-50 dark:bg-orange-950/30 rounded-xl border border-orange-200 dark:border-orange-800">
@@ -1186,7 +1271,6 @@ export default function DiagnosticTest() {
         {section === 'intro' && renderIntro()}
         {section === 'ort_test' && renderOrtTest()}
         {section === 'learning_style' && renderLearningStyleSection()}
-        {section === 'psychology' && renderPsychologySection()}
         {section === 'preferences' && renderPreferencesSection()}
         {section === 'goals' && renderGoalsSection()}
         {section === 'analyzing' && renderAnalyzing()}
