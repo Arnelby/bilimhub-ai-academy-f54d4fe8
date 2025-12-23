@@ -18,7 +18,7 @@ interface AIChatTutorProps {
 }
 
 export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +53,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
   }, [user]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !user || isLoading) return;
+    if (!input.trim() || !user || !session || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -74,7 +74,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           messages: newMessages.slice(-10), // Last 10 messages for context
@@ -82,45 +82,82 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
         }),
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error('Failed to get response');
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No reader');
-
-      let assistantMessage = '';
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
+      let assistantMessage = '';
       // Add empty assistant message
       setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
-      while (true) {
+      // Robust SSE parsing (line-by-line, handles partial JSON)
+      let textBuffer = '';
+      let streamDone = false;
+
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
 
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                assistantMessage += content;
-                setMessages((prev) => {
-                  const newMsgs = [...prev];
-                  newMsgs[newMsgs.length - 1] = { role: 'assistant', content: assistantMessage };
-                  return newMsgs;
-                });
-              }
-            } catch (e) {
-              // Ignore parsing errors for incomplete chunks
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantMessage += content;
+              setMessages((prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: assistantMessage };
+                return next;
+              });
             }
+          } catch {
+            // Put the line back and wait for more chunks
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush (in case stream ended without trailing newline)
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split('\n')) {
+          if (!raw) continue;
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (raw.startsWith(':') || raw.trim() === '') continue;
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantMessage += content;
+              setMessages((prev) => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'assistant', content: assistantMessage };
+                return next;
+              });
+            }
+          } catch {
+            // ignore leftover partial
           }
         }
       }
@@ -230,16 +267,16 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Задайте вопрос..."
+              placeholder={!user || !session ? "Войдите, чтобы писать" : "Задайте вопрос..."}
               className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               rows={1}
-              disabled={isLoading}
+              disabled={!user || !session || isLoading}
             />
             <Button
               variant="accent"
               size="icon"
               onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
+              disabled={!user || !session || !input.trim() || isLoading}
             >
               <Send className="h-4 w-4" />
             </Button>

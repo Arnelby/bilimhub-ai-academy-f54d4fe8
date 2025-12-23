@@ -42,6 +42,8 @@ export function AIRecommendationsWidget() {
   useEffect(() => {
     if (user) {
       fetchRecommendations();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -156,6 +158,27 @@ export function AIRecommendationsWidget() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  if (!user) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
+            {language === 'ru' ? 'AI Рекомендации' : 'AI Recommendations'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <p className="text-muted-foreground mb-4">
+            {language === 'ru' ? 'Войдите, чтобы получить персональные рекомендации.' : 'Sign in to get personalized recommendations.'}
+          </p>
+          <Button asChild>
+            <Link to="/login">{language === 'ru' ? 'Войти' : 'Sign in'}</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (loading) {
