@@ -52,6 +52,31 @@ const ORT_QUESTION_TOPICS: Record<number, string> = {
   26: "Текстовые задачи", 27: "Текстовые задачи", 28: "Последовательности", 29: "Вероятность", 30: "Статистика",
 };
 
+type IntSanitizeOpts = { min?: number; max?: number; defaultValue: number };
+
+// IMPORTANT: DB columns in user_diagnostic_profile are INTEGER.
+// Never send floats or NaN/undefined/null for numeric fields.
+const toSafeInt = (value: unknown, opts: IntSanitizeOpts): number => {
+  const { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY, defaultValue } = opts;
+
+  let n: number;
+
+  if (typeof value === "number") {
+    n = value;
+  } else if (typeof value === "string") {
+    // Supports inputs like "200+", "6 мес.", "99.44".
+    const cleaned = value.replace(/[^\d.-]/g, "");
+    n = cleaned ? Number(cleaned) : NaN;
+  } else {
+    n = Number(value as any);
+  }
+
+  if (!Number.isFinite(n)) return defaultValue;
+
+  const rounded = Math.round(n);
+  return Math.min(max, Math.max(min, rounded));
+};
+
 interface LearningQuestion {
   id: string;
   question: { en: string; ru: string; kg: string };
@@ -333,7 +358,7 @@ export default function DiagnosticTest() {
       .from('user_diagnostic_profile')
       .select('diagnostic_completed')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
     if (data?.diagnostic_completed) {
       navigate('/dashboard');
@@ -523,7 +548,8 @@ export default function DiagnosticTest() {
       math_level: mathLevel,
       logic_score: Math.min(100, ortScore.percentage + 10),
       problem_solving_score: ortScore.percentage,
-      speed_score: Math.max(0, Math.min(100, (ortTimeLeft / ORT_DURATION_SECONDS) * 100)),
+      // DB expects INTEGER; never return float
+      speed_score: Math.round(Math.max(0, Math.min(100, (ortTimeLeft / ORT_DURATION_SECONDS) * 100))),
       accuracy_score: ortScore.percentage,
       learning_style: dominantStyle,
       visual_preference: styleCounts.visual ? 80 : 40,
@@ -641,26 +667,26 @@ export default function DiagnosticTest() {
         examDateValue = futureDate.toISOString();
       }
 
-      const profileData = {
+      const profileDataRaw = {
         user_id: user.id,
-        math_level: results.math_level || localResults.math_level || 1,
-        logic_score: results.logic_score || localResults.logic_score || 0,
-        problem_solving_score: results.problem_solving_score || localResults.problem_solving_score || 0,
-        speed_score: results.speed_score || localResults.speed_score || 0,
-        accuracy_score: results.accuracy_score || localResults.accuracy_score || 0,
+        math_level: results.math_level ?? localResults.math_level ?? 1,
+        logic_score: results.logic_score ?? localResults.logic_score ?? 0,
+        problem_solving_score: results.problem_solving_score ?? localResults.problem_solving_score ?? 0,
+        speed_score: results.speed_score ?? localResults.speed_score ?? 0,
+        accuracy_score: results.accuracy_score ?? localResults.accuracy_score ?? 0,
         learning_style: results.learning_style || localResults.learning_style || 'balanced',
-        visual_preference: results.visual_preference || localResults.visual_preference || 50,
-        auditory_preference: results.auditory_preference || localResults.auditory_preference || 50,
-        text_preference: results.text_preference || localResults.text_preference || 50,
-        example_preference: results.example_preference || localResults.example_preference || 50,
-        problem_driven_preference: results.problem_driven_preference || localResults.problem_driven_preference || 50,
-        step_by_step_preference: results.step_by_step_preference || localResults.step_by_step_preference || 50,
-        attention_level: results.attention_level || localResults.attention_level || 50,
-        stress_resistance: results.stress_resistance || localResults.stress_resistance || 50,
-        impulsiveness: results.impulsiveness || localResults.impulsiveness || 50,
-        consistency: results.consistency || localResults.consistency || 50,
-        patience: results.patience || localResults.patience || 50,
-        confidence: results.confidence || localResults.confidence || 50,
+        visual_preference: results.visual_preference ?? localResults.visual_preference ?? 50,
+        auditory_preference: results.auditory_preference ?? localResults.auditory_preference ?? 50,
+        text_preference: results.text_preference ?? localResults.text_preference ?? 50,
+        example_preference: results.example_preference ?? localResults.example_preference ?? 50,
+        problem_driven_preference: results.problem_driven_preference ?? localResults.problem_driven_preference ?? 50,
+        step_by_step_preference: results.step_by_step_preference ?? localResults.step_by_step_preference ?? 50,
+        attention_level: results.attention_level ?? localResults.attention_level ?? 50,
+        stress_resistance: results.stress_resistance ?? localResults.stress_resistance ?? 50,
+        impulsiveness: results.impulsiveness ?? localResults.impulsiveness ?? 50,
+        consistency: results.consistency ?? localResults.consistency ?? 50,
+        patience: results.patience ?? localResults.patience ?? 50,
+        confidence: results.confidence ?? localResults.confidence ?? 50,
         motivation_type: results.motivation_type || localResults.motivation_type || 'balanced',
         prefers_short_lessons: results.prefers_short_lessons ?? localResults.prefers_short_lessons ?? true,
         prefers_examples: results.prefers_examples ?? localResults.prefers_examples ?? true,
@@ -672,6 +698,32 @@ export default function DiagnosticTest() {
         months_until_exam: goals.monthsUntilExam,
         diagnostic_completed: true,
         completed_at: new Date().toISOString(),
+      };
+
+      // Coerce ALL integer DB columns to safe integers (round/clamp/default)
+      const profileData = {
+        ...profileDataRaw,
+        math_level: toSafeInt(profileDataRaw.math_level, { min: 1, max: 5, defaultValue: 1 }),
+        logic_score: toSafeInt(profileDataRaw.logic_score, { min: 0, max: 100, defaultValue: 0 }),
+        problem_solving_score: toSafeInt(profileDataRaw.problem_solving_score, { min: 0, max: 100, defaultValue: 0 }),
+        speed_score: toSafeInt(profileDataRaw.speed_score, { min: 0, max: 100, defaultValue: 0 }),
+        accuracy_score: toSafeInt(profileDataRaw.accuracy_score, { min: 0, max: 100, defaultValue: 0 }),
+        visual_preference: toSafeInt(profileDataRaw.visual_preference, { min: 0, max: 100, defaultValue: 50 }),
+        auditory_preference: toSafeInt(profileDataRaw.auditory_preference, { min: 0, max: 100, defaultValue: 50 }),
+        text_preference: toSafeInt(profileDataRaw.text_preference, { min: 0, max: 100, defaultValue: 50 }),
+        example_preference: toSafeInt(profileDataRaw.example_preference, { min: 0, max: 100, defaultValue: 50 }),
+        problem_driven_preference: toSafeInt(profileDataRaw.problem_driven_preference, { min: 0, max: 100, defaultValue: 50 }),
+        step_by_step_preference: toSafeInt(profileDataRaw.step_by_step_preference, { min: 0, max: 100, defaultValue: 50 }),
+        attention_level: toSafeInt(profileDataRaw.attention_level, { min: 0, max: 100, defaultValue: 50 }),
+        stress_resistance: toSafeInt(profileDataRaw.stress_resistance, { min: 0, max: 100, defaultValue: 50 }),
+        impulsiveness: toSafeInt(profileDataRaw.impulsiveness, { min: 0, max: 100, defaultValue: 50 }),
+        consistency: toSafeInt(profileDataRaw.consistency, { min: 0, max: 100, defaultValue: 50 }),
+        patience: toSafeInt(profileDataRaw.patience, { min: 0, max: 100, defaultValue: 50 }),
+        confidence: toSafeInt(profileDataRaw.confidence, { min: 0, max: 100, defaultValue: 50 }),
+        // supports values like "200+" silently
+        target_ort_score: toSafeInt(profileDataRaw.target_ort_score, { min: 80, max: 300, defaultValue: 170 }),
+        // supports values like "6 мес." silently
+        months_until_exam: toSafeInt(profileDataRaw.months_until_exam, { min: 0, max: 60, defaultValue: 6 }),
       };
 
       const { error: profileSaveError } = await supabase
