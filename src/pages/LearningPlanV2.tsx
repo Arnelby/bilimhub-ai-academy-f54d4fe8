@@ -40,6 +40,8 @@ export default function LearningPlanV2() {
   useEffect(() => {
     if (user) {
       fetchData();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -53,8 +55,8 @@ export default function LearningPlanV2() {
         .from('user_diagnostic_profile')
         .select('*')
         .eq('user_id', user.id)
-        .single();
-      
+        .maybeSingle();
+
       setDiagnosticProfile(profile);
 
       // Fetch existing plan
@@ -65,7 +67,7 @@ export default function LearningPlanV2() {
         .eq('is_active', true)
         .order('generated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (planData) {
         setPlan({
@@ -88,16 +90,37 @@ export default function LearningPlanV2() {
   };
 
   const generatePlan = async () => {
-    if (!user || !session) return;
+    if (!user || !session) {
+      navigate('/login');
+      return;
+    }
+    if (!diagnosticProfile) {
+      toast({
+        title: language === 'ru' ? 'Нужна диагностика' : 'Diagnostic required',
+        description: language === 'ru' ? 'Сначала пройдите диагностический тест.' : 'Please complete the diagnostic test first.',
+        variant: 'destructive',
+      });
+      navigate('/diagnostic-test');
+      return;
+    }
+
     setGenerating(true);
 
     try {
-      // Fetch user data for AI
+      const toSafeInt = (v: unknown, fallback: number, min: number, max: number) => {
+        const n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN;
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(min, Math.min(max, Math.round(n)));
+      };
+
+      // Fetch user data for plan generator
       const [testsRes, lessonsRes, topicsRes] = await Promise.all([
         supabase.from('user_tests').select('*').eq('user_id', user.id),
         supabase.from('user_lesson_progress').select('*').eq('user_id', user.id),
         supabase.from('user_topic_progress').select('*').eq('user_id', user.id),
       ]);
+
+      const safeTarget = toSafeInt(diagnosticProfile?.target_ort_score, 170, 100, 250);
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-learning-plan-v2`, {
         method: 'POST',
@@ -109,10 +132,8 @@ export default function LearningPlanV2() {
           testHistory: testsRes.data || [],
           lessonProgress: lessonsRes.data || [],
           topicMastery: topicsRes.data || [],
-          diagnosticProfile: diagnosticProfile,
-          currentORTScore: diagnosticProfile?.math_level ? diagnosticProfile.math_level * 35 + 100 : 140,
-          targetORTScore: 200,
-          availableHoursPerDay: 2,
+          diagnosticProfile,
+          targetORTScore: safeTarget,
           language,
         }),
       });
@@ -171,6 +192,31 @@ export default function LearningPlanV2() {
       setGenerating(false);
     }
   };
+
+  if (!user) {
+    return (
+      <Layout>
+        <main className="container py-8">
+          <section>
+            <Card className="max-w-xl mx-auto">
+              <CardHeader>
+                <CardTitle>{language === 'ru' ? 'Персональный план' : 'Personal Learning Plan'}</CardTitle>
+                <CardDescription>
+                  {language === 'ru'
+                    ? 'Войдите, чтобы создать и сохранить ваш план подготовки к ОРТ.'
+                    : 'Sign in to generate and save your ORT study plan.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex gap-2">
+                <Button onClick={() => navigate('/login')}>{language === 'ru' ? 'Войти' : 'Sign in'}</Button>
+                <Button variant="outline" onClick={() => navigate('/signup')}>{language === 'ru' ? 'Регистрация' : 'Sign up'}</Button>
+              </CardContent>
+            </Card>
+          </section>
+        </main>
+      </Layout>
+    );
+  }
 
   if (loading) {
     return (

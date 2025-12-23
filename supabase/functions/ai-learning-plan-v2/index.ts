@@ -51,25 +51,51 @@ type StudentType =
   | 'balanced_learner';
 
 // ================================
+// NUMERIC SAFETY (STRICT)
+// ================================
+function toSafeNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const n = Number.parseFloat(value.replace(',', '.'));
+    if (Number.isFinite(n)) return n;
+  }
+  return fallback;
+}
+
+function toSafeInt(value: unknown, fallback: number, min: number, max: number): number {
+  const n = toSafeNumber(value, fallback);
+  const rounded = Math.round(n);
+  if (!Number.isFinite(rounded)) return fallback;
+  return Math.max(min, Math.min(max, rounded));
+}
+
+function toSafePercentInt(value: unknown, fallback = 50): number {
+  return toSafeInt(value, fallback, 0, 100);
+}
+
+// ================================
 // CATEGORIZATION LOGIC
 // ================================
 function categorizeTopics(topicMasteryData: Record<string, number>): TopicMastery[] {
   return Object.entries(topicMasteryData).map(([topic, mastery]) => {
+    // NEVER allow NaN/float leakage into the plan
+    const safeMastery = toSafePercentInt(mastery, 50);
+
     let status: 'strong' | 'medium' | 'weak';
     let priority: number;
-    
-    if (mastery >= STRONG_THRESHOLD) {
+
+    if (safeMastery >= STRONG_THRESHOLD) {
       status = 'strong';
       priority = 3; // Lowest priority - exclude
-    } else if (mastery >= MEDIUM_THRESHOLD) {
+    } else if (safeMastery >= MEDIUM_THRESHOLD) {
       status = 'medium';
       priority = 2; // Low priority
     } else {
       status = 'weak';
       priority = 1; // High priority
     }
-    
-    return { topic, mastery: Math.round(mastery), status, priority };
+
+    return { topic, mastery: safeMastery, status, priority };
   }).sort((a, b) => {
     // Sort by priority first (weak first), then by mastery (lowest first)
     if (a.priority !== b.priority) return a.priority - b.priority;
@@ -311,14 +337,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestedLanguage = 'ru';
+
   try {
+    const body = await req.json().catch(() => ({}));
     const {
       diagnosticProfile,
       topicMastery,
       testHistory,
       targetORTScore,
       language = 'ru',
-    } = await req.json();
+    } = (body ?? {}) as any;
+
+    requestedLanguage = language;
 
     const isRu = language === 'ru' || language === 'kg';
 
@@ -333,16 +364,17 @@ serve(async (req) => {
         // Support both formats:
         // - { percentage: number }
         // - number
-        topicMasteryData[topic] = typeof data === 'number' ? data : (data?.percentage || 0);
+        const raw = typeof data === 'number' ? data : (data?.percentage ?? data?.progress ?? data?.mastery);
+        topicMasteryData[topic] = toSafePercentInt(raw, 50);
       });
     }
-    
+
     // From topic progress table
     if (topicMastery && Array.isArray(topicMastery)) {
       topicMastery.forEach((tp: any) => {
         const topicName = tp.topic_id || tp.title || tp.topic;
         if (topicName) {
-          topicMasteryData[topicName] = tp.progress_percentage || 0;
+          topicMasteryData[topicName] = toSafePercentInt(tp.progress_percentage ?? tp.mastery ?? tp.percentage, 50);
         }
       });
     }
@@ -351,18 +383,18 @@ serve(async (req) => {
     if (testHistory && Array.isArray(testHistory)) {
       const topicScores: Record<string, { correct: number; total: number }> = {};
       testHistory.forEach((test: any) => {
-        const answers = test.answers || [];
+        const answers = Array.isArray(test?.answers) ? test.answers : [];
         answers.forEach((a: any) => {
-          const topic = a.topic || 'general';
+          const topic = a?.topic || 'general';
           if (!topicScores[topic]) topicScores[topic] = { correct: 0, total: 0 };
           topicScores[topic].total += 1;
-          if (a.correct) topicScores[topic].correct += 1;
+          if (a?.correct) topicScores[topic].correct += 1;
         });
       });
-      
+
       Object.entries(topicScores).forEach(([topic, scores]) => {
         if (scores.total > 0) {
-          topicMasteryData[topic] = Math.round((scores.correct / scores.total) * 100);
+          topicMasteryData[topic] = toSafePercentInt((scores.correct / scores.total) * 100, 50);
         }
       });
     }
@@ -382,14 +414,17 @@ serve(async (req) => {
     // ================================
     // STEP 3: BUILD STUDENT PROFILE
     // ================================
+    const confidenceScore = toSafePercentInt(diagnosticProfile?.confidence, 50);
+    const speedScore = toSafePercentInt(diagnosticProfile?.speed_score, 50);
+
     const profile: StudentProfile = {
-      grade: diagnosticProfile?.grade_level || '11',
-      motivation: diagnosticProfile?.motivation_type === 'high' || (diagnosticProfile?.confidence > 70) ? 'high' : 
-                  diagnosticProfile?.motivation_type === 'low' || (diagnosticProfile?.confidence < 30) ? 'low' : 'medium',
-      confidence: diagnosticProfile?.confidence > 70 ? 'high' :
-                  diagnosticProfile?.confidence < 40 ? 'low' : 'medium',
-      pace: diagnosticProfile?.speed_score > 70 ? 'fast' :
-            diagnosticProfile?.speed_score < 40 ? 'slow' : 'normal',
+      grade: (typeof diagnosticProfile?.grade_level === 'string' && diagnosticProfile.grade_level.trim()) ? diagnosticProfile.grade_level : '11',
+      motivation: diagnosticProfile?.motivation_type === 'high' || confidenceScore > 70 ? 'high' :
+                  diagnosticProfile?.motivation_type === 'low' || confidenceScore < 30 ? 'low' : 'medium',
+      confidence: confidenceScore > 70 ? 'high' :
+                  confidenceScore < 40 ? 'low' : 'medium',
+      pace: speedScore > 70 ? 'fast' :
+            speedScore < 40 ? 'slow' : 'normal',
     };
 
     // ================================
@@ -476,9 +511,9 @@ serve(async (req) => {
       isRevision: day.isRevisionDay,
     }));
 
-    // Calculate estimated current score
-    const avgMastery = categorizedTopics.length > 0 
-      ? categorizedTopics.reduce((sum, t) => sum + t.mastery, 0) / categorizedTopics.length 
+    // Calculate estimated current score (strict integers)
+    const avgMastery = categorizedTopics.length > 0
+      ? Math.round(categorizedTopics.reduce((sum, t) => sum + t.mastery, 0) / categorizedTopics.length)
       : 50;
     const estimatedCurrentScore = Math.round(100 + avgMastery * 1.5);
 
@@ -557,8 +592,16 @@ serve(async (req) => {
         purpose: isRu ? 'Проверка прогресса' : 'Progress check',
       }],
       predictedTimeline: {
-        week1: { expectedMastery: Math.min(avgMastery + 10, 100), focusAreas: weakTopics.slice(0, 2).map(t => t.topic), milestone: isRu ? 'Основа' : 'Foundation' },
-        week2: { expectedMastery: Math.min(avgMastery + 20, 100), focusAreas: weakTopics.slice(0, 3).map(t => t.topic), milestone: isRu ? 'Прогресс' : 'Progress' },
+        week1: {
+          expectedMastery: toSafePercentInt(avgMastery + 10, 60),
+          focusAreas: weakTopics.slice(0, 2).map(t => t.topic),
+          milestone: isRu ? 'Основа' : 'Foundation',
+        },
+        week2: {
+          expectedMastery: toSafePercentInt(avgMastery + 20, 70),
+          focusAreas: weakTopics.slice(0, 3).map(t => t.topic),
+          milestone: isRu ? 'Прогресс' : 'Progress',
+        },
       },
       masteryGoals: {
         shortTerm: { duration: isRu ? '1 неделя' : '1 week', targetMastery: 50, keyTopics: weakTopics.slice(0, 2).map(t => t.topic) },
@@ -567,9 +610,9 @@ serve(async (req) => {
       },
       ortScoreProjection: {
         current: estimatedCurrentScore,
-        in2Weeks: Math.min(estimatedCurrentScore + 10, targetORTScore || 200),
-        in1Month: Math.min(estimatedCurrentScore + 25, targetORTScore || 200),
-        target: targetORTScore || 200,
+        in2Weeks: Math.min(estimatedCurrentScore + 10, toSafeInt(targetORTScore, 200, 100, 250)),
+        in1Month: Math.min(estimatedCurrentScore + 25, toSafeInt(targetORTScore, 200, 100, 250)),
+        target: toSafeInt(targetORTScore, 200, 100, 250),
       },
       learningStrategy: explanation,
     };
@@ -582,11 +625,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Learning plan error:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error",
-      fallback: generateConservativePlan('ru'),
-    }), {
-      status: 500,
+
+    // FAIL-SAFE RULE: never return empty/broken output; always return a valid plan
+    const safeFallback = generateConservativePlan(requestedLanguage);
+    safeFallback.explanation = (requestedLanguage === 'ru' || requestedLanguage === 'kg')
+      ? 'Возникла техническая ошибка при обработке данных. Числа были автоматически исправлены/заменены безопасными значениями, и создан базовый план.'
+      : 'A technical issue occurred while processing the input. Numbers were auto-corrected to safe defaults and a basic plan was generated.';
+
+    return new Response(JSON.stringify(safeFallback), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
