@@ -58,7 +58,7 @@ export function AIRecommendationsWidget() {
         .eq('is_active', true)
         .order('generated_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setRecommendations({
@@ -89,7 +89,7 @@ export function AIRecommendationsWidget() {
         supabase.from('user_tests').select('*').eq('user_id', user.id).not('completed_at', 'is', null),
         supabase.from('user_lesson_progress').select('*').eq('user_id', user.id),
         supabase.from('user_topic_progress').select('*').eq('user_id', user.id),
-        supabase.from('user_diagnostic_profile').select('*').eq('user_id', user.id).single(),
+        supabase.from('user_diagnostic_profile').select('*').eq('user_id', user.id).maybeSingle(),
       ]);
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-recommendations-v2`, {

@@ -90,7 +90,7 @@ export default function Dashboard() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileData) {
         setProfile({
@@ -203,7 +203,7 @@ export default function Dashboard() {
         .select('*')
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (savedPathV2?.plan_data) {
         // Convert v2 format to v1 format for display
@@ -228,7 +228,7 @@ export default function Dashboard() {
           .select('*')
           .eq('user_id', user.id)
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
 
         if (savedPath?.plan_data) {
           setLearningPath(savedPath.plan_data as unknown as LearningPath);
@@ -252,7 +252,7 @@ export default function Dashboard() {
         .from('user_diagnostic_profile')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       // Get user's test results and topic progress
       const { data: testResults } = await supabase

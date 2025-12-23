@@ -54,7 +54,7 @@ export default function AISmartTutor() {
 
     try {
       const [profileRes, topicsRes] = await Promise.all([
-        supabase.from('user_diagnostic_profile').select('*').eq('user_id', user.id).single(),
+        supabase.from('user_diagnostic_profile').select('*').eq('user_id', user.id).maybeSingle(),
         supabase.from('user_topic_progress').select('*, topics(title)').eq('user_id', user.id).lt('progress_percentage', 50),
       ]);
 
