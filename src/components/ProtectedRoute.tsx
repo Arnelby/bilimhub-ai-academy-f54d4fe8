@@ -22,12 +22,16 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_diagnostic_profile')
         .select('diagnostic_completed')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
+      // If no profile exists or error, treat as not completed
+      if (error) {
+        console.error('Error checking diagnostic profile:', error);
+      }
       setDiagnosticCompleted(data?.diagnostic_completed ?? false);
       setDiagnosticChecked(true);
     }
