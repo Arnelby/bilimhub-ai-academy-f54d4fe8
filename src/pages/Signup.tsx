@@ -1,13 +1,33 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import logo from '@/assets/bilimhub-logo.png';
+import { z } from 'zod';
+
+// Validation schema
+const signupSchema = z.object({
+  name: z.string().min(2, 'Имя должно содержать минимум 2 символа').max(50, 'Имя слишком длинное'),
+  email: z.string().email('Введите корректный email'),
+  password: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Пароли не совпадают',
+  path: ['confirmPassword'],
+});
+
+type FieldErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+};
 
 export default function Signup() {
   const { t } = useLanguage();
@@ -19,7 +39,8 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [generalError, setGeneralError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     // If user is already logged in, redirect appropriately
@@ -31,35 +52,44 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setGeneralError('');
+    setFieldErrors({});
     
-    if (password !== confirmPassword) {
-      setError('Пароли не совпадают');
-      toast({
-        title: "Ошибка",
-        description: "Пароли не совпадают",
-        variant: "destructive",
+    // Validate with Zod
+    const result = signupSchema.safeParse({ name, email, password, confirmPassword });
+    if (!result.success) {
+      const errors: FieldErrors = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof FieldErrors;
+        errors[field] = err.message;
       });
-      return;
-    }
-    
-    if (password.length < 8) {
-      setError('Пароль должен содержать минимум 8 символов');
-      toast({
-        title: "Ошибка",
-        description: "Пароль должен содержать минимум 8 символов",
-        variant: "destructive",
-      });
+      setFieldErrors(errors);
       return;
     }
     
     setIsLoading(true);
-    const { error: signUpError } = await signUp(email, password, name);
-    setIsLoading(false);
-    
-    if (!signUpError) {
-      // Redirect new users to diagnostic test
-      navigate('/diagnostic-test');
+    try {
+      const { error: signUpError } = await signUp(email, password, name);
+      
+      if (signUpError) {
+        // Handle specific error cases
+        if (signUpError.message.includes('already registered')) {
+          setGeneralError('Пользователь с таким email уже зарегистрирован. Попробуйте войти.');
+        } else if (signUpError.message.includes('Invalid email')) {
+          setFieldErrors({ email: 'Неверный формат email' });
+        } else if (signUpError.message.includes('Password')) {
+          setFieldErrors({ password: 'Пароль не соответствует требованиям' });
+        } else {
+          setGeneralError(signUpError.message || 'Произошла ошибка при регистрации');
+        }
+      } else {
+        // Success - redirect to diagnostic test
+        navigate('/diagnostic-test');
+      }
+    } catch (err) {
+      setGeneralError('Произошла ошибка. Проверьте подключение к интернету.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -94,12 +124,20 @@ export default function Signup() {
                     id="name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: undefined }));
+                    }}
                     placeholder="Ваше имя"
-                    className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
+                      fieldErrors.name ? 'border-destructive' : 'border-input'
+                    }`}
                     required
                   />
                 </div>
+                {fieldErrors.name && (
+                  <p className="text-xs text-destructive">{fieldErrors.name}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -112,12 +150,20 @@ export default function Signup() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: undefined }));
+                    }}
                     placeholder="your@email.com"
-                    className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
+                      fieldErrors.email ? 'border-destructive' : 'border-input'
+                    }`}
                     required
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p className="text-xs text-destructive">{fieldErrors.email}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -130,13 +176,21 @@ export default function Signup() {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: undefined }));
+                    }}
                     placeholder="••••••••"
-                    className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
+                      fieldErrors.password ? 'border-destructive' : 'border-input'
+                    }`}
                     required
-                    minLength={8}
                   />
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-xs text-destructive">{fieldErrors.password}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Минимум 8 символов</p>
               </div>
 
               <div className="space-y-2">
@@ -149,17 +203,27 @@ export default function Signup() {
                     id="confirmPassword"
                     type="password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (fieldErrors.confirmPassword) setFieldErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                    }}
                     placeholder="••••••••"
-                    className="w-full rounded-lg border border-input bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
+                      fieldErrors.confirmPassword ? 'border-destructive' : 'border-input'
+                    }`}
                     required
-                    minLength={8}
                   />
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs text-destructive">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
 
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
+              {generalError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{generalError}</AlertDescription>
+                </Alert>
               )}
               
               <Button
