@@ -8,6 +8,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- RLS политики для lessons bucket
+DROP POLICY IF EXISTS "Authenticated users can view lessons" ON storage.objects;
 CREATE POLICY "Authenticated users can view lessons"
 ON storage.objects FOR SELECT
 USING (
@@ -16,6 +17,7 @@ USING (
 );
 
 -- Только админы могут загружать
+DROP POLICY IF EXISTS "Admin can upload lessons" ON storage.objects;
 CREATE POLICY "Admin can upload lessons"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -24,6 +26,7 @@ WITH CHECK (
 );
 
 -- Только админы могут удалять
+DROP POLICY IF EXISTS "Admin can delete lessons" ON storage.objects;
 CREATE POLICY "Admin can delete lessons"
 ON storage.objects FOR DELETE
 USING (
@@ -32,6 +35,7 @@ USING (
 );
 
 -- RLS для lesson-materials bucket
+DROP POLICY IF EXISTS "Authenticated users can view materials" ON storage.objects;
 CREATE POLICY "Authenticated users can view materials"
 ON storage.objects FOR SELECT
 USING (
@@ -39,6 +43,7 @@ USING (
   AND auth.role() = 'authenticated'
 );
 
+DROP POLICY IF EXISTS "Admin can upload materials" ON storage.objects;
 CREATE POLICY "Admin can upload materials"
 ON storage.objects FOR INSERT
 WITH CHECK (
