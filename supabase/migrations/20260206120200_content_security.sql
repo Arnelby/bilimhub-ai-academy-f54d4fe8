@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS storage_access_log (
 );
 
 -- Индекс для быстрой проверки rate limit
-CREATE INDEX idx_storage_access_user_time 
+CREATE INDEX IF NOT EXISTS idx_storage_access_user_time 
 ON storage_access_log(user_id, accessed_at DESC);
 
 -- Функция проверки rate limit (100 запросов в час)
