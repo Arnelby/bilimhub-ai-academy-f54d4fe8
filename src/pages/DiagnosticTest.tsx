@@ -34,12 +34,7 @@ const CYRILLIC_TO_ENGLISH: Record<string, string> = {
   "В": "C",
   "Г": "D",
 };
-const toSafeInt = (value: unknown, opts: { min?: number; max?: number; defaultValue: number }): number => {
-  const { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY, defaultValue } = opts;
-  let n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return defaultValue;
-  return Math.min(max, Math.max(min, Math.round(n)));
-};
+
 // ORT Question to Topic mapping - based on real ORT Math structure
 // This maps each question number to its topic for mastery calculation
 const ORT_QUESTION_TOPICS: Record<number, string> = {
