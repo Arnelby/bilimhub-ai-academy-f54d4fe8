@@ -34,7 +34,12 @@ const CYRILLIC_TO_ENGLISH: Record<string, string> = {
   "В": "C",
   "Г": "D",
 };
-
+const toSafeInt = (value: unknown, opts: { min?: number; max?: number; defaultValue: number }): number => {
+  const { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY, defaultValue } = opts;
+  let n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return defaultValue;
+  return Math.min(max, Math.max(min, Math.round(n)));
+};
 // ORT Question to Topic mapping - based on real ORT Math structure
 // This maps each question number to its topic for mastery calculation
 const ORT_QUESTION_TOPICS: Record<number, string> = {
@@ -574,6 +579,70 @@ export default function DiagnosticTest() {
     };
   }, [learningAnswers, psychologyAnswers, preferences, ortTimeLeft, ortAnswers, ortCorrectAnswers]);
 
+  // ✅ ОРКЕСТРАТОР: Один запрос вместо ai-diagnostic-analysis + ai-learning-plan-v2
+  const analyzeWithOrchestrator = async (topicMasteryData: Record<string, number>, profileData: any) => {
+    try {
+      const ortScore = calculateOrtScore();
+      const totalTime = Math.round((Date.now() - startTime) / 1000);
+      
+      console.log('🚀 AI Orchestrator: Starting comprehensive analysis...');
+      
+      const response = await supabase.functions.invoke('ai-orchestrator', {
+        body: {
+          diagnosticProfile: {
+            ...profileData,
+            topicPerformance: topicMasteryData,
+            overall_accuracy: ortScore.percentage,
+            ort_correct: ortScore.correct,
+            ort_total: TOTAL_ORT_QUESTIONS,
+          },
+          personalityTest: {
+            // Пока используем defaults, потом добавим реальные данные из personality_test_results
+            perception_type: 'text',
+            learning_tempo: 'medium',
+            thinking_style: 'step-by-step',
+          },
+          goals: {
+            targetScore: goals.targetORTScore,
+            examDate: goals.examDate,
+            grade: goals.gradeLevel || 11,
+            monthsUntilExam: goals.monthsUntilExam,
+          },
+          progress: {
+            testHistory: [{
+              answers: Object.entries(ortAnswers).map(([qNum, answer]) => ({
+                questionId: qNum,
+                answer,
+                correct: answer === ortCorrectAnswers[qNum],
+                topic: ORT_QUESTION_TOPICS[parseInt(qNum)],
+              })),
+              score: ortScore.correct,
+              total_questions: TOTAL_ORT_QUESTIONS,
+            }],
+            topicMastery: Object.entries(topicMasteryData).map(([topic, mastery]) => ({
+              topic,
+              progress_percentage: mastery,
+            })),
+          },
+          availableTopics: [...new Set(Object.values(ORT_QUESTION_TOPICS))],
+          language,
+        }
+      });
+
+      if (response.error) {
+        console.error('❌ AI Orchestrator error:', response.error);
+        return null;
+      }
+
+      console.log('✅ AI Orchestrator: Analysis complete');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed AI Orchestrator:', error);
+      return null;
+    }
+  };
+
+  // Старый fallback для диагностики (если orchestrator недоступен)
   const analyzeWithAI = async () => {
     try {
       const ortScore = calculateOrtScore();
@@ -668,14 +737,9 @@ export default function DiagnosticTest() {
     setSection('analyzing');
 
     try {
-      const analysis = await analyzeWithAI();
-      const localResults = calculateLocalResults();
-      const results = analysis || localResults;
-      
-      // Calculate topic mastery from ORT answers - THIS IS THE KEY DATA FOR PLAN GENERATION
+      // Calculate topic mastery FIRST - needed for orchestrator
       const topicMasteryData = calculateTopicMastery();
-
-      setAiAnalysis(analysis);
+      const localResults = calculateLocalResults();
       
       let examDateValue = goals.examDate ? new Date(goals.examDate).toISOString() : null;
       if (!examDateValue && goals.monthsUntilExam) {
@@ -752,39 +816,62 @@ export default function DiagnosticTest() {
         throw new Error(profileSaveError.message || 'Failed to save diagnostic profile');
       }
 
-      // Generate learning plan with topic mastery from ORT answers
-      // The plan is generated based on ACTUAL test performance, not psychological settings
-      const planResponse = await supabase.functions.invoke('ai-learning-plan-v2', {
-        body: {
-          diagnosticProfile: {
-            ...profileData,
-            // Include topic performance data for the plan generator
-            // NOTE: the backend can also infer mastery from testHistory; this is for transparency.
-            topicPerformance: topicMasteryData,
-          },
-          testHistory: [{
-            answers: Object.entries(ortAnswers).map(([qNum, answer]) => ({
-              questionId: qNum,
-              answer,
-              correct: answer === ortCorrectAnswers[qNum],
-              topic: ORT_QUESTION_TOPICS[parseInt(qNum)],
-            })),
-            score: calculateOrtScore().correct,
-            total_questions: TOTAL_ORT_QUESTIONS,
-          }],
-          lessonProgress: [],
-          topicMastery: Object.entries(topicMasteryData).map(([topic, mastery]) => ({
-            topic,
-            progress_percentage: mastery,
-          })),
-          targetORTScore: goals.targetORTScore,
-          language,
-        },
-      });
+      // ✅ НОВЫЙ ПОДХОД: AI Orchestrator (1 запрос вместо 2+)
+      console.log('🚀 Trying AI Orchestrator...');
+      const orchestratorResult = await analyzeWithOrchestrator(topicMasteryData, profileData);
+      
+      let planResponse;
+      let analysis;
 
-      if (planResponse.error) {
-        console.error('Plan generation error:', planResponse.error);
-        throw new Error(planResponse.error.message || 'Failed to generate learning plan');
+      if (orchestratorResult) {
+        // ✅ Orchestrator успешно вернул результат
+        console.log('✅ Using AI Orchestrator result');
+        planResponse = { data: orchestratorResult };
+        analysis = {
+          // Извлекаем данные для совместимости со старым форматом
+          math_level: profileData.math_level,
+          accuracy_score: profileData.accuracy_score,
+          // ... orchestrator может вернуть дополнительные поля
+        };
+        setAiAnalysis(analysis);
+      } else {
+        // ❌ Fallback: старый подход с двумя запросами
+        console.log('⚠️ Orchestrator failed, using fallback...');
+        analysis = await analyzeWithAI();
+        const results = analysis || localResults;
+        setAiAnalysis(analysis);
+
+        // Старый вызов ai-learning-plan-v2
+        planResponse = await supabase.functions.invoke('ai-learning-plan-v2', {
+          body: {
+            diagnosticProfile: {
+              ...profileData,
+              topicPerformance: topicMasteryData,
+            },
+            testHistory: [{
+              answers: Object.entries(ortAnswers).map(([qNum, answer]) => ({
+                questionId: qNum,
+                answer,
+                correct: answer === ortCorrectAnswers[qNum],
+                topic: ORT_QUESTION_TOPICS[parseInt(qNum)],
+              })),
+              score: calculateOrtScore().correct,
+              total_questions: TOTAL_ORT_QUESTIONS,
+            }],
+            lessonProgress: [],
+            topicMastery: Object.entries(topicMasteryData).map(([topic, mastery]) => ({
+              topic,
+              progress_percentage: mastery,
+            })),
+            targetORTScore: goals.targetORTScore,
+            language,
+          },
+        });
+
+        if (planResponse.error) {
+          console.error('Plan generation error:', planResponse.error);
+          throw new Error(planResponse.error.message || 'Failed to generate learning plan');
+        }
       }
 
       // Save the generated plan to database
