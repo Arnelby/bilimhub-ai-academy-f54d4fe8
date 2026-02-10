@@ -1,0 +1,68 @@
+🚀 АРНЕЛЬ, ОСТАЛОСЬ 3 ШАГА ДО ЗАПУСКА!
+
+═══════════════════════════════════════════════════════════════
+
+ШАГ 1: SQL В SUPABASE (2 минуты)
+═══════════════════════════════════════════════════════════════
+
+Зайди: https://supabase.com/dashboard
+→ Проект mxwswezewnxshvbtvrid
+→ SQL Editor
+→ Скопируй весь код из файла:
+   supabase/migrations/20260210043000_invite_code_rpc.sql
+→ Нажми RUN
+
+Потом выполни:
+   add_5_beta_testers.sql
+
+═══════════════════════════════════════════════════════════════
+
+ШАГ 2: НАСТРОИТЬ LOVABLE (3 минуты)
+═══════════════════════════════════════════════════════════════
+
+Зайди: https://lovable.dev
+
+1. Settings → Deployment Branch → PROD (не main!)
+
+2. Settings → Environment Variables → Добавь:
+   
+   VITE_SUPABASE_URL
+   https://mxwswezewnxshvbtvrid.supabase.co
+   
+   VITE_SUPABASE_ANON_KEY
+   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14d3N3ZXpld254c2h2YnR2cmlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwNTIxNjQsImV4cCI6MjA0ODYyODE2NH0.XuMRn7rSGkD3Odn1dDe0hgLjxP--Yr9pOmCgmDYCcXE
+
+3. Нажми PUBLISH
+
+═══════════════════════════════════════════════════════════════
+
+ШАГ 3: РАЗДАТЬ КОДЫ ТЕСТЕРАМ
+═══════════════════════════════════════════════════════════════
+
+elitabelekova998@gmail.com        → BETA2024-EL
+h80963998@gmail.com               → BETA2024-H8
+keneshbekovaindira1@gmail.com     → BETA2024-KI
+dianabakeeva572@gmail.com         → BETA2024-DB
+rashidovarnel@gmail.com           → BETA2024-AR
+
+═══════════════════════════════════════════════════════════════
+
+✅ КАК ПРОВЕРИТЬ, ЧТО ВСЁ РАБОТАЕТ:
+═══════════════════════════════════════════════════════════════
+
+1. Зарегистрируй тестовый аккаунт (не из списка выше)
+2. Войди в систему
+3. Должно появиться окно "Запущено бета-тестирование"
+4. Введи любой код (например BETA2024-AR)
+5. Если всё ок → доступ открывается!
+
+═══════════════════════════════════════════════════════════════
+
+💡 ПОДРОБНАЯ ИНСТРУКЦИЯ:
+═══════════════════════════════════════════════════════════════
+
+Открой файл: DEPLOY_INVITE_CODE_SYSTEM.md
+
+═══════════════════════════════════════════════════════════════
+
+ГОТОВО! 🔥
