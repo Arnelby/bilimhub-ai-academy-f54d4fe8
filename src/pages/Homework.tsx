@@ -342,10 +342,12 @@ export default function Homework() {
 
       if (uploadError) throw uploadError;
 
-      // Get file URL
-      const { data: urlData } = supabase.storage
+      // Get signed URL for private bucket (valid for 7 days)
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('homework')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 7); // 7 days
+
+      if (urlError) throw urlError;
 
       // Create submission record
       const { data: submission, error: submissionError } = await supabase
@@ -356,7 +358,7 @@ export default function Homework() {
           description: description || null,
           notes: notes || null,
           subject,
-          file_url: urlData.publicUrl,
+          file_url: urlData.signedUrl,
           file_name: file.name,
           file_type: file.type,
           status: 'submitted'
