@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { GamificationProvider } from "@/hooks/useGamificationEvents";
 import { ProtectedAdminRoute } from "@/components/admin/ProtectedAdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { BetaAccessGuard } from "@/components/beta/BetaAccessGuard";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -58,21 +59,21 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/lessons" element={<ProtectedRoute><Lessons /></ProtectedRoute>} />
-                  <Route path="/lessons/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />
-                  <Route path="/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
-                  <Route path="/tests/:testId" element={<ProtectedRoute><TestTaking /></ProtectedRoute>} />
-                  <Route path="/tests/:testId/results/:attemptId" element={<ProtectedRoute><TestResults /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><DiagnosticTest /></ProtectedRoute>} />
-                  <Route path="/learning-plan" element={<ProtectedRoute><LearningPlanV2 /></ProtectedRoute>} />
-                  <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
-                  <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
-                  <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
-                  <Route path="/math-lessons" element={<ProtectedRoute><MathLessons /></ProtectedRoute>} />
-                  <Route path="/lessons/fractions" element={<ProtectedRoute><FractionsLesson /></ProtectedRoute>} />
-                  <Route path="/lessons/topic/:topicId" element={<ProtectedRoute><DynamicLessonViewer /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><BetaAccessGuard><Dashboard /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/lessons" element={<ProtectedRoute><BetaAccessGuard><Lessons /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/lessons/:lessonId" element={<ProtectedRoute><BetaAccessGuard><LessonViewer /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/tests" element={<ProtectedRoute><BetaAccessGuard><Tests /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/tests/:testId" element={<ProtectedRoute><BetaAccessGuard><TestTaking /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/tests/:testId/results/:attemptId" element={<ProtectedRoute><BetaAccessGuard><TestResults /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><BetaAccessGuard><Profile /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><BetaAccessGuard><DiagnosticTest /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/learning-plan" element={<ProtectedRoute><BetaAccessGuard><LearningPlanV2 /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/ai-tutor" element={<ProtectedRoute><BetaAccessGuard><AISmartTutor /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/homework" element={<ProtectedRoute><BetaAccessGuard><Homework /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/tests/testing58" element={<ProtectedRoute><BetaAccessGuard><Testing58Viewer /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/math-lessons" element={<ProtectedRoute><BetaAccessGuard><MathLessons /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/lessons/fractions" element={<ProtectedRoute><BetaAccessGuard><FractionsLesson /></BetaAccessGuard></ProtectedRoute>} />
+                  <Route path="/lessons/topic/:topicId" element={<ProtectedRoute><BetaAccessGuard><DynamicLessonViewer /></BetaAccessGuard></ProtectedRoute>} />
                   
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
