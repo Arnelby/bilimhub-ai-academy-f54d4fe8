@@ -330,6 +330,41 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_access: {
+        Row: {
+          granted_at: string
+          granted_by: string
+          id: string
+          invite_code_id: string | null
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          invite_code_id?: string | null
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          invite_code_id?: string | null
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_access_invite_code_id_fkey"
+            columns: ["invite_code_id"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       homework_notifications: {
         Row: {
           created_at: string
@@ -429,6 +464,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number
+          times_used: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          times_used?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          times_used?: number
+        }
+        Relationships: []
       }
       lessons: {
         Row: {
@@ -674,6 +742,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limits: {
+        Row: {
+          endpoint: string
+          id: string
+          request_count: number
+          user_id: string
+          window_minutes: number
+          window_start: string
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          request_count?: number
+          user_id: string
+          window_minutes?: number
+          window_start?: string
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          request_count?: number
+          user_id?: string
+          window_minutes?: number
+          window_start?: string
+        }
+        Relationships: []
       }
       saved_terms: {
         Row: {
@@ -1083,12 +1178,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          _endpoint: string
+          _max_requests: number
+          _user_id: string
+          _window_minutes: number
+        }
+        Returns: Json
+      }
+      has_beta_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      use_invite_code: {
+        Args: { _code: string; _user_id: string }
+        Returns: Json
       }
     }
     Enums: {
