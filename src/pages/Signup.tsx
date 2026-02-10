@@ -69,6 +69,16 @@ export default function Signup() {
     
     setIsLoading(true);
     try {
+      // Check whitelist (closed beta)
+      const { data: supabase } = await import('@/integrations/supabase/client');
+      const { data: whitelistCheck, error: whitelistError } = await supabase.supabase
+        .rpc('is_email_whitelisted', { check_email: email });
+      
+      if (whitelistError || !whitelistCheck) {
+        setGeneralError('Регистрация доступна только по приглашению. Свяжитесь с администратором для получения доступа.');
+        setIsLoading(false);
+        return;
+      }
       
       const { error: signUpError } = await signUp(email, password, name);
       
