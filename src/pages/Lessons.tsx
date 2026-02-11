@@ -86,40 +86,36 @@ export default function Lessons() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
+  const [topics, setTopics] = useState<Array<{ id: string; title: string; title_ru: string | null; title_kg: string | null; subject: string; order_index: number | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   useEffect(() => {
-    async function fetchLessons() {
+    async function fetchData() {
       if (!user) return;
 
       try {
-        // Fetch all lessons with topics
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from('lessons')
-          .select('*, topic:topics(*)')
-          .order('difficulty_level', { ascending: true });
+        // Fetch topics, lessons, and progress in parallel
+        const [topicsRes, lessonsRes, progressRes] = await Promise.all([
+          supabase.from('topics').select('id, title, title_ru, title_kg, subject, order_index').order('order_index', { ascending: true }),
+          supabase.from('lessons').select('*, topic:topics(*)').order('difficulty_level', { ascending: true }),
+          supabase.from('user_lesson_progress').select('*').eq('user_id', user.id),
+        ]);
 
-        if (lessonsError) throw lessonsError;
+        if (topicsRes.data) setTopics(topicsRes.data);
 
-        // Fetch user progress
-        const { data: progressData, error: progressError } = await supabase
-          .from('user_lesson_progress')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (progressError) throw progressError;
+        const lessonsData = lessonsRes.data || [];
+        const progressData = progressRes.data || [];
 
         // Map progress to lessons
         const progressMap = new Map<string, LessonProgress>();
-        progressData?.forEach(p => {
+        progressData.forEach(p => {
           progressMap.set(p.lesson_id, p);
         });
 
-        // Combine lessons with progress
-        const lessonsWithProgress: LessonWithProgress[] = (lessonsData || []).map((lesson, index) => {
+        const lessonsWithProgress: LessonWithProgress[] = lessonsData.map((lesson, index) => {
           const progress = progressMap.get(lesson.id);
           let status: LessonWithProgress['status'] = 'not-started';
           
@@ -131,11 +127,7 @@ export default function Lessons() {
             status = 'locked';
           }
 
-          return {
-            ...lesson,
-            progress: progress?.progress_percentage || 0,
-            status,
-          };
+          return { ...lesson, progress: progress?.progress_percentage || 0, status };
         });
 
         setLessons(lessonsWithProgress);
@@ -146,7 +138,7 @@ export default function Lessons() {
       }
     }
 
-    fetchLessons();
+    fetchData();
   }, [user]);
 
   const filteredLessons = lessons.filter((lesson) => {
@@ -225,85 +217,68 @@ export default function Lessons() {
           </Select>
         </div>
 
-        {/* Featured Interactive Lessons */}
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <Card className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/20">
-                    <span className="text-3xl">📐</span>
+        {/* Featured Interactive Lessons - Dynamic from DB */}
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 mb-8">
+          {topics.map((topic, idx) => {
+            const topicSlugMap: Record<string, string> = {
+              'Algebra Basics': 'algebra',
+              'Linear Equations': 'linear-equations',
+              'Quadratic Equations': 'quadratics',
+              'Functions': 'functions',
+              'Geometry Basics': 'geometry',
+              'Trigonometry': 'trigonometry',
+              'Probability': 'probability',
+              'Statistics': 'statistics',
+            };
+            const topicEmojis: Record<string, string> = {
+              'Algebra Basics': '📐',
+              'Linear Equations': '📏',
+              'Quadratic Equations': '✖️',
+              'Functions': '📈',
+              'Geometry Basics': '📐',
+              'Trigonometry': '📊',
+              'Probability': '🎲',
+              'Statistics': '📉',
+            };
+            const gradients = [
+              'from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20',
+              'from-orange-500/10 via-amber-500/10 to-yellow-500/10 border-orange-500/20',
+              'from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-blue-500/20',
+              'from-green-500/10 via-emerald-500/10 to-teal-500/10 border-green-500/20',
+              'from-indigo-500/10 via-violet-500/10 to-purple-500/10 border-indigo-500/20',
+              'from-rose-500/10 via-pink-500/10 to-red-500/10 border-rose-500/20',
+              'from-amber-500/10 via-yellow-500/10 to-orange-500/10 border-amber-500/20',
+              'from-teal-500/10 via-cyan-500/10 to-blue-500/10 border-teal-500/20',
+            ];
+            const slug = topicSlugMap[topic.title] || topic.title.toLowerCase().replace(/\s+/g, '-');
+            const topicName = language === 'ru' && topic.title_ru ? topic.title_ru : language === 'kg' && topic.title_kg ? topic.title_kg : topic.title;
+            
+            return (
+              <Card key={topic.id} className={`bg-gradient-to-r ${gradients[idx % gradients.length]}`}>
+                <CardContent className="p-6">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 rounded-full bg-primary/20">
+                        <span className="text-3xl">{topicEmojis[topic.title] || '📚'}</span>
+                      </div>
+                      <div>
+                        <Badge variant="secondary" className="mb-2">
+                          ✨ {language === 'ru' ? 'Интерактивный' : 'Interactive'}
+                        </Badge>
+                        <h3 className="text-lg font-bold">{topicName}</h3>
+                      </div>
+                    </div>
+                    <Button asChild variant={idx === 0 ? 'default' : 'outline'}>
+                      <Link to={`/lessons/topic/${slug}`}>
+                        {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
-                  <div>
-                    <Badge variant="secondary" className="mb-2 bg-primary/20 text-primary">
-                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
-                    </Badge>
-                    <h3 className="text-xl font-bold">
-                      {language === 'ru' ? 'Дроби' : language === 'kg' ? 'Бөлчөктөр' : 'Fractions'}
-                    </h3>
-                  </div>
-                </div>
-                <Button asChild>
-                  <Link to="/lessons/topic/fractions">
-                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-yellow-500/10 border-orange-500/20">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-orange-500/20">
-                    <span className="text-3xl">🔢</span>
-                  </div>
-                  <div>
-                    <Badge variant="secondary" className="mb-2 bg-orange-500/20 text-orange-600">
-                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
-                    </Badge>
-                    <h3 className="text-xl font-bold">
-                      {language === 'ru' ? 'Степени' : language === 'kg' ? 'Даражалар' : 'Exponents'}
-                    </h3>
-                  </div>
-                </div>
-                <Button asChild variant="outline">
-                  <Link to="/lessons/topic/exponents">
-                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-blue-500/20">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-blue-500/20">
-                    <span className="text-3xl">📈</span>
-                  </div>
-                  <div>
-                    <Badge variant="secondary" className="mb-2 bg-blue-500/20 text-blue-600">
-                      {language === 'ru' ? '✨ Интерактивный' : '✨ Interactive'}
-                    </Badge>
-                    <h3 className="text-xl font-bold">
-                      {language === 'ru' ? 'Квадратные уравнения' : language === 'kg' ? 'Квадраттык теңдемелер' : 'Quadratic Equations'}
-                    </h3>
-                  </div>
-                </div>
-                <Button asChild variant="outline">
-                  <Link to="/lessons/topic/quadratics">
-                    {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Lessons Grid */}

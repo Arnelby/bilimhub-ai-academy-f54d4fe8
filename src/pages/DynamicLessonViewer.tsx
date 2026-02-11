@@ -235,9 +235,15 @@ export default function DynamicLessonViewer() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   
-  // Normalize topicId to handle singular/plural variants
+  // Normalize topicId to handle singular/plural variants and slug mappings
   const normalizedTopicId = topicId === 'exponent' ? 'exponents' 
-    : topicId === 'quadratic' ? 'quadratics' 
+    : topicId === 'quadratic' ? 'quadratics'
+    : topicId === 'linear-equations' ? 'linear-equations'
+    : topicId === 'algebra' ? 'algebra'
+    : topicId === 'geometry' ? 'geometry'
+    : topicId === 'trigonometry' ? 'trigonometry'
+    : topicId === 'probability' ? 'probability'
+    : topicId === 'statistics' ? 'statistics'
     : topicId;
   
   // Mapping from topic IDs to lesson JSON files in storage (exact paths in bucket)
@@ -245,6 +251,13 @@ export default function DynamicLessonViewer() {
     fractions: 'fractions/fraction.json',
     exponents: 'exponents/exponents.json',
     quadratics: 'quadratics/quadratics.json',
+    functions: 'functions/functions.json',
+    algebra: 'algebra/algebra.json',
+    'linear-equations': 'linear-equations/linear-equations.json',
+    geometry: 'geometry/geometry.json',
+    trigonometry: 'trigonometry/trigonometry.json',
+    probability: 'probability/probability.json',
+    statistics: 'statistics/statistics.json',
   };
 
   // Fetch lesson data from storage (JSON is the single source of truth)
@@ -521,7 +534,7 @@ export default function DynamicLessonViewer() {
   }
 
   // Check if we have fallback data available for this topic
-  const hasFallbackContent = normalizedTopicId === 'fractions' || normalizedTopicId === 'exponents' || normalizedTopicId === 'quadratics';
+  const hasFallbackContent = !!(normalizedTopicId && lessonTests[normalizedTopicId as keyof typeof lessonTests]);
 
   // Error state - only show error if we have no fallback content
   if ((error || !data) && !hasFallbackContent) {
