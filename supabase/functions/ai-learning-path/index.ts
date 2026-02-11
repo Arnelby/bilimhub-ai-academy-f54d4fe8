@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateObject, validateNumber, validateLanguage } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { testResults, topicProgress, currentLevel, language = 'ru' } = await req.json();
+    const body = await req.json();
+    const testResults = validateObject(body.testResults, 'testResults');
+    const topicProgress = validateObject(body.topicProgress, 'topicProgress');
+    const currentLevel = validateNumber(body.currentLevel, 1, 1, 5);
+    const language = validateLanguage(body.language);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

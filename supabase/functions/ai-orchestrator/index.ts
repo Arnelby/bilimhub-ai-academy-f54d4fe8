@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateObject, validateArray, validateLanguage } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,14 +17,13 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      diagnosticProfile,      // Результаты диагностического теста
-      personalityTest,        // Результаты психологического теста
-      goals,                  // Цели студента
-      progress,               // Текущий прогресс
-      availableTopics,        // Темы из базы данных
-      language = 'ru'
-    } = await req.json();
+    const body = await req.json();
+    const diagnosticProfile = validateObject(body.diagnosticProfile, 'diagnosticProfile');
+    const personalityTest = validateObject(body.personalityTest, 'personalityTest');
+    const goals = validateObject(body.goals, 'goals');
+    const progress = validateObject(body.progress, 'progress');
+    const availableTopics = validateArray(body.availableTopics, 'availableTopics', 100);
+    const language = validateLanguage(body.language);
     
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
     

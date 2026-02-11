@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireString, validateString, validateObject, validateLanguage, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, learningStyle, studentResults, language = 'ru' } = await req.json();
+    const body = await req.json();
+    let topic;
+    try {
+      topic = requireString(body.topic, 'topic', 200);
+    } catch (e) {
+      return validationError(e instanceof Error ? e.message : 'Invalid topic');
+    }
+    const learningStyle = validateString(body.learningStyle, 'learningStyle', 50) || 'text-based';
+    const studentResults = validateObject(body.studentResults, 'studentResults');
+    const language = validateLanguage(body.language);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

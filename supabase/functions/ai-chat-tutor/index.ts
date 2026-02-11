@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateMessages, validateObject, validateArray, validateString, validateLanguage, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,14 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      messages, 
-      context,
-      diagnosticProfile,
-      weakTopics,
-      action,
-      language = 'ru' 
-    } = await req.json();
+    const body = await req.json();
+    let messages;
+    try {
+      messages = validateMessages(body.messages, 50, 4000);
+    } catch (e) {
+      return validationError(e instanceof Error ? e.message : 'Invalid messages');
+    }
+    const context = validateObject(body.context, 'context');
+    const diagnosticProfile = validateObject(body.diagnosticProfile, 'diagnosticProfile');
+    const weakTopics = validateArray(body.weakTopics, 'weakTopics', 50);
+    const action = validateString(body.action, 'action', 50);
+    const language = validateLanguage(body.language);
     
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
     
