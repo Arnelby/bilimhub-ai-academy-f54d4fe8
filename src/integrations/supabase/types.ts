@@ -1187,6 +1187,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_lesson_video_url: {
+        Args: { expires_in?: number; video_path: string }
+        Returns: string
+      }
       has_beta_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
