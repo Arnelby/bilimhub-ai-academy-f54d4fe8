@@ -630,6 +630,7 @@ export type Database = {
           id: string
           language_preference: string | null
           last_activity_date: string | null
+          leaderboard_visible: boolean | null
           level: number | null
           name: string | null
           points: number | null
@@ -644,6 +645,7 @@ export type Database = {
           id: string
           language_preference?: string | null
           last_activity_date?: string | null
+          leaderboard_visible?: boolean | null
           level?: number | null
           name?: string | null
           points?: number | null
@@ -658,6 +660,7 @@ export type Database = {
           id?: string
           language_preference?: string | null
           last_activity_date?: string | null
+          leaderboard_visible?: boolean | null
           level?: number | null
           name?: string | null
           points?: number | null
