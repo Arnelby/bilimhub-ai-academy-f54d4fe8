@@ -41,6 +41,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       const { data: allTimeData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, points, level, streak')
+        .eq('leaderboard_visible', true)
         .order('points', { ascending: false })
         .limit(limit);
 
@@ -66,6 +67,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       const { data: weeklyData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, points, level, streak, last_activity_date')
+        .eq('leaderboard_visible', true)
         .not('last_activity_date', 'is', null)
         .order('points', { ascending: false })
         .limit(limit);

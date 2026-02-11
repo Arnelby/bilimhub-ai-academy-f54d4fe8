@@ -12,10 +12,13 @@ import {
   Calendar,
   Edit,
   Star,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,6 +37,7 @@ interface Profile {
   points: number;
   level: number;
   created_at: string | null;
+  leaderboard_visible: boolean;
 }
 
 interface TopicProgress {
@@ -89,6 +93,7 @@ export default function Profile() {
           points: profileData.points || 0,
           level: profileData.level || 1,
           created_at: profileData.created_at,
+          leaderboard_visible: profileData.leaderboard_visible ?? false,
         });
       }
 
@@ -237,6 +242,24 @@ export default function Profile() {
                 <StreakBadge streak={profile?.streak || 0} size="lg" />
                 <PointsDisplay points={profile?.points || 0} />
                 <LevelBadge level={profile?.level || 1} size="lg" />
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="leaderboard-visible"
+                    checked={profile?.leaderboard_visible ?? false}
+                    onCheckedChange={async (checked) => {
+                      if (!user) return;
+                      await supabase
+                        .from('profiles')
+                        .update({ leaderboard_visible: checked })
+                        .eq('id', user.id);
+                      setProfile(prev => prev ? { ...prev, leaderboard_visible: checked } : prev);
+                    }}
+                  />
+                  <Label htmlFor="leaderboard-visible" className="text-sm flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    Показать в рейтинге
+                  </Label>
+                </div>
                 <Button variant="outline" size="sm">
                   <Edit className="mr-2 h-4 w-4" />
                   {t.profile.editProfile}
