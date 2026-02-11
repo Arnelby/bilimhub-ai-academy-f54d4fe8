@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateMessages, validateObject, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,14 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context } = await req.json();
+    const body = await req.json();
+    let messages;
+    try {
+      messages = validateMessages(body.messages, 50, 4000);
+    } catch (e) {
+      return validationError(e instanceof Error ? e.message : 'Invalid messages');
+    }
+    const context = validateObject(body.context, 'context');
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

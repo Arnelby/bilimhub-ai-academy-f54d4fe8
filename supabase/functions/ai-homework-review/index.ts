@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateUUID, requireString, validateString, validateLanguage, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,21 @@ serve(async (req) => {
   }
 
   try {
-    const { submissionId, userId, fileContent, fileName, fileType, subject, title, description, language = 'ru' } = await req.json();
+    const body = await req.json();
+    let submissionId, userId, title, subject;
+    try {
+      submissionId = validateUUID(body.submissionId, 'submissionId');
+      userId = validateUUID(body.userId, 'userId');
+      title = requireString(body.title, 'title', 200);
+      subject = requireString(body.subject, 'subject', 100);
+    } catch (e) {
+      return validationError(e instanceof Error ? e.message : 'Invalid input');
+    }
+    const fileContent = validateString(body.fileContent, 'fileContent', 100000);
+    const fileName = validateString(body.fileName, 'fileName', 500) || 'unknown';
+    const fileType = validateString(body.fileType, 'fileType', 100) || 'unknown';
+    const description = validateString(body.description, 'description', 2000);
+    const language = validateLanguage(body.language);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {

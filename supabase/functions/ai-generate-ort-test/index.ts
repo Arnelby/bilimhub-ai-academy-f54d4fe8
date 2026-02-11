@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateNumber, validateLanguage, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { part, variant, language = 'ru' } = await req.json();
+    const body = await req.json();
+    const part = validateNumber(body.part, 1, 1, 2);
+    const variant = validateNumber(body.variant, 1, 1, 10);
+    const language = validateLanguage(body.language);
     const GROK_API_KEY = Deno.env.get("GROK_API_KEY");
     
     if (!GROK_API_KEY) {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateUUID, validateArray, validateObject, validateNumber, validationError } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,16 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, topicMasteryUpdates, testScore, aiAnalysis } = await req.json();
+    const body = await req.json();
+    let userId;
+    try {
+      userId = validateUUID(body.userId, 'userId');
+    } catch (e) {
+      return validationError(e instanceof Error ? e.message : 'Invalid userId');
+    }
+    const topicMasteryUpdates = validateArray(body.topicMasteryUpdates, 'topicMasteryUpdates', 50);
+    const testScore = validateNumber(body.testScore, 0, 0, 100);
+    const aiAnalysis = body.aiAnalysis ? validateObject(body.aiAnalysis, 'aiAnalysis') : null;
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

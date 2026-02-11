@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateArray, validateObject, validateLanguage } from "../_shared/validation.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,14 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      testHistory, 
-      lessonProgress, 
-      topicMastery, 
-      errorPatterns,
-      diagnosticProfile,
-      language = 'ru' 
-    } = await req.json();
+    const body = await req.json();
+    const testHistory = validateArray(body.testHistory, 'testHistory', 100);
+    const lessonProgress = validateArray(body.lessonProgress, 'lessonProgress', 100);
+    const topicMastery = validateArray(body.topicMastery, 'topicMastery', 100);
+    const errorPatterns = validateArray(body.errorPatterns, 'errorPatterns', 100);
+    const diagnosticProfile = validateObject(body.diagnosticProfile, 'diagnosticProfile');
+    const language = validateLanguage(body.language);
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
