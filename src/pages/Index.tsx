@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -18,7 +19,8 @@ import {
   Play,
   ChevronRight,
   Award,
-  Rocket
+  Rocket,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +31,50 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import heroPattern from '@/assets/hero-pattern.png';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+
+// Topic slug mapping for URL routing
+const topicSlugMap: Record<string, string> = {
+  'Algebra Basics': 'algebra',
+  'Linear Equations': 'linear-equations',
+  'Quadratic Equations': 'quadratics',
+  'Functions': 'functions',
+  'Geometry Basics': 'geometry',
+  'Trigonometry': 'trigonometry',
+  'Probability': 'probability',
+  'Statistics': 'statistics',
+};
+
+const topicEmojis: Record<string, string> = {
+  'Algebra Basics': '📐',
+  'Linear Equations': '📏',
+  'Quadratic Equations': '✖️',
+  'Functions': '📈',
+  'Geometry Basics': '📐',
+  'Trigonometry': '📊',
+  'Probability': '🎲',
+  'Statistics': '📉',
+};
+
+const topicGradients = [
+  'from-blue-500 to-cyan-500',
+  'from-purple-500 to-pink-500',
+  'from-orange-500 to-red-500',
+  'from-green-500 to-emerald-500',
+  'from-indigo-500 to-violet-500',
+  'from-rose-500 to-pink-500',
+  'from-amber-500 to-yellow-500',
+  'from-teal-500 to-cyan-500',
+];
+
+interface DBTopic {
+  id: string;
+  title: string;
+  title_ru: string | null;
+  title_kg: string | null;
+  subject: string;
+  order_index: number | null;
+}
 
 // Animated stat circle component
 function StatCircle({ 
@@ -110,6 +156,9 @@ function QuickActionCard({
 // Component for authenticated users - Dashboard Home
 function AuthenticatedHome() {
   const { profile } = useAuth();
+  const { language } = useLanguage();
+  const [topics, setTopics] = useState<DBTopic[]>([]);
+  const [topicsLoading, setTopicsLoading] = useState(true);
   
   const userName = profile?.name || 'Ученик';
   const userPoints = profile?.points || 0;
@@ -120,6 +169,33 @@ function AuthenticatedHome() {
   
   // Calculate progress percentage (mock)
   const progressPercent = Math.min(Math.round((userPoints / 1000) * 100), 100);
+
+  useEffect(() => {
+    async function fetchTopics() {
+      try {
+        const { data, error } = await supabase
+          .from('topics')
+          .select('id, title, title_ru, title_kg, subject, order_index')
+          .order('order_index', { ascending: true });
+        if (!error && data) setTopics(data);
+      } catch (e) {
+        console.error('Error fetching topics:', e);
+      } finally {
+        setTopicsLoading(false);
+      }
+    }
+    fetchTopics();
+  }, []);
+
+  const getTopicName = (topic: DBTopic) => {
+    if (language === 'ru' && topic.title_ru) return topic.title_ru;
+    if (language === 'kg' && topic.title_kg) return topic.title_kg;
+    return topic.title;
+  };
+
+  const getTopicSlug = (topic: DBTopic) => {
+    return topicSlugMap[topic.title] || topic.title.toLowerCase().replace(/\s+/g, '-');
+  };
 
   return (
     <Layout>
@@ -283,36 +359,34 @@ function AuthenticatedHome() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {[
-                      { name: 'Дроби', icon: '🔢', progress: 45, color: 'from-blue-500 to-cyan-500' },
-                      { name: 'Степени', icon: '📈', progress: 30, color: 'from-purple-500 to-pink-500' },
-                      { name: 'Квадратные уравнения', icon: '✖️', progress: 15, color: 'from-orange-500 to-red-500' },
-                    ].map((topic, idx) => (
-                      <Link
-                        key={topic.name}
-                        to={`/lessons/topic/${topic.name === 'Дроби' ? 'fractions' : topic.name === 'Степени' ? 'exponents' : 'quadratics'}`}
-                        className="group block"
-                      >
-                        <div className="rounded-xl border-2 border-transparent bg-muted/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
-                          <div className="mb-3 text-3xl">{topic.icon}</div>
-                          <h4 className="font-semibold group-hover:text-primary transition-colors">{topic.name}</h4>
-                          <div className="mt-2">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                              <span>Прогресс</span>
-                              <span>{topic.progress}%</span>
-                            </div>
-                            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                              <div 
-                                className={cn("h-full rounded-full bg-gradient-to-r transition-all", topic.color)}
-                                style={{ width: `${topic.progress}%` }}
-                              />
+                  {topicsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-4">
+                      {topics.map((topic, idx) => (
+                        <Link
+                          key={topic.id}
+                          to={`/lessons/topic/${getTopicSlug(topic)}`}
+                          className="group block"
+                        >
+                          <div className="rounded-xl border-2 border-transparent bg-muted/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                            <div className="mb-3 text-3xl">{topicEmojis[topic.title] || '📚'}</div>
+                            <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{getTopicName(topic)}</h4>
+                            <div className="mt-2">
+                              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                                <div 
+                                  className={cn("h-full rounded-full bg-gradient-to-r transition-all", topicGradients[idx % topicGradients.length])}
+                                  style={{ width: '0%' }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
