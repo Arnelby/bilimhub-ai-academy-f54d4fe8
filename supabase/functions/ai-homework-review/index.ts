@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateUUID, requireString, validateString, validateLanguage, validationError } from "../_shared/validation.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+
     const body = await req.json();
     let submissionId, userId, title, subject;
     try {
@@ -23,6 +27,15 @@ serve(async (req) => {
     } catch (e) {
       return validationError(e instanceof Error ? e.message : 'Invalid input');
     }
+
+    // Ensure the authenticated user matches the userId in the request
+    if (userId !== auth.userId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const fileContent = validateString(body.fileContent, 'fileContent', 100000);
     const fileName = validateString(body.fileName, 'fileName', 500) || 'unknown';
     const fileType = validateString(body.fileType, 'fileType', 100) || 'unknown';

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateObject, validateArray, validateNumber, validateLanguage } from "../_shared/validation.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -498,6 +499,9 @@ serve(async (req) => {
   let requestedLanguage = 'ru';
 
   try {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+
     const body = await req.json().catch(() => ({}));
     const diagnosticProfile = validateObject((body ?? {}).diagnosticProfile, 'diagnosticProfile');
     const topicMastery = validateObject((body ?? {}).topicMastery, 'topicMastery');
