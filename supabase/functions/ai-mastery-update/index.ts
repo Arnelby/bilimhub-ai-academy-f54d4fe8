@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateUUID, validateArray, validateObject, validateNumber, validationError } from "../_shared/validation.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+
     const body = await req.json();
     let userId;
     try {
@@ -20,6 +24,15 @@ serve(async (req) => {
     } catch (e) {
       return validationError(e instanceof Error ? e.message : 'Invalid userId');
     }
+
+    // Ensure the authenticated user matches the userId
+    if (userId !== auth.userId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const topicMasteryUpdates = validateArray(body.topicMasteryUpdates, 'topicMasteryUpdates', 50);
     const testScore = validateNumber(body.testScore, 0, 0, 100);
     const aiAnalysis = body.aiAnalysis ? validateObject(body.aiAnalysis, 'aiAnalysis') : null;

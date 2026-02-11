@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateArray, validateString, validationError } from "../_shared/validation.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,6 +14,9 @@ serve(async (req) => {
   }
 
   try {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+
     const body = await req.json();
     const testAttemptId = validateString(body.testAttemptId, 'testAttemptId', 100);
     const answers = validateArray(body.answers, 'answers', 200);
