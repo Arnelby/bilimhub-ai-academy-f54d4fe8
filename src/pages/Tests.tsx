@@ -118,16 +118,18 @@ export default function Tests() {
           }
         });
 
-        // Map tests with their status
-        const testsWithStatus: TestWithStatus[] = (testsData || []).map(test => {
-          const userAttempt = userTests?.find(ut => ut.test_id === test.id);
-          return {
-            ...test,
-            status: userAttempt?.completed_at ? 'completed' : 'available',
-            userAttempt,
-            questionCount: questionCountMap[test.id] || 0,
-          };
-        });
+        // Map tests with their status - filter out tests with 0 questions
+        const testsWithStatus: TestWithStatus[] = (testsData || [])
+          .filter(test => (questionCountMap[test.id] || 0) > 0)
+          .map(test => {
+            const userAttempt = userTests?.find(ut => ut.test_id === test.id);
+            return {
+              ...test,
+              status: userAttempt?.completed_at ? 'completed' : 'available',
+              userAttempt,
+              questionCount: questionCountMap[test.id] || 0,
+            };
+          });
 
         setTests(testsWithStatus);
 
