@@ -33,7 +33,8 @@ import {
   ImageIcon,
   StickyNote,
   Save,
-  Loader2
+  Loader2,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Language } from '@/lib/i18n';
@@ -234,6 +235,9 @@ export default function DynamicLessonViewer() {
   const { language, setLanguage } = useLanguage();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
+  const [dbLessons, setDbLessons] = useState<any[]>([]);
+  const [dbTopicTitle, setDbTopicTitle] = useState<string>('');
+  const [dbLoading, setDbLoading] = useState(false);
   
   // Normalize topicId to handle singular/plural variants and slug mappings
   const normalizedTopicId = topicId === 'exponent' ? 'exponents' 
@@ -260,12 +264,68 @@ export default function DynamicLessonViewer() {
     statistics: 'statistics/statistics.json',
   };
 
+  // Reverse slug map to find topic title from slug
+  const slugToTopicTitle: Record<string, string> = {
+    'algebra': 'Algebra Basics',
+    'linear-equations': 'Linear Equations',
+    'quadratics': 'Quadratic Equations',
+    'functions': 'Functions',
+    'geometry': 'Geometry Basics',
+    'trigonometry': 'Trigonometry',
+    'probability': 'Probability',
+    'statistics': 'Statistics',
+    'fractions': 'Fractions',
+    'exponents': 'Exponents',
+  };
+
   // Fetch lesson data from storage (JSON is the single source of truth)
   const bucketPath =
     (normalizedTopicId && lessonPathMap[normalizedTopicId]) ||
     (normalizedTopicId ? `${normalizedTopicId}/${normalizedTopicId}.json` : '');
 
   const { data, loading, error } = useLessonData(bucketPath);
+
+  // Fallback: load lessons from DB when storage JSON is not available
+  useEffect(() => {
+    async function fetchDbLessons() {
+      if (data || loading) return; // Storage data loaded, no need for DB fallback
+      if (!normalizedTopicId) return;
+
+      setDbLoading(true);
+      try {
+        // Find the topic by matching slug to title
+        const topicTitle = slugToTopicTitle[normalizedTopicId];
+        let topicQuery = supabase.from('topics').select('id, title, title_ru, title_kg');
+        
+        if (topicTitle) {
+          topicQuery = topicQuery.eq('title', topicTitle);
+        }
+        
+        const { data: topicData } = await topicQuery.maybeSingle();
+        
+        if (topicData) {
+          const topicName = language === 'ru' && topicData.title_ru ? topicData.title_ru : topicData.title;
+          setDbTopicTitle(topicName);
+          
+          // Fetch lessons for this topic
+          const { data: lessonsData } = await supabase
+            .from('lessons')
+            .select('id, title, title_ru, content, difficulty_level, duration_minutes')
+            .eq('topic_id', topicData.id)
+            .order('difficulty_level', { ascending: true });
+          
+          if (lessonsData && lessonsData.length > 0) {
+            setDbLessons(lessonsData);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching DB lessons:', e);
+      } finally {
+        setDbLoading(false);
+      }
+    }
+    fetchDbLessons();
+  }, [data, loading, normalizedTopicId, language]);
   
   // Mini-tests state
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>('easy');
@@ -523,7 +583,7 @@ export default function DynamicLessonViewer() {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || dbLoading) {
     return (
       <Layout>
         <div className="flex h-[60vh] items-center justify-center">
@@ -535,20 +595,95 @@ export default function DynamicLessonViewer() {
 
   // Check if we have fallback data available for this topic
   const hasFallbackContent = !!(normalizedTopicId && lessonTests[normalizedTopicId as keyof typeof lessonTests]);
+  const hasDbContent = dbLessons.length > 0;
 
-  // Error state - only show error if we have no fallback content
-  if ((error || !data) && !hasFallbackContent) {
+  // If no storage JSON and no fallback tests, but we have DB lessons — show DB content
+  if ((error || !data) && !hasFallbackContent && hasDbContent) {
+    const topicTitle = dbTopicTitle || normalizedTopicId || '';
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/lessons">
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                {language === 'ru' ? 'Назад к урокам' : 'Back to Lessons'}
+              </Link>
+            </Button>
+            <h1 className="text-3xl font-bold mt-2">{topicTitle}</h1>
+            <p className="text-muted-foreground">{language === 'ru' ? 'Уроки по теме' : 'Topic lessons'}</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {dbLessons.map((lesson) => {
+              const lessonTitle = language === 'ru' && lesson.title_ru ? lesson.title_ru : lesson.title;
+              const sections = (lesson.content as any)?.sections || [];
+              return (
+                <Card key={lesson.id} className="overflow-hidden">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">
+                        <BookOpen className="mr-1 h-3 w-3" />
+                        {language === 'ru' ? 'Урок' : 'Lesson'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {lesson.duration_minutes || 15} {language === 'ru' ? 'мин' : 'min'}
+                      </span>
+                    </div>
+                    <CardTitle className="text-lg">{lessonTitle}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {sections.length > 0 && (
+                      <div className="space-y-3 mb-4">
+                        {sections.slice(0, 2).map((section: any, i: number) => (
+                          <div key={i} className="rounded-lg bg-muted/50 p-3">
+                            <h4 className="font-medium text-sm mb-1">{section.title}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{section.content}</p>
+                          </div>
+                        ))}
+                        {sections.length > 2 && (
+                          <p className="text-xs text-muted-foreground">+{sections.length - 2} {language === 'ru' ? 'разделов' : 'more sections'}</p>
+                        )}
+                      </div>
+                    )}
+                    <Button variant="default" className="w-full" asChild>
+                      <Link to={`/lessons/${lesson.id}`}>
+                        {language === 'ru' ? 'Открыть урок' : 'Open Lesson'}
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error state - no storage JSON, no fallback, no DB content — show "coming soon"
+  if ((error || !data) && !hasFallbackContent && !hasDbContent) {
+    const topicTitle = dbTopicTitle || slugToTopicTitle[normalizedTopicId || ''] || normalizedTopicId || '';
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
-          <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
-          <h2 className="text-xl font-bold mb-2">
-            {language === 'ru' ? 'Урок не найден' : 'Lesson not found'}
-          </h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button asChild>
-            <Link to="/lessons">{t.back}</Link>
-          </Button>
+          <div className="mx-auto max-w-md">
+            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
+              <BookOpen className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">{topicTitle}</h2>
+            <p className="text-muted-foreground mb-6">
+              {language === 'ru' 
+                ? 'Контент для этой темы готовится. Скоро здесь появятся уроки, тесты и задания!' 
+                : 'Content for this topic is being prepared. Lessons, tests and exercises will appear here soon!'}
+            </p>
+            <Button asChild>
+              <Link to="/lessons">
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                {language === 'ru' ? 'Назад к урокам' : 'Back to Lessons'}
+              </Link>
+            </Button>
+          </div>
         </div>
       </Layout>
     );
