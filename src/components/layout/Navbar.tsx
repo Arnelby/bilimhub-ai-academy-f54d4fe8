@@ -116,14 +116,9 @@ export function Navbar() {
                   {t.nav.logout || 'Logout'}
                 </Button>
               ) : (
-                <>
-                  <Button variant="ghost" asChild>
-                    <Link to="/login">{t.nav.login}</Link>
-                  </Button>
-                  <Button variant="accent" asChild>
-                    <Link to="/signup">{t.nav.signup}</Link>
-                  </Button>
-                </>
+                <Button variant="accent" asChild>
+                  <Link to="/login">Войти</Link>
+                </Button>
               )}
             </div>
 
