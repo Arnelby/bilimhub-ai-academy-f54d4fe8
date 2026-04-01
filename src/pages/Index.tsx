@@ -501,7 +501,7 @@ function GuestLanding() {
             <div className="animate-fade-in">
               <Badge variant="accent" className="mb-4">
                 <Sparkles className="mr-1 h-3 w-3" />
-                AI-Powered Learning
+                Invite-Only Beta
               </Badge>
               <h1 className="mb-6 text-4xl font-bold leading-tight lg:text-5xl xl:text-6xl">
                 {t.landing.hero.title}{' '}
@@ -512,13 +512,10 @@ function GuestLanding() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button variant="hero" size="xl" asChild>
-                  <Link to="/signup">
-                    {t.landing.hero.cta}
+                  <Link to="/login">
+                    Войти по приглашению
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
-                </Button>
-                <Button variant="outline" size="xl" asChild>
-                  <Link to="/pricing">{t.landing.hero.ctaSecondary}</Link>
                 </Button>
               </div>
 
