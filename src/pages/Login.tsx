@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Loader2, KeyRound, ShieldCheck } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, KeyRound, ShieldCheck, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -14,7 +14,6 @@ import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.string().email('Введите корректный email'),
-  password: z.string().min(6, 'Пароль должен быть не менее 6 символов'),
   inviteCode: z.string().min(1, 'Введите инвайт-код'),
 });
 
@@ -22,12 +21,12 @@ export default function Login() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; inviteCode?: string }>({});
   const [generalError, setGeneralError] = useState('');
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -43,13 +42,11 @@ export default function Login() {
     setErrors({});
     setGeneralError('');
 
-    // Validate input
-    const result = loginSchema.safeParse({ email, password, inviteCode });
+    const result = loginSchema.safeParse({ email, inviteCode });
     if (!result.success) {
-      const fieldErrors: { email?: string; password?: string; inviteCode?: string } = {};
+      const fieldErrors: { email?: string; inviteCode?: string } = {};
       result.error.errors.forEach((err) => {
         if (err.path[0] === 'email') fieldErrors.email = err.message;
-        if (err.path[0] === 'password') fieldErrors.password = err.message;
         if (err.path[0] === 'inviteCode') fieldErrors.inviteCode = err.message;
       });
       setErrors(fieldErrors);
@@ -80,12 +77,21 @@ export default function Login() {
         return;
       }
 
-      // Step 2: Sign in with Supabase Auth
-      const { error } = await signIn(email, password);
-      
-      if (!error) {
-        navigate(from, { replace: true });
+      // Step 2: Send magic link (passwordless sign-in)
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}${from}`,
+        },
+      });
+
+      if (error) {
+        setGeneralError(error.message);
+        setIsLoading(false);
+        return;
       }
+
+      setMagicLinkSent(true);
     } catch (err) {
       setGeneralError('Произошла ошибка. Проверьте подключение к интернету.');
     } finally {
@@ -98,6 +104,37 @@ export default function Login() {
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
+    );
+  }
+
+  if (magicLinkSent) {
+    return (
+      <Layout showFooter={false}>
+        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+          <Card variant="elevated" className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <img src={logo} alt="BilimHub" className="mx-auto mb-4 h-12" />
+              <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-500" />
+              <CardTitle className="text-2xl">Проверьте почту</CardTitle>
+              <CardDescription>
+                Мы отправили ссылку для входа на <strong>{email}</strong>. Перейдите по ней, чтобы войти в BilimHub.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Не получили письмо? Проверьте папку «Спам» или{' '}
+                <button
+                  onClick={() => setMagicLinkSent(false)}
+                  className="text-accent underline hover:no-underline"
+                >
+                  попробуйте снова
+                </button>
+                .
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
     );
   }
 
@@ -164,29 +201,6 @@ export default function Login() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Пароль
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: undefined })); }}
-                    placeholder="••••••••"
-                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
-                      errors.password ? 'border-destructive' : 'border-input'
-                    }`}
-                    required
-                  />
-                </div>
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password}</p>
-                )}
-              </div>
-
               {generalError && (
                 <Alert variant="destructive">
                   <AlertDescription>{generalError}</AlertDescription>
@@ -207,7 +221,7 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    Войти
+                    Получить ссылку для входа
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
