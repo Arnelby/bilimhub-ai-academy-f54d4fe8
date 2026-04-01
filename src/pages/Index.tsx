@@ -557,8 +557,8 @@ function GuestLanding() {
                     </div>
                   ))}
                   <Button variant="accent" className="w-full" asChild>
-                    <Link to="/signup">
-                      Начать обучение
+                    <Link to="/login">
+                      Войти
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
