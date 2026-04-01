@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, Loader2, KeyRound, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/bilimhub-logo.png';
 import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.string().email('Введите корректный email'),
   password: z.string().min(6, 'Пароль должен быть не менее 6 символов'),
+  inviteCode: z.string().min(1, 'Введите инвайт-код'),
 });
 
 export default function Login() {
@@ -21,8 +25,10 @@ export default function Login() {
   const { signIn, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; inviteCode?: string }>({});
+  const [generalError, setGeneralError] = useState('');
 
   const from = (location.state as any)?.from?.pathname || '/dashboard';
 
@@ -35,25 +41,55 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setGeneralError('');
 
     // Validate input
-    const result = loginSchema.safeParse({ email, password });
+    const result = loginSchema.safeParse({ email, password, inviteCode });
     if (!result.success) {
-      const fieldErrors: { email?: string; password?: string } = {};
+      const fieldErrors: { email?: string; password?: string; inviteCode?: string } = {};
       result.error.errors.forEach((err) => {
         if (err.path[0] === 'email') fieldErrors.email = err.message;
         if (err.path[0] === 'password') fieldErrors.password = err.message;
+        if (err.path[0] === 'inviteCode') fieldErrors.inviteCode = err.message;
       });
       setErrors(fieldErrors);
       return;
     }
 
     setIsLoading(true);
-    const { error } = await signIn(email, password);
-    setIsLoading(false);
 
-    if (!error) {
-      navigate(from, { replace: true });
+    try {
+      // Step 1: Validate whitelist
+      const { data: whitelistResult, error: whitelistError } = await supabase.rpc(
+        'validate_whitelist_login',
+        { _email: email.trim(), _invite_code: inviteCode.trim() }
+      );
+
+      if (whitelistError) {
+        console.error('Whitelist check error:', whitelistError);
+        setGeneralError('Ошибка проверки доступа. Попробуйте позже.');
+        setIsLoading(false);
+        return;
+      }
+
+      const validation = whitelistResult as { allowed: boolean; error?: string };
+
+      if (!validation.allowed) {
+        setGeneralError('Доступ ограничен. Для входа необходим инвайт-код. Обратитесь к администратору.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Sign in with Supabase Auth
+      const { error } = await signIn(email, password);
+      
+      if (!error) {
+        navigate(from, { replace: true });
+      }
+    } catch (err) {
+      setGeneralError('Произошла ошибка. Проверьте подключение к интернету.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,9 +107,13 @@ export default function Login() {
         <Card variant="elevated" className="w-full max-w-md">
           <CardHeader className="text-center">
             <img src={logo} alt="BilimHub" className="mx-auto mb-4 h-12" />
-            <CardTitle className="text-2xl">{t.nav.login}</CardTitle>
+            <Badge variant="outline" className="mx-auto mb-3 gap-1">
+              <ShieldCheck className="h-3 w-3" />
+              Закрытая бета
+            </Badge>
+            <CardTitle className="text-2xl">Вход в BilimHub</CardTitle>
             <CardDescription>
-              Войдите в свой аккаунт для продолжения обучения
+              Доступ только по приглашению
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -88,7 +128,7 @@ export default function Login() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: undefined })); }}
                     placeholder="your@email.com"
                     className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
                       errors.email ? 'border-destructive' : 'border-input'
@@ -102,24 +142,39 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium">
-                    Пароль
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-accent hover:underline"
-                  >
-                    Забыли пароль?
-                  </Link>
+                <label htmlFor="inviteCode" className="text-sm font-medium">
+                  Инвайт-код
+                </label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    id="inviteCode"
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setErrors(p => ({ ...p, inviteCode: undefined })); }}
+                    placeholder="BETA2024-XX"
+                    className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-accent ${
+                      errors.inviteCode ? 'border-destructive' : 'border-input'
+                    }`}
+                    required
+                  />
                 </div>
+                {errors.inviteCode && (
+                  <p className="text-xs text-destructive">{errors.inviteCode}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Пароль
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     id="password"
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: undefined })); }}
                     placeholder="••••••••"
                     className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent ${
                       errors.password ? 'border-destructive' : 'border-input'
@@ -132,6 +187,12 @@ export default function Login() {
                 )}
               </div>
 
+              {generalError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{generalError}</AlertDescription>
+                </Alert>
+              )}
+
               <Button
                 type="submit"
                 variant="accent"
@@ -142,22 +203,19 @@ export default function Login() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Загрузка...
+                    Проверка доступа...
                   </>
                 ) : (
                   <>
-                    {t.nav.login}
+                    Войти
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              Нет аккаунта?{' '}
-              <Link to="/signup" className="text-accent hover:underline">
-                Зарегистрируйтесь
-              </Link>
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              Нет инвайт-кода? Обратитесь к администратору платформы для получения доступа.
             </p>
           </CardContent>
         </Card>

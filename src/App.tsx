@@ -22,7 +22,7 @@ import TestResults from "./pages/TestResults";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
+
 import NotFound from "./pages/NotFound";
 import DiagnosticTest from "./pages/DiagnosticTest";
 import LearningPlanV2 from "./pages/LearningPlanV2";
@@ -56,7 +56,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/signup" element={<Login />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/lessons" element={<ProtectedRoute><Lessons /></ProtectedRoute>} />
