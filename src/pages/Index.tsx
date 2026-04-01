@@ -661,10 +661,7 @@ function GuestLanding() {
               </div>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button variant="glass" size="lg" asChild>
-                  <Link to="/signup">{t.landing.cta.createProfile}</Link>
-                </Button>
-                <Button variant="glass" size="lg" asChild>
-                  <Link to="/pricing">{t.landing.cta.learnMore}</Link>
+                  <Link to="/login">Войти по приглашению</Link>
                 </Button>
               </div>
               <div className="hidden items-center gap-6 lg:flex">
