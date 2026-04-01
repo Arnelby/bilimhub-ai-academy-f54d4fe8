@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, ArrowRight, Loader2, KeyRound, ShieldCheck, CheckCircle } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, KeyRound, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -25,7 +25,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; inviteCode?: string }>({});
   const [generalError, setGeneralError] = useState('');
 
@@ -72,26 +71,56 @@ export default function Login() {
       const validation = whitelistResult as { allowed: boolean; error?: string };
 
       if (!validation.allowed) {
-        setGeneralError('Доступ ограничен. Для входа необходим инвайт-код. Обратитесь к администратору.');
+        setGeneralError('Доступ ограничен. Неверный email или инвайт-код.');
         setIsLoading(false);
         return;
       }
 
-      // Step 2: Send magic link (passwordless sign-in)
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // Step 2: Try to sign in with invite code as password
+      const trimmedEmail = email.trim();
+      const trimmedCode = inviteCode.trim().toUpperCase();
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: trimmedCode,
       });
 
-      if (error) {
-        setGeneralError(error.message);
-        setIsLoading(false);
-        return;
+      if (signInError) {
+        // If user doesn't exist yet, create account with invite code as password
+        if (signInError.message.includes('Invalid login credentials')) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: trimmedEmail,
+            password: trimmedCode,
+          });
+
+          if (signUpError) {
+            console.error('Sign up error:', signUpError);
+            setGeneralError('Ошибка создания аккаунта. Попробуйте позже.');
+            setIsLoading(false);
+            return;
+          }
+
+          // Auto-confirm is enabled, so sign in immediately after signup
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email: trimmedEmail,
+            password: trimmedCode,
+          });
+
+          if (retryError) {
+            console.error('Sign in after signup error:', retryError);
+            setGeneralError('Аккаунт создан, но не удалось войти. Попробуйте снова.');
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          setGeneralError(signInError.message);
+          setIsLoading(false);
+          return;
+        }
       }
 
-      setMagicLinkSent(true);
+      // Step 3: Success — navigate to dashboard
+      navigate(from, { replace: true });
     } catch (err) {
       setGeneralError('Произошла ошибка. Проверьте подключение к интернету.');
     } finally {
@@ -104,37 +133,6 @@ export default function Login() {
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
-    );
-  }
-
-  if (magicLinkSent) {
-    return (
-      <Layout showFooter={false}>
-        <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-          <Card variant="elevated" className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <img src={logo} alt="BilimHub" className="mx-auto mb-4 h-12" />
-              <CheckCircle className="mx-auto mb-3 h-12 w-12 text-green-500" />
-              <CardTitle className="text-2xl">Проверьте почту</CardTitle>
-              <CardDescription>
-                Мы отправили ссылку для входа на <strong>{email}</strong>. Перейдите по ней, чтобы войти в BilimHub.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Не получили письмо? Проверьте папку «Спам» или{' '}
-                <button
-                  onClick={() => setMagicLinkSent(false)}
-                  className="text-accent underline hover:no-underline"
-                >
-                  попробуйте снова
-                </button>
-                .
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
     );
   }
 
@@ -217,11 +215,11 @@ export default function Login() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Проверка доступа...
+                    Вход...
                   </>
                 ) : (
                   <>
-                    Получить ссылку для входа
+                    Войти
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}

@@ -22,7 +22,7 @@ import TestResults from "./pages/TestResults";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
-import AuthCallback from "./pages/AuthCallback";
+
 
 import NotFound from "./pages/NotFound";
 import DiagnosticTest from "./pages/DiagnosticTest";
