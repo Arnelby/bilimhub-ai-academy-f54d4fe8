@@ -159,14 +159,9 @@ export function Navbar() {
                     {t.nav.logout || 'Logout'}
                   </Button>
                 ) : (
-                  <>
-                    <Button variant="outline" asChild className="w-full">
-                      <Link to="/login">{t.nav.login}</Link>
-                    </Button>
-                    <Button variant="accent" asChild className="w-full">
-                      <Link to="/signup">{t.nav.signup}</Link>
-                    </Button>
-                  </>
+                  <Button variant="accent" asChild className="w-full">
+                    <Link to="/login">Войти</Link>
+                  </Button>
                 )}
               </div>
               {/* Mobile Language Selector */}
