@@ -21,8 +21,6 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
@@ -88,75 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name?: string) => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: { name: name || email.split('@')[0] }
-        }
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: "Аккаунт существует",
-            description: "Пользователь с таким email уже зарегистрирован. Попробуйте войти.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Ошибка регистрации",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-        return { error };
-      }
-
-      toast({
-        title: "Регистрация успешна!",
-        description: "Добро пожаловать в BilimHub!",
-      });
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
-  };
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          title: "Ошибка входа",
-          description: error.message === 'Invalid login credentials' 
-            ? "Неверный email или пароль" 
-            : error.message,
-          variant: "destructive",
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Добро пожаловать!",
-        description: "Вы успешно вошли в систему",
-      });
-
-      return { error: null };
-    } catch (error) {
-      return { error: error as Error };
-    }
-  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -197,8 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       profile,
       loading,
-      signUp,
-      signIn,
       signOut,
       updateProfile,
     }}>

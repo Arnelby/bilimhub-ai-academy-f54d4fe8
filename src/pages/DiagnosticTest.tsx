@@ -346,7 +346,7 @@ export default function DiagnosticTest() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/signup');
+      navigate('/login');
       return;
     }
     checkExistingProfile();
