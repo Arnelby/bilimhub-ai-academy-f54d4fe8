@@ -608,7 +608,7 @@ function GuestLanding() {
                   </div>
                 ))}
                 <Button variant="accent" className="mt-4 w-full" asChild>
-                  <Link to="/signup">Смотреть полный план</Link>
+                  <Link to="/login">Войти в платформу</Link>
                 </Button>
               </CardContent>
             </Card>
