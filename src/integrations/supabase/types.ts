@@ -365,6 +365,36 @@ export type Database = {
           },
         ]
       }
+      beta_whitelist: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          invite_code: string
+          is_active: boolean | null
+          notes: string | null
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          invite_code: string
+          is_active?: boolean | null
+          notes?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          invite_code?: string
+          is_active?: boolean | null
+          notes?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       homework_notifications: {
         Row: {
           created_at: string
@@ -1204,6 +1234,10 @@ export type Database = {
       }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
+        Returns: Json
+      }
+      validate_whitelist_login: {
+        Args: { _email: string; _invite_code: string }
         Returns: Json
       }
     }
