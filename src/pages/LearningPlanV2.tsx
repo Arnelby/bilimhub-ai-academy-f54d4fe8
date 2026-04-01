@@ -209,7 +209,6 @@ export default function LearningPlanV2() {
               </CardHeader>
               <CardContent className="flex gap-2">
                 <Button onClick={() => navigate('/login')}>{language === 'ru' ? 'Войти' : 'Sign in'}</Button>
-                <Button variant="outline" onClick={() => navigate('/signup')}>{language === 'ru' ? 'Регистрация' : 'Sign up'}</Button>
               </CardContent>
             </Card>
           </section>

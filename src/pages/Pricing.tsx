@@ -162,7 +162,7 @@ export default function Pricing() {
                   className="w-full"
                   asChild
                 >
-                  <Link to="/signup">{plan.cta}</Link>
+                  <Link to="/login">{plan.cta}</Link>
                 </Button>
               </CardContent>
             </Card>
