@@ -22,6 +22,7 @@ import TestResults from "./pages/TestResults";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import Login from "./pages/Login";
+import AuthCallback from "./pages/AuthCallback";
 
 import NotFound from "./pages/NotFound";
 import DiagnosticTest from "./pages/DiagnosticTest";
@@ -56,6 +57,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/signup" element={<Login />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
