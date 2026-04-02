@@ -247,39 +247,56 @@ export default function Dashboard() {
     
     setGeneratingPath(true);
     try {
-      // Get user's diagnostic profile first (this has the ORT test results)
-      const { data: diagnosticProfile } = await supabase
-        .from('user_diagnostic_profile')
-        .select('*')
+      // Get latest completed test (practice test = diagnostic source)
+      const { data: latestTest } = await supabase
+        .from('user_tests')
+        .select('answers, score, total_questions')
         .eq('user_id', user.id)
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      // Get user's test results and topic progress
-      const { data: testResults } = await supabase
-        .from('user_tests')
-        .select('*')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null);
+      let answers = Array.isArray(latestTest?.answers) ? latestTest.answers : [];
 
-      const { data: topicProgress } = await supabase
-        .from('user_topic_progress')
-        .select('*')
-        .eq('user_id', user.id);
+      // Fallback to user_answers table
+      if (answers.length === 0) {
+        const { data: userAnswers } = await supabase
+          .from('user_answers')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('answered_at', { ascending: false })
+          .limit(30);
 
-      // Use the new ai-learning-plan-v2 function which is deterministic
+        if (userAnswers && userAnswers.length > 0) {
+          answers = userAnswers.map((a: any, idx: number) => ({
+            questionId: a.question_id || idx + 1,
+            topic: a.topic || null,
+            isCorrect: a.is_correct,
+          }));
+        }
+      }
+
+      if (answers.length === 0) {
+        toast({
+          title: 'Нет данных',
+          description: 'Сначала пройди тест в разделе «Тесты».',
+          variant: 'destructive',
+        });
+        setGeneratingPath(false);
+        return;
+      }
+
+      const diagnosticAnswers = answers.map((a: any, idx: number) => ({
+        questionId: a.questionId || a.question_id || idx + 1,
+        topic: a.topic || null,
+        isCorrect: a.correct ?? a.isCorrect ?? false,
+      }));
+
+      // Use the ai-learning-plan-v2 function with diagnosticAnswers
       const { data, error } = await supabase.functions.invoke('ai-learning-plan-v2', {
         body: {
-          diagnosticProfile: diagnosticProfile || {},
-          testHistory: testResults?.map(t => ({ 
-            score: t.score, 
-            total_questions: t.total_questions,
-            answers: t.answers || [],
-          })) || [],
-          topicMastery: topicProgress?.map(p => ({
-            topic: p.topic_id,
-            progress_percentage: p.progress_percentage || 0,
-          })) || [],
-          targetORTScore: diagnosticProfile?.target_ort_score || 170,
+          diagnosticAnswers,
           language,
         },
       });
