@@ -324,7 +324,9 @@ export default function LearningPlanV2() {
                       <h3 className="font-medium text-sm mb-2">{task.topic}</h3>
                       <ul className="space-y-1 pl-4">
                         {task.problems.map((p, j) => (
-                          <li key={j} className="text-sm text-muted-foreground list-disc">{p}</li>
+                          <li key={j} className="text-sm text-muted-foreground list-disc">
+                            {typeof p === 'string' ? p : (p as any)?.question || JSON.stringify(p)}
+                          </li>
                         ))}
                       </ul>
                     </div>
