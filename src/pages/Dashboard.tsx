@@ -139,11 +139,17 @@ export default function Dashboard() {
       }
 
       // --- Score trend ---
-      const testHistory = tests.map(t => ({
-        date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
-        score: t.score ?? 0,
-        total: t.total_questions ?? 0,
-      }));
+      const testHistory = tests.map(t => {
+        const total = t.total_questions ?? 0;
+        const rawScore = t.score ?? 0;
+        // Normalize: if score > total, it's already a percentage
+        const safeScore = total > 0 && rawScore <= total ? rawScore : (total > 0 ? Math.round((rawScore / 100) * total) : rawScore);
+        return {
+          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
+          score: safeScore,
+          total,
+        };
+      });
 
       // --- Topic performance from question_attempts + user_answers ---
       const topicMap = new Map<string, { correct: number; total: number }>();
