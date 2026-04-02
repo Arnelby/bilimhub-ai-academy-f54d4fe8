@@ -163,6 +163,19 @@ export default function TestTaking() {
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optionIndex;
     setAnswers(newAnswers);
+
+    // Save answer to user_answers table
+    if (user && currentQuestion && test) {
+      saveUserAnswer({
+        userId: user.id,
+        testId: testId || test.id,
+        testName: test.title_ru || test.title,
+        questionId: currentQuestion.id,
+        topic: undefined,
+        selectedOption: optionIndex,
+        correctOption: currentQuestion.correct_option,
+      });
+    }
   };
 
   const handleSubmit = useCallback(async () => {
