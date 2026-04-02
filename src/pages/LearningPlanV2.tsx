@@ -57,7 +57,10 @@ export default function LearningPlanV2() {
         .maybeSingle();
 
       if (data?.plan_data) {
-        setResult(data.plan_data as unknown as PlanResult);
+        const parsed = data.plan_data as unknown as PlanResult;
+        if (parsed.diagnostic) {
+          setResult(parsed);
+        }
       }
     } catch (e) {
       console.error('Error fetching plan:', e);
