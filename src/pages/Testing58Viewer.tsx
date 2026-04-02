@@ -49,6 +49,7 @@ type AnswerOption = "A" | "B" | "C" | "D";
 
 const Testing58Viewer = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [currentPage, setCurrentPage] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>({});
