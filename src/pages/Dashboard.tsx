@@ -120,11 +120,17 @@ export default function Dashboard() {
       const questionAttempts = attemptsRes.data || [];
       const sessions = sessionsRes.data || [];
 
-      // --- Improvement ---
+      // --- Improvement (convert raw scores to percentages) ---
       const firstTest = tests.length > 0 ? tests[0] : null;
       const latestTest = tests.length > 0 ? tests[tests.length - 1] : null;
-      const firstScore = firstTest?.score ?? null;
-      const latestScore = latestTest?.score ?? null;
+      const toPercent = (t: TestAttempt | null) => {
+        if (!t || t.score === null || t.score === undefined) return null;
+        const total = t.total_questions || 1;
+        const raw = t.score > total ? t.score : Math.round((t.score / total) * 100);
+        return Math.max(0, Math.min(100, raw));
+      };
+      const firstScore = toPercent(firstTest);
+      const latestScore = toPercent(latestTest);
       let improvement: number | null = null;
       let improvementPercent: number | null = null;
       if (firstScore !== null && latestScore !== null && tests.length >= 2) {
@@ -133,11 +139,17 @@ export default function Dashboard() {
       }
 
       // --- Score trend ---
-      const testHistory = tests.map(t => ({
-        date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
-        score: t.score ?? 0,
-        total: t.total_questions ?? 0,
-      }));
+      const testHistory = tests.map(t => {
+        const total = t.total_questions ?? 0;
+        const rawScore = t.score ?? 0;
+        // Normalize: if score > total, it's already a percentage
+        const safeScore = total > 0 && rawScore <= total ? rawScore : (total > 0 ? Math.round((rawScore / 100) * total) : rawScore);
+        return {
+          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
+          score: safeScore,
+          total,
+        };
+      });
 
       // --- Topic performance from question_attempts + user_answers ---
       const topicMap = new Map<string, { correct: number; total: number }>();

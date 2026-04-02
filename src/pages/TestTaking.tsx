@@ -196,12 +196,19 @@ export default function TestTaking() {
 
       if (analysisError) throw analysisError;
 
+      // Store raw correct count (NOT percentage) as score
+      const rawScore = typeof analysisData.correct === 'number' ? analysisData.correct : analysisData.score;
+      const totalQ = analysisData.total || questions.length;
+      // Safety: if score looks like a percentage (> totalQ), convert back to raw count
+      const safeScore = rawScore > totalQ ? Math.round((rawScore / 100) * totalQ) : rawScore;
+
       // Update test attempt with results
       await supabase
         .from('user_tests')
         .update({
           answers,
-          score: analysisData.score,
+          score: safeScore,
+          total_questions: totalQ,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
           ai_analysis: analysisData.analysis,

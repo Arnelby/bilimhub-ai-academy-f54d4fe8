@@ -68,9 +68,10 @@ export default function TestResults() {
         setResult(data as unknown as TestResult);
 
         // Trigger gamification events
-        const score = data.score || 0;
+        const rawGamScore = data.score || 0;
         const total = data.total_questions || 1;
-        const percentage = Math.round((score / total) * 100);
+        const safeGamScore = rawGamScore > total ? Math.round((rawGamScore / 100) * total) : rawGamScore;
+        const percentage = Math.max(0, Math.min(100, Math.round((safeGamScore / total) * 100)));
         
         // Award points based on score
         const pointsEarned = Math.round(percentage / 2) + 25;
@@ -130,9 +131,11 @@ export default function TestResults() {
     );
   }
 
-  const score = result.score || 0;
+  const rawScore = result.score || 0;
   const total = result.total_questions || 1;
-  const percentage = Math.round((score / total) * 100);
+  // If score > total, it's likely already a percentage — use as-is but clamp
+  const score = rawScore > total ? Math.round((rawScore / 100) * total) : rawScore;
+  const percentage = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
   const timeTaken = result.time_taken_seconds || 0;
   const analysis = result.ai_analysis;
 

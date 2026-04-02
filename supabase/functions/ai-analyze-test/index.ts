@@ -109,7 +109,8 @@ Respond in Russian. Format as JSON with keys: assessment, strengths, weaknesses,
     }
 
     const result = {
-      score,
+      score: correct,
+      percentage: score,
       correct,
       total: questions.length,
       topicPerformance,
