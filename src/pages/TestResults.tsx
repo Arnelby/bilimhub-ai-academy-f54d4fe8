@@ -130,9 +130,11 @@ export default function TestResults() {
     );
   }
 
-  const score = result.score || 0;
+  const rawScore = result.score || 0;
   const total = result.total_questions || 1;
-  const percentage = Math.round((score / total) * 100);
+  // If score > total, it's likely already a percentage — use as-is but clamp
+  const score = rawScore > total ? Math.round((rawScore / 100) * total) : rawScore;
+  const percentage = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
   const timeTaken = result.time_taken_seconds || 0;
   const analysis = result.ai_analysis;
 
