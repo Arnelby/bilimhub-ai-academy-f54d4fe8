@@ -86,21 +86,33 @@ export default function Login() {
       });
 
       if (signInError) {
-        // If user doesn't exist yet, create account with invite code as password
+        // Only attempt signup if credentials are invalid (user doesn't exist yet)
         if (signInError.message.includes('Invalid login credentials')) {
-          const { error: signUpError } = await supabase.auth.signUp({
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: trimmedEmail,
             password: trimmedCode,
           });
 
           if (signUpError) {
-            console.error('Sign up error:', signUpError);
-            setGeneralError('Ошибка создания аккаунта. Попробуйте позже.');
+            // If user already exists, don't retry signup
+            if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
+              setGeneralError('Неверный инвайт-код для этого email. Попробуйте ещё раз.');
+            } else {
+              console.error('Sign up error:', signUpError);
+              setGeneralError('Ошибка создания аккаунта. Попробуйте позже.');
+            }
             setIsLoading(false);
             return;
           }
 
-          // Auto-confirm is enabled, so sign in immediately after signup
+          // If signUp returned a fake user (email not confirmed / user exists), stop
+          if (signUpData?.user?.identities?.length === 0) {
+            setGeneralError('Неверный инвайт-код для этого email.');
+            setIsLoading(false);
+            return;
+          }
+
+          // Sign in after successful signup
           const { error: retryError } = await supabase.auth.signInWithPassword({
             email: trimmedEmail,
             password: trimmedCode,
