@@ -811,6 +811,34 @@ export default function DiagnosticTest() {
         throw new Error(profileSaveError.message || 'Failed to save diagnostic profile');
       }
 
+      // ✅ Also save as a user_tests record so study plan generation can find it
+      const ortScore = calculateOrtScore();
+      const diagnosticAnswers = Object.entries(ortAnswers).map(([qNum, answer]) => ({
+        questionId: parseInt(qNum),
+        topic: ORT_QUESTION_TOPICS[parseInt(qNum)] || null,
+        selectedAnswer: answer,
+        isCorrect: answer === ortCorrectAnswers[qNum],
+      }));
+
+      // Use existing practice test ID or a well-known diagnostic test ID
+      const diagnosticTestId = 'bbbb1111-1111-1111-1111-111111111111';
+
+      const { error: testSaveError } = await supabase
+        .from('user_tests')
+        .insert({
+          user_id: user.id,
+          test_id: diagnosticTestId,
+          score: ortScore.correct,
+          total_questions: ortScore.total,
+          answers: diagnosticAnswers,
+          completed_at: new Date().toISOString(),
+        });
+
+      if (testSaveError) {
+        console.error('user_tests insert error (non-blocking):', testSaveError);
+        // Non-blocking: profile is already saved, plan generation can still use user_diagnostic_profile
+      }
+
       // ✅ НОВЫЙ ПОДХОД: AI Orchestrator (1 запрос вместо 2+)
       console.log('🚀 Trying AI Orchestrator...');
       const orchestratorResult = await analyzeWithOrchestrator(topicMasteryData, profileData);
