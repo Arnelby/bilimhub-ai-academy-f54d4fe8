@@ -194,91 +194,108 @@ export default function LearningPlanV2() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Overall Accuracy */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Общий результат диагностики</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl font-bold">
-                    {result.diagnostic.overallAccuracy}%
-                  </div>
-                  <div className="flex-1">
-                    <Progress value={result.diagnostic.overallAccuracy} className="h-3" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Weak Topics */}
-            {result.diagnostic.weakTopics.length > 0 && (
-              <Card className="border-destructive/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-destructive" />
-                    Слабые темы ({result.diagnostic.weakTopics.length})
-                  </CardTitle>
-                </CardHeader>
+            {/* Error state */}
+            {result.error && !result.diagnostic && (
+              <Card className="text-center py-12">
                 <CardContent>
-                  <div className="space-y-3">
-                    {result.diagnostic.weakTopics.map((t, i) => (
-                      <div key={i} className="flex items-center justify-between">
-                        <span className="text-sm">{t.topic}</span>
-                        <div className="flex items-center gap-3 w-48">
-                          <Progress value={t.accuracy} className="h-2 flex-1" />
-                          <span className="text-sm font-mono text-destructive w-10 text-right">{t.accuracy}%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <AlertTriangle className="w-12 h-12 mx-auto text-destructive mb-4" />
+                  <p className="text-muted-foreground">{result.error}</p>
+                  <Button onClick={() => navigate('/tests')} className="mt-4">Пройти тест</Button>
                 </CardContent>
               </Card>
             )}
 
-            {/* Strong Topics */}
-            {result.diagnostic.strongTopics.length > 0 && (
-              <Card className="border-green-500/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    Сильные темы ({result.diagnostic.strongTopics.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {result.diagnostic.strongTopics.map((t, i) => (
-                      <Badge key={i} variant="secondary" className="text-green-700">
-                        {t.topic} — {t.accuracy}%
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Overall Accuracy */}
+            {result.diagnostic && (
+              <>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Общий результат диагностики</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4">
+                      <div className="text-4xl font-bold">
+                        {result.diagnostic.overallAccuracy}%
+                      </div>
+                      <div className="flex-1">
+                        <Progress value={result.diagnostic.overallAccuracy} className="h-3" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weak Topics */}
+                {(result.diagnostic.weakTopics?.length ?? 0) > 0 && (
+                  <Card className="border-destructive/30">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                        Слабые темы ({result.diagnostic.weakTopics.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {result.diagnostic.weakTopics.map((t, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-sm">{t.topic}</span>
+                            <div className="flex items-center gap-3 w-48">
+                              <Progress value={t.accuracy} className="h-2 flex-1" />
+                              <span className="text-sm font-mono text-destructive w-10 text-right">{t.accuracy}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Strong Topics */}
+                {(result.diagnostic.strongTopics?.length ?? 0) > 0 && (
+                  <Card className="border-accent/30">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-accent" />
+                        Сильные темы ({result.diagnostic.strongTopics.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {result.diagnostic.strongTopics.map((t, i) => (
+                          <Badge key={i} variant="secondary">
+                            {t.topic} — {t.accuracy}%
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
 
             {/* Plan Summary & Actions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Рекомендации</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{result.plan.summary}</p>
-                {result.plan.actions.length > 0 && (
-                  <ul className="space-y-2">
-                    {result.plan.actions.map((action, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                        {action}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            {result.plan && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Рекомендации</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">{result.plan.summary}</p>
+                  {(result.plan.actions?.length ?? 0) > 0 && (
+                    <ul className="space-y-2">
+                      {result.plan.actions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tasks */}
-            {result.tasks.length > 0 && (
+            {(result.tasks?.length ?? 0) > 0 && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Задачи для практики</CardTitle>
@@ -299,10 +316,12 @@ export default function LearningPlanV2() {
             )}
 
             {/* CTA Button */}
-            <Button onClick={handleCTA} className="w-full" size="lg">
-              {result.cta?.text || "Улучшить слабые темы"}
-              <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
+            {result.cta && (
+              <Button onClick={handleCTA} className="w-full" size="lg">
+                {result.cta.text || "Улучшить слабые темы"}
+                <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            )}
           </div>
         )}
       </div>
