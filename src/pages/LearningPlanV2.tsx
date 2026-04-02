@@ -11,21 +11,33 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight, BookOpen } from "lucide-react";
 
+/** Safely convert any value to a renderable string */
+const toDisplayString = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    return obj.question as string || obj.text as string || obj.name as string || JSON.stringify(value);
+  }
+  return String(value);
+};
+
 interface DiagnosticResult {
-  overallAccuracy: number;
-  weakTopics: { topic: string; accuracy: number }[];
-  strongTopics: { topic: string; accuracy: number }[];
+  overallAccuracy?: number;
+  weakTopics?: { topic: string; accuracy: number }[];
+  strongTopics?: { topic: string; accuracy: number }[];
 }
 
 interface PlanResult {
-  diagnostic: DiagnosticResult;
-  plan: {
-    summary: string;
-    focusTopics: string[];
-    actions: string[];
+  diagnostic?: DiagnosticResult;
+  plan?: {
+    summary?: string;
+    focusTopics?: string[];
+    actions?: unknown[];
   };
-  tasks: { topic: string; problems: string[] }[];
-  cta: { text: string; action: string };
+  tasks?: { topic?: string; problems?: unknown[] }[];
+  cta?: { text?: string; action?: string };
   error?: string;
 }
 
@@ -57,10 +69,7 @@ export default function LearningPlanV2() {
         .maybeSingle();
 
       if (data?.plan_data) {
-        const parsed = data.plan_data as unknown as PlanResult;
-        if (parsed.diagnostic) {
-          setResult(parsed);
-        }
+        setResult(data.plan_data as unknown as PlanResult);
       }
     } catch (e) {
       console.error('Error fetching plan:', e);
@@ -74,7 +83,7 @@ export default function LearningPlanV2() {
 
     setGenerating(true);
     try {
-      // Get latest practice test answers (practice test = diagnostic source)
+      // Get latest completed test answers (practice test = diagnostic source)
       const { data: testData } = await supabase
         .from('user_tests')
         .select('answers, score, total_questions')
@@ -84,9 +93,9 @@ export default function LearningPlanV2() {
         .limit(1)
         .maybeSingle();
 
-      // Also check user_answers table as fallback
       let answers = Array.isArray(testData?.answers) ? testData.answers : [];
 
+      // Fallback to user_answers table
       if (answers.length === 0) {
         const { data: userAnswers } = await supabase
           .from('user_answers')
@@ -131,7 +140,7 @@ export default function LearningPlanV2() {
       if (!response.ok) throw new Error('Failed to generate plan');
       const planResult: PlanResult = await response.json();
 
-      if (planResult.error) {
+      if (planResult.error && !planResult.diagnostic) {
         toast({ title: "Ошибка", description: planResult.error, variant: "destructive" });
         setGenerating(false);
         return;
@@ -185,6 +194,12 @@ export default function LearningPlanV2() {
     );
   }
 
+  const overallAccuracy = result?.diagnostic?.overallAccuracy ?? null;
+  const weakTopics = result?.diagnostic?.weakTopics ?? [];
+  const strongTopics = result?.diagnostic?.strongTopics ?? [];
+  const actions = result?.plan?.actions ?? [];
+  const tasks = result?.tasks ?? [];
+
   return (
     <Layout>
       <div className="container py-8 max-w-3xl">
@@ -224,36 +239,36 @@ export default function LearningPlanV2() {
             )}
 
             {/* Overall Accuracy */}
-            {result.diagnostic && (
+            {overallAccuracy !== null && (
               <>
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Общий результат диагностики</CardTitle>
+                    <CardTitle className="text-lg">Общий результат</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-4">
                       <div className="text-4xl font-bold">
-                        {result.diagnostic.overallAccuracy}%
+                        {overallAccuracy}%
                       </div>
                       <div className="flex-1">
-                        <Progress value={result.diagnostic.overallAccuracy} className="h-3" />
+                        <Progress value={overallAccuracy} className="h-3" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Weak Topics */}
-                {(result.diagnostic.weakTopics?.length ?? 0) > 0 && (
+                {weakTopics.length > 0 && (
                   <Card className="border-destructive/30">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <AlertTriangle className="w-5 h-5 text-destructive" />
-                        Слабые темы ({result.diagnostic.weakTopics.length})
+                        Слабые темы ({weakTopics.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {result.diagnostic.weakTopics.map((t, i) => (
+                        {weakTopics.map((t, i) => (
                           <div key={i} className="flex items-center justify-between">
                             <span className="text-sm">{t.topic}</span>
                             <div className="flex items-center gap-3 w-48">
@@ -268,17 +283,17 @@ export default function LearningPlanV2() {
                 )}
 
                 {/* Strong Topics */}
-                {(result.diagnostic.strongTopics?.length ?? 0) > 0 && (
+                {strongTopics.length > 0 && (
                   <Card className="border-accent/30">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-accent" />
-                        Сильные темы ({result.diagnostic.strongTopics.length})
+                        Сильные темы ({strongTopics.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-2">
-                        {result.diagnostic.strongTopics.map((t, i) => (
+                        {strongTopics.map((t, i) => (
                           <Badge key={i} variant="secondary">
                             {t.topic} — {t.accuracy}%
                           </Badge>
@@ -291,19 +306,19 @@ export default function LearningPlanV2() {
             )}
 
             {/* Plan Summary & Actions */}
-            {result.plan && (
+            {result.plan?.summary && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Рекомендации</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{result.plan.summary}</p>
-                  {(result.plan.actions?.length ?? 0) > 0 && (
+                  <p className="text-sm text-muted-foreground">{toDisplayString(result.plan.summary)}</p>
+                  {actions.length > 0 && (
                     <ul className="space-y-2">
-                      {result.plan.actions.map((action, i) => (
+                      {actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                          {action}
+                          {toDisplayString(action)}
                         </li>
                       ))}
                     </ul>
@@ -313,19 +328,19 @@ export default function LearningPlanV2() {
             )}
 
             {/* Tasks */}
-            {(result.tasks?.length ?? 0) > 0 && (
+            {tasks.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Задачи для практики</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {result.tasks.map((task, i) => (
+                  {tasks.map((task, i) => (
                     <div key={i}>
-                      <h3 className="font-medium text-sm mb-2">{task.topic}</h3>
+                      <h3 className="font-medium text-sm mb-2">{toDisplayString(task.topic)}</h3>
                       <ul className="space-y-1 pl-4">
-                        {task.problems.map((p, j) => (
+                        {(task.problems ?? []).map((p, j) => (
                           <li key={j} className="text-sm text-muted-foreground list-disc">
-                            {typeof p === 'string' ? p : (p as any)?.question || JSON.stringify(p)}
+                            {toDisplayString(p)}
                           </li>
                         ))}
                       </ul>
