@@ -303,38 +303,35 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Convert to display format
-      const planData = data.planData || data;
+      if (data.error) {
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' });
+        setGeneratingPath(false);
+        return;
+      }
+
+      // The edge function returns { diagnostic, plan, tasks, cta }
+      const weakTopics = data.diagnostic?.weakTopics || [];
       setLearningPath({
-        summary: data.learningStrategy || data.explanation || '',
-        recommendedPath: (planData.weeklyPlan || data.weeklyPlan || []).flatMap((day: any, idx: number) => 
-          (day.topics || []).map((topic: any, tIdx: number) => ({
-            order: idx * 10 + tIdx + 1,
-            topic: topic.name,
-            reason: topic.priority === 'weak' ? 'Слабая тема - требует внимания' : 'Закрепление',
-            estimatedTime: topic.time,
-            priority: topic.priority === 'weak' ? 'high' : 'medium',
-          }))
-        ).slice(0, 5),
-        motivationalMessage: data.explanation || planData.explanation || 'Продолжайте заниматься!',
+        summary: data.plan?.summary || '',
+        recommendedPath: weakTopics.map((t: any, idx: number) => ({
+          order: idx + 1,
+          topic: t.topic,
+          reason: `Точность: ${t.accuracy}%`,
+          estimatedTime: '30 мин',
+          priority: t.accuracy < 40 ? 'high' : 'medium',
+        })).slice(0, 5),
+        motivationalMessage: data.plan?.summary || 'Продолжайте заниматься!',
       });
 
-      // Save the learning path to v2 table
-      await supabase
-        .from('ai_learning_plans_v2')
-        .upsert({
-          user_id: user.id,
-          plan_data: data.planData || data,
-          schedule: data.schedule,
-          target_topics: data.targetTopics,
-          daily_tasks: data.dailyTasks,
-          mini_tests: data.miniTests,
-          predicted_timeline: data.predictedTimeline,
-          mastery_goals: data.masteryGoals,
-          ort_score_projection: data.ortScoreProjection,
-          learning_strategy: data.learningStrategy || data.explanation,
-          is_active: true,
-          generated_at: new Date().toISOString(),
+      // Save to v2 table
+      await supabase.from('ai_learning_plans_v2').update({ is_active: false }).eq('user_id', user.id);
+      await supabase.from('ai_learning_plans_v2').insert({
+        user_id: user.id,
+        plan_data: data as any,
+        learning_strategy: data.plan?.summary,
+        target_topics: weakTopics,
+        is_active: true,
+        generated_at: new Date().toISOString(),
         });
 
       toast({
