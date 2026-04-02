@@ -992,6 +992,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_answers: {
+        Row: {
+          answered_at: string
+          correct_option: number
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_option: number
+          test_id: string
+          test_name: string
+          topic: string | null
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          correct_option: number
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          selected_option: number
+          test_id: string
+          test_name: string
+          topic?: string | null
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          correct_option?: number
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_option?: number
+          test_id?: string
+          test_name?: string
+          topic?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_diagnostic_profile: {
         Row: {
           accuracy_score: number | null
