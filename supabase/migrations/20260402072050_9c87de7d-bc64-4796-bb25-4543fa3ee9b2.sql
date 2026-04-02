@@ -1,0 +1,1 @@
+CREATE POLICY "Users can update their own answers" ON public.user_answers FOR UPDATE TO public USING (auth.uid() = user_id);

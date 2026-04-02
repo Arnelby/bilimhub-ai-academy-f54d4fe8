@@ -206,21 +206,37 @@ export default function Dashboard() {
         .maybeSingle();
 
       if (savedPathV2?.plan_data) {
-        // Convert v2 format to v1 format for display
         const planData = savedPathV2.plan_data as any;
-        setLearningPath({
-          summary: savedPathV2.learning_strategy || planData.explanation || '',
-          recommendedPath: (planData.weeklyPlan || []).flatMap((day: any, idx: number) => 
-            (day.topics || []).map((topic: any, tIdx: number) => ({
-              order: idx * 10 + tIdx + 1,
-              topic: topic.name,
-              reason: topic.priority === 'weak' ? 'Слабая тема - требует внимания' : 'Закрепление',
-              estimatedTime: topic.time,
-              priority: topic.priority === 'weak' ? 'high' : 'medium',
-            }))
-          ).slice(0, 5),
-          motivationalMessage: planData.explanation || 'Продолжайте заниматься!',
-        });
+        // Handle both new format (diagnostic/plan/tasks) and old format (weeklyPlan)
+        if (planData.diagnostic && planData.plan) {
+          const weakTopics = planData.diagnostic?.weakTopics || [];
+          setLearningPath({
+            summary: planData.plan?.summary || savedPathV2.learning_strategy || '',
+            recommendedPath: weakTopics.map((t: any, idx: number) => ({
+              order: idx + 1,
+              topic: t.topic,
+              reason: `Точность: ${t.accuracy}%`,
+              estimatedTime: '30 мин',
+              priority: t.accuracy < 40 ? 'high' : 'medium',
+            })).slice(0, 5),
+            motivationalMessage: planData.plan?.summary || 'Продолжайте заниматься!',
+          });
+        } else {
+          // Legacy format
+          setLearningPath({
+            summary: savedPathV2.learning_strategy || planData.explanation || '',
+            recommendedPath: (planData.weeklyPlan || []).flatMap((day: any, idx: number) => 
+              (day.topics || []).map((topic: any, tIdx: number) => ({
+                order: idx * 10 + tIdx + 1,
+                topic: topic.name,
+                reason: topic.priority === 'weak' ? 'Слабая тема' : 'Закрепление',
+                estimatedTime: topic.time,
+                priority: topic.priority === 'weak' ? 'high' : 'medium',
+              }))
+            ).slice(0, 5),
+            motivationalMessage: planData.explanation || 'Продолжайте заниматься!',
+          });
+        }
       } else {
         // Fallback to old table
         const { data: savedPath } = await supabase
@@ -247,77 +263,91 @@ export default function Dashboard() {
     
     setGeneratingPath(true);
     try {
-      // Get user's diagnostic profile first (this has the ORT test results)
-      const { data: diagnosticProfile } = await supabase
-        .from('user_diagnostic_profile')
-        .select('*')
+      // Get latest completed test (practice test = diagnostic source)
+      const { data: latestTest } = await supabase
+        .from('user_tests')
+        .select('answers, score, total_questions')
         .eq('user_id', user.id)
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      // Get user's test results and topic progress
-      const { data: testResults } = await supabase
-        .from('user_tests')
-        .select('*')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null);
+      let answers = Array.isArray(latestTest?.answers) ? latestTest.answers : [];
 
-      const { data: topicProgress } = await supabase
-        .from('user_topic_progress')
-        .select('*')
-        .eq('user_id', user.id);
+      // Fallback to user_answers table
+      if (answers.length === 0) {
+        const { data: userAnswers } = await supabase
+          .from('user_answers')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('answered_at', { ascending: false })
+          .limit(30);
 
-      // Use the new ai-learning-plan-v2 function which is deterministic
+        if (userAnswers && userAnswers.length > 0) {
+          answers = userAnswers.map((a: any, idx: number) => ({
+            questionId: a.question_id || idx + 1,
+            topic: a.topic || null,
+            isCorrect: a.is_correct,
+          }));
+        }
+      }
+
+      if (answers.length === 0) {
+        toast({
+          title: 'Нет данных',
+          description: 'Сначала пройди тест в разделе «Тесты».',
+          variant: 'destructive',
+        });
+        setGeneratingPath(false);
+        return;
+      }
+
+      const diagnosticAnswers = answers.map((a: any, idx: number) => ({
+        questionId: a.questionId || a.question_id || idx + 1,
+        topic: a.topic || null,
+        isCorrect: a.correct ?? a.isCorrect ?? false,
+      }));
+
+      // Use the ai-learning-plan-v2 function with diagnosticAnswers
       const { data, error } = await supabase.functions.invoke('ai-learning-plan-v2', {
         body: {
-          diagnosticProfile: diagnosticProfile || {},
-          testHistory: testResults?.map(t => ({ 
-            score: t.score, 
-            total_questions: t.total_questions,
-            answers: t.answers || [],
-          })) || [],
-          topicMastery: topicProgress?.map(p => ({
-            topic: p.topic_id,
-            progress_percentage: p.progress_percentage || 0,
-          })) || [],
-          targetORTScore: diagnosticProfile?.target_ort_score || 170,
+          diagnosticAnswers,
           language,
         },
       });
 
       if (error) throw error;
 
-      // Convert to display format
-      const planData = data.planData || data;
+      if (data.error) {
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' });
+        setGeneratingPath(false);
+        return;
+      }
+
+      // The edge function returns { diagnostic, plan, tasks, cta }
+      const weakTopics = data.diagnostic?.weakTopics || [];
       setLearningPath({
-        summary: data.learningStrategy || data.explanation || '',
-        recommendedPath: (planData.weeklyPlan || data.weeklyPlan || []).flatMap((day: any, idx: number) => 
-          (day.topics || []).map((topic: any, tIdx: number) => ({
-            order: idx * 10 + tIdx + 1,
-            topic: topic.name,
-            reason: topic.priority === 'weak' ? 'Слабая тема - требует внимания' : 'Закрепление',
-            estimatedTime: topic.time,
-            priority: topic.priority === 'weak' ? 'high' : 'medium',
-          }))
-        ).slice(0, 5),
-        motivationalMessage: data.explanation || planData.explanation || 'Продолжайте заниматься!',
+        summary: data.plan?.summary || '',
+        recommendedPath: weakTopics.map((t: any, idx: number) => ({
+          order: idx + 1,
+          topic: t.topic,
+          reason: `Точность: ${t.accuracy}%`,
+          estimatedTime: '30 мин',
+          priority: t.accuracy < 40 ? 'high' : 'medium',
+        })).slice(0, 5),
+        motivationalMessage: data.plan?.summary || 'Продолжайте заниматься!',
       });
 
-      // Save the learning path to v2 table
-      await supabase
-        .from('ai_learning_plans_v2')
-        .upsert({
-          user_id: user.id,
-          plan_data: data.planData || data,
-          schedule: data.schedule,
-          target_topics: data.targetTopics,
-          daily_tasks: data.dailyTasks,
-          mini_tests: data.miniTests,
-          predicted_timeline: data.predictedTimeline,
-          mastery_goals: data.masteryGoals,
-          ort_score_projection: data.ortScoreProjection,
-          learning_strategy: data.learningStrategy || data.explanation,
-          is_active: true,
-          generated_at: new Date().toISOString(),
+      // Save to v2 table
+      await supabase.from('ai_learning_plans_v2').update({ is_active: false }).eq('user_id', user.id);
+      await supabase.from('ai_learning_plans_v2').insert({
+        user_id: user.id,
+        plan_data: data as any,
+        learning_strategy: data.plan?.summary,
+        target_topics: weakTopics,
+        is_active: true,
+        generated_at: new Date().toISOString(),
         });
 
       toast({
@@ -328,7 +358,7 @@ export default function Dashboard() {
       console.error('Error generating learning path:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось создать план обучения. Проверьте, прошли ли вы диагностический тест.',
+        description: 'Не удалось создать план обучения. Проверьте, прошли ли вы тест.',
         variant: 'destructive',
       });
     } finally {

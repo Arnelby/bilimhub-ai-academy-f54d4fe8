@@ -74,20 +74,38 @@ export default function LearningPlanV2() {
 
     setGenerating(true);
     try {
-      // Get diagnostic test answers
+      // Get latest practice test answers (practice test = diagnostic source)
       const { data: testData } = await supabase
         .from('user_tests')
         .select('answers, score, total_questions')
         .eq('user_id', user.id)
+        .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      const answers = Array.isArray(testData?.answers) ? testData.answers : [];
+      // Also check user_answers table as fallback
+      let answers = Array.isArray(testData?.answers) ? testData.answers : [];
 
-      // Transform answers to the format the edge function expects
       if (answers.length === 0) {
-        toast({ title: "Нет данных", description: "Сначала пройди диагностический тест.", variant: "destructive" });
+        const { data: userAnswers } = await supabase
+          .from('user_answers')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('answered_at', { ascending: false })
+          .limit(30);
+
+        if (userAnswers && userAnswers.length > 0) {
+          answers = userAnswers.map((a, idx) => ({
+            questionId: a.question_id || idx + 1,
+            topic: a.topic || null,
+            isCorrect: a.is_correct,
+          }));
+        }
+      }
+
+      if (answers.length === 0) {
+        toast({ title: "Нет данных", description: "Сначала пройди тест в разделе «Тесты».", variant: "destructive" });
         setGenerating(false);
         return;
       }
@@ -187,7 +205,7 @@ export default function LearningPlanV2() {
               <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-lg font-semibold mb-2">План ещё не создан</h2>
               <p className="text-muted-foreground mb-6 text-sm">
-                Нажми «Создать план» — система проанализирует твои результаты диагностики и покажет слабые темы.
+                Нажми «Создать план» — система проанализирует твои последние результаты тестов и покажет слабые темы.
               </p>
               <Button onClick={generatePlan} disabled={generating}>Создать план</Button>
             </CardContent>
