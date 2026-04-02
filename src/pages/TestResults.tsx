@@ -68,9 +68,10 @@ export default function TestResults() {
         setResult(data as unknown as TestResult);
 
         // Trigger gamification events
-        const score = data.score || 0;
+        const rawGamScore = data.score || 0;
         const total = data.total_questions || 1;
-        const percentage = Math.round((score / total) * 100);
+        const safeGamScore = rawGamScore > total ? Math.round((rawGamScore / 100) * total) : rawGamScore;
+        const percentage = Math.max(0, Math.min(100, Math.round((safeGamScore / total) * 100)));
         
         // Award points based on score
         const pointsEarned = Math.round(percentage / 2) + 25;
