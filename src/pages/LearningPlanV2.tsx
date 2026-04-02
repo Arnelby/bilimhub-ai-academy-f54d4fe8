@@ -86,6 +86,12 @@ export default function LearningPlanV2() {
       const answers = Array.isArray(testData?.answers) ? testData.answers : [];
 
       // Transform answers to the format the edge function expects
+      if (answers.length === 0) {
+        toast({ title: "Нет данных", description: "Сначала пройди диагностический тест.", variant: "destructive" });
+        setGenerating(false);
+        return;
+      }
+
       const diagnosticAnswers = answers.map((a: any, idx: number) => ({
         questionId: a.questionId || a.question_id || idx + 1,
         topic: a.topic || null,
