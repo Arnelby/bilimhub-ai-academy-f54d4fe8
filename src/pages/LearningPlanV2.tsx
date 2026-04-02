@@ -205,7 +205,7 @@ export default function LearningPlanV2() {
               <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h2 className="text-lg font-semibold mb-2">План ещё не создан</h2>
               <p className="text-muted-foreground mb-6 text-sm">
-                Нажми «Создать план» — система проанализирует твои результаты диагностики и покажет слабые темы.
+                Нажми «Создать план» — система проанализирует твои последние результаты тестов и покажет слабые темы.
               </p>
               <Button onClick={generatePlan} disabled={generating}>Создать план</Button>
             </CardContent>

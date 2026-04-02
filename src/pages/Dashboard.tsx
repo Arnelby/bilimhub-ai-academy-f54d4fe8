@@ -345,7 +345,7 @@ export default function Dashboard() {
       console.error('Error generating learning path:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось создать план обучения. Проверьте, прошли ли вы диагностический тест.',
+        description: 'Не удалось создать план обучения. Проверьте, прошли ли вы тест.',
         variant: 'destructive',
       });
     } finally {
