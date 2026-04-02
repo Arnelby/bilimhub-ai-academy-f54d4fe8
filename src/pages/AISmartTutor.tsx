@@ -14,6 +14,7 @@ import {
   Send, Bot, User, Loader2, Lightbulb, HelpCircle, 
   FileQuestion, Trash2, Brain, BookOpen 
 } from "lucide-react";
+import { ChatMessage } from "@/components/chat/ChatMessage";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -300,34 +301,7 @@ export default function AISmartTutor() {
                 )}
 
                 {messages.map((message, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {message.role === 'assistant' && (
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-primary/10">
-                          <Bot className="w-4 h-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div
-                      className={`max-w-[80%] p-3 rounded-lg ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    </div>
-                    {message.role === 'user' && (
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback className="bg-secondary">
-                          <User className="w-4 h-4" />
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
+                  <ChatMessage key={idx} role={message.role} content={message.content} />
                 ))}
 
                 {loading && (
