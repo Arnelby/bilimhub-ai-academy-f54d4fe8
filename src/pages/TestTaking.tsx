@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { updateGamification } from '@/hooks/useGamification';
+import { saveUserAnswer } from '@/lib/saveUserAnswer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -162,6 +163,19 @@ export default function TestTaking() {
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optionIndex;
     setAnswers(newAnswers);
+
+    // Save answer to user_answers table
+    if (user && currentQuestion && test) {
+      saveUserAnswer({
+        userId: user.id,
+        testId: testId || test.id,
+        testName: test.title_ru || test.title,
+        questionId: currentQuestion.id,
+        topic: undefined,
+        selectedOption: optionIndex,
+        correctOption: currentQuestion.correct_option,
+      });
+    }
   };
 
   const handleSubmit = useCallback(async () => {

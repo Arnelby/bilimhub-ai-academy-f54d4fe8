@@ -17,6 +17,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { saveUserAnswer } from "@/lib/saveUserAnswer";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ type AnswerOption = "A" | "B" | "C" | "D";
 
 const Testing58Viewer = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [currentPage, setCurrentPage] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -214,6 +217,22 @@ const Testing58Viewer = () => {
     const newAnswers = { ...answers, [questionNum.toString()]: option };
     setAnswers(newAnswers);
     localStorage.setItem(STORAGE_KEYS.answers, JSON.stringify(newAnswers));
+
+    // Save to user_answers table
+    if (user) {
+      const optionMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+      const correctAnswer = correctAnswers[questionNum.toString()];
+      const correctOptionIdx = correctAnswer ? optionMap[correctAnswer] ?? -1 : -1;
+      
+      saveUserAnswer({
+        userId: user.id,
+        testId: 'mathematics_part1_variant2',
+        testName: 'Математика. 1 часть. 2 вариант',
+        questionId: `q${questionNum}`,
+        selectedOption: optionMap[option],
+        correctOption: correctOptionIdx,
+      });
+    }
   };
 
   // Navigate to previous page
