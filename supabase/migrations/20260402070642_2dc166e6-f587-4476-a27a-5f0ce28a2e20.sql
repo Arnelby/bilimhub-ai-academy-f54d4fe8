@@ -1,0 +1,1 @@
+ALTER TABLE public.user_answers ADD CONSTRAINT user_answers_unique_answer UNIQUE (user_id, test_id, question_id);
