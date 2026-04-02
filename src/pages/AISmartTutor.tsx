@@ -14,6 +14,7 @@ import {
   Send, Bot, User, Loader2, Lightbulb, HelpCircle, 
   FileQuestion, Trash2, Brain, BookOpen 
 } from "lucide-react";
+import { ChatMessage } from "@/components/chat/ChatMessage";
 
 interface Message {
   role: 'user' | 'assistant';
