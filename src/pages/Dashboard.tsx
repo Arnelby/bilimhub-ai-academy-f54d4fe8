@@ -206,21 +206,37 @@ export default function Dashboard() {
         .maybeSingle();
 
       if (savedPathV2?.plan_data) {
-        // Convert v2 format to v1 format for display
         const planData = savedPathV2.plan_data as any;
-        setLearningPath({
-          summary: savedPathV2.learning_strategy || planData.explanation || '',
-          recommendedPath: (planData.weeklyPlan || []).flatMap((day: any, idx: number) => 
-            (day.topics || []).map((topic: any, tIdx: number) => ({
-              order: idx * 10 + tIdx + 1,
-              topic: topic.name,
-              reason: topic.priority === 'weak' ? 'Слабая тема - требует внимания' : 'Закрепление',
-              estimatedTime: topic.time,
-              priority: topic.priority === 'weak' ? 'high' : 'medium',
-            }))
-          ).slice(0, 5),
-          motivationalMessage: planData.explanation || 'Продолжайте заниматься!',
-        });
+        // Handle both new format (diagnostic/plan/tasks) and old format (weeklyPlan)
+        if (planData.diagnostic && planData.plan) {
+          const weakTopics = planData.diagnostic?.weakTopics || [];
+          setLearningPath({
+            summary: planData.plan?.summary || savedPathV2.learning_strategy || '',
+            recommendedPath: weakTopics.map((t: any, idx: number) => ({
+              order: idx + 1,
+              topic: t.topic,
+              reason: `Точность: ${t.accuracy}%`,
+              estimatedTime: '30 мин',
+              priority: t.accuracy < 40 ? 'high' : 'medium',
+            })).slice(0, 5),
+            motivationalMessage: planData.plan?.summary || 'Продолжайте заниматься!',
+          });
+        } else {
+          // Legacy format
+          setLearningPath({
+            summary: savedPathV2.learning_strategy || planData.explanation || '',
+            recommendedPath: (planData.weeklyPlan || []).flatMap((day: any, idx: number) => 
+              (day.topics || []).map((topic: any, tIdx: number) => ({
+                order: idx * 10 + tIdx + 1,
+                topic: topic.name,
+                reason: topic.priority === 'weak' ? 'Слабая тема' : 'Закрепление',
+                estimatedTime: topic.time,
+                priority: topic.priority === 'weak' ? 'high' : 'medium',
+              }))
+            ).slice(0, 5),
+            motivationalMessage: planData.explanation || 'Продолжайте заниматься!',
+          });
+        }
       } else {
         // Fallback to old table
         const { data: savedPath } = await supabase
