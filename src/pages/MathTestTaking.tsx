@@ -283,7 +283,7 @@ export default function MathTestTaking() {
                   {currentQuestion?.instruction ? (
                     <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
                       <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
-                      <p className="text-base font-medium whitespace-pre-line">{currentQuestion.instruction}</p>
+                      <MathRenderer content={currentQuestion.instruction} />
                     </div>
                   ) : (
                     <p className="mb-5 text-base text-muted-foreground">
