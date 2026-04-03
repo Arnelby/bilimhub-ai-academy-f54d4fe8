@@ -58,6 +58,7 @@ export default function Tests() {
         setQuestionCounts({
           1: new Set((q1Res.data || []).map(q => q.id)).size,
           2: new Set((q2Res.data || []).map(q => q.id)).size,
+          3: new Set((q3Res.data || []).map(q => q.id)).size,
         });
       } catch (err) {
         console.error('Error:', err);
