@@ -76,6 +76,8 @@ export default function Tests() {
     // Navigate to the test
     if (testId === '3fa85f64-5717-4562-b3fc-2c963f66afa6' || testId.includes('testing58')) {
       navigate('/tests/testing58');
+    } else if (testId === '00000000-0000-0000-0000-000000000001') {
+      navigate('/tests/math-test');
     } else {
       navigate(`/tests/${testId}`);
     }
