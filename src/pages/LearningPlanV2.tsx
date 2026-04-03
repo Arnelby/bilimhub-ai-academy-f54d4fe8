@@ -330,7 +330,7 @@ export default function LearningPlanV2() {
                   <CardTitle className="text-lg">Рекомендации</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{toDisplayString(result.plan.summary)}</p>
+                  <p className="text-sm text-muted-foreground"><MathRenderer content={toDisplayString(result.plan.summary)} inline /></p>
                   {actions.length > 0 && (
                     <ul className="space-y-2">
                       {actions.map((action, i) => (
