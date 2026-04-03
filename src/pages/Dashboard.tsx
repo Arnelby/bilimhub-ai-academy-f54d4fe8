@@ -312,6 +312,43 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
+                {/* ===== PER-TEST COMPARISON ===== */}
+                {analytics.testHistory.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Hash className="h-5 w-5 text-accent" />
+                        Результаты по вариантам
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {TEST_VARIANTS.map(v => {
+                          const vTests = (testsRes.data || []).filter((t: any) => t.test_id === v.uuid);
+                          if (vTests.length === 0) return (
+                            <div key={v.uuid} className="rounded-lg border border-border p-4 text-center">
+                              <p className="font-medium mb-1">{v.name}</p>
+                              <p className="text-sm text-muted-foreground">Нет попыток</p>
+                            </div>
+                          );
+                          const best = Math.max(...vTests.map((t: any) => t.score ?? 0));
+                          const avg = Math.round(vTests.reduce((s: number, t: any) => s + (t.score ?? 0), 0) / vTests.length);
+                          return (
+                            <div key={v.uuid} className="rounded-lg border border-border p-4">
+                              <p className="font-medium mb-2">{v.name}</p>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between"><span className="text-muted-foreground">Попыток</span><span className="font-semibold">{vTests.length}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Лучший</span><span className="font-semibold text-accent">{best}%</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Средний</span><span className="font-semibold">{avg}%</span></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* ===== SCORE TREND ===== */}
                 {analytics.testHistory.length > 0 && (
                   <Card>
