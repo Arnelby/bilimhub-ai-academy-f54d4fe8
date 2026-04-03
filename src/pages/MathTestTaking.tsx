@@ -25,15 +25,23 @@ interface MathQuestion {
   question_number: number;
   topic: string;
   instruction: string | null;
-  option_a: string | null;
-  option_b: string | null;
+  column_a: string;
+  column_b: string;
   option_c: string | null;
   option_d: string | null;
   correct_answer: string;
 }
 
-const OPTION_LABELS = ['A', 'B', 'C', 'D'] as const;
-const DURATION_SECONDS = 30 * 60; // 30 minutes
+const DURATION_SECONDS = 30 * 60;
+const TEST_UUID = '00000000-0000-0000-0000-000000000001';
+const TEST_NAME = 'Математика — Диагностический тест (Вариант 2)';
+
+const OPTION_LABELS: { key: string; getLabel: (q: MathQuestion) => string }[] = [
+  { key: 'A', getLabel: (q) => `Столбец A больше: ${q.column_a}` },
+  { key: 'B', getLabel: (q) => `Столбец B больше: ${q.column_b}` },
+  { key: 'C', getLabel: (q) => q.option_c || 'Величины равны' },
+  { key: 'D', getLabel: (q) => q.option_d || 'Недостаточно информации' },
+];
 
 export default function MathTestTaking() {
   const navigate = useNavigate();
@@ -42,15 +50,14 @@ export default function MathTestTaking() {
 
   const [questions, setQuestions] = useState<MathQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({}); // questionNumber -> 'A'|'B'|'C'|'D'
+  const [answers, setAnswers] = useState<Record<number, string>>({});
   const [timeLeft, setTimeLeft] = useState(DURATION_SECONDS);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showFinishDialog, setShowFinishDialog] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [startTime] = useState(new Date());
 
-  // Fetch questions from math_questions
   useEffect(() => {
     async function fetchQuestions() {
       if (!user) return;
@@ -64,7 +71,6 @@ export default function MathTestTaking() {
 
         if (error) throw error;
 
-        // Deduplicate: keep first row per question_number
         const seen = new Set<number>();
         const unique: MathQuestion[] = [];
         for (const q of (data || [])) {
@@ -73,7 +79,6 @@ export default function MathTestTaking() {
             unique.push(q);
           }
         }
-
         setQuestions(unique);
       } catch (err) {
         console.error('Error loading questions:', err);
@@ -86,7 +91,6 @@ export default function MathTestTaking() {
     fetchQuestions();
   }, [user, navigate, toast]);
 
-  // Timer
   useEffect(() => {
     if (timeLeft <= 0 || loading || isPaused) return;
     const timer = setInterval(() => {
@@ -100,21 +104,20 @@ export default function MathTestTaking() {
       });
     }, 1000);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, loading, isPaused]);
 
   const handleAnswerSelect = (option: string) => {
     const q = questions[currentIndex];
     if (!q) return;
-
     setAnswers(prev => ({ ...prev, [q.question_number]: option }));
 
-    // Save to user_answers
     if (user) {
       const optionMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
       saveUserAnswer({
         userId: user.id,
         testId: 'math_test_1',
-        testName: 'Математика — часть 1, вариант 2',
+        testName: TEST_NAME,
         questionId: `mq_${q.question_number}`,
         topic: q.topic,
         selectedOption: optionMap[option] ?? 0,
@@ -130,13 +133,8 @@ export default function MathTestTaking() {
     try {
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
-      // Calculate score
       let correct = 0;
-      const questionAttempts: {
-        question_id: string;
-        topic: string;
-        is_correct: boolean;
-      }[] = [];
+      const questionAttempts: { question_id: string; topic: string; is_correct: boolean }[] = [];
 
       for (const q of questions) {
         const userAnswer = answers[q.question_number];
@@ -150,15 +148,14 @@ export default function MathTestTaking() {
       }
 
       const total = questions.length;
-      const percentage = Math.round((correct / total) * 100);
+      const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
 
-      // Save to user_tests
       const { data: attemptData, error: attemptError } = await supabase
         .from('user_tests')
         .insert({
           user_id: user.id,
-          test_id: '00000000-0000-0000-0000-000000000001', // stable UUID for math_test_1
-          score: correct,
+          test_id: TEST_UUID,
+          score: percentage,
           total_questions: total,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
@@ -167,13 +164,9 @@ export default function MathTestTaking() {
             answer: ans,
           })),
           ai_analysis: {
-            assessment: `Вы правильно ответили на ${correct} из ${total} вопросов (${percentage}%).`,
-            strengths: [],
-            weaknesses: [],
-            recommendations: [],
-            motivation: percentage >= 70
-              ? 'Отличная работа! Продолжайте в том же духе.'
-              : 'Не сдавайтесь! Повторите слабые темы и попробуйте снова.',
+            correct_count: correct,
+            total: total,
+            percentage,
           },
         })
         .select('id')
@@ -181,7 +174,6 @@ export default function MathTestTaking() {
 
       if (attemptError) throw attemptError;
 
-      // Save question_attempts
       if (attemptData?.id) {
         const attemptsToInsert = questionAttempts.map(qa => ({
           user_id: user.id,
@@ -191,12 +183,10 @@ export default function MathTestTaking() {
           is_correct: qa.is_correct,
           time_spent_seconds: 0,
         }));
-
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
 
-      // Navigate to results
-      navigate(`/tests/00000000-0000-0000-0000-000000000001/results/${attemptData?.id}`);
+      navigate(`/tests/${TEST_UUID}/results/${attemptData?.id}`);
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
@@ -213,6 +203,7 @@ export default function MathTestTaking() {
   const answeredCount = Object.keys(answers).length;
   const currentQuestion = questions[currentIndex];
   const isTimeWarning = timeLeft < 300;
+  const isLastQuestion = currentIndex === questions.length - 1;
 
   if (loading) {
     return (
@@ -231,24 +222,17 @@ export default function MathTestTaking() {
     );
   }
 
-  const getOptions = (q: MathQuestion) => [
-    { label: 'A', text: q.option_a || '' },
-    { label: 'B', text: q.option_b || '' },
-    { label: 'C', text: q.option_c || '' },
-    { label: 'D', text: q.option_d || '' },
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setShowExitDialog(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setShowFinishDialog(true)}>
               <ChevronLeft className="mr-1 h-4 w-4" />
               Выйти
             </Button>
-            <h1 className="font-semibold">Математика — часть 1, вариант 2</h1>
+            <h1 className="hidden sm:block font-semibold text-sm">{TEST_NAME}</h1>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -263,7 +247,7 @@ export default function MathTestTaking() {
               <Clock className="mr-2 h-4 w-4" />
               {formatTime(timeLeft)}
             </Badge>
-            <Badge variant="ghost">
+            <Badge variant="outline">
               {answeredCount}/{questions.length}
             </Badge>
           </div>
@@ -286,7 +270,7 @@ export default function MathTestTaking() {
             </Card>
           ) : (
             <>
-              {/* Question */}
+              {/* SAT-style question card */}
               <Card className="mb-6">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center justify-between">
@@ -294,35 +278,59 @@ export default function MathTestTaking() {
                     <Badge variant="outline">{currentQuestion?.topic}</Badge>
                   </div>
 
-                  {currentQuestion?.instruction && (
-                    <p className="mb-6 text-lg font-medium whitespace-pre-line">
-                      {currentQuestion.instruction}
+                  {/* Instruction */}
+                  {currentQuestion?.instruction ? (
+                    <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+                      <p className="text-base font-medium whitespace-pre-line">{currentQuestion.instruction}</p>
+                    </div>
+                  ) : (
+                    <p className="mb-5 text-base text-muted-foreground">
+                      Сравните величины в столбцах A и B. Выберите правильный ответ.
                     </p>
                   )}
 
-                  {!currentQuestion?.instruction && (
-                    <p className="mb-6 text-lg font-medium text-muted-foreground">
-                      Сравните величины A и B. Выберите правильный ответ.
-                    </p>
-                  )}
+                  {/* Columns A and B side by side */}
+                  <div className="mb-6 grid grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-border bg-card p-4 text-center">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
+                      <p className="text-xl font-bold">{currentQuestion?.column_a}</p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-card p-4 text-center">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
+                      <p className="text-xl font-bold">{currentQuestion?.column_b}</p>
+                    </div>
+                  </div>
 
+                  {/* Answer options */}
                   <div className="space-y-3">
-                    {getOptions(currentQuestion).map(opt => (
-                      <button
-                        key={opt.label}
-                        onClick={() => handleAnswerSelect(opt.label)}
-                        className={`w-full rounded-lg border p-4 text-left transition-all ${
-                          answers[currentQuestion.question_number] === opt.label
-                            ? 'border-accent bg-accent/10 ring-2 ring-accent'
-                            : 'border-border hover:border-accent/50 hover:bg-muted/50'
-                        }`}
-                      >
-                        <span className="mr-3 inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-medium">
-                          {opt.label}
-                        </span>
-                        {opt.text}
-                      </button>
-                    ))}
+                    {currentQuestion && OPTION_LABELS.map(opt => {
+                      const isSelected = answers[currentQuestion.question_number] === opt.key;
+                      let displayText = '';
+                      if (opt.key === 'A') displayText = 'Величина в столбце A больше';
+                      else if (opt.key === 'B') displayText = 'Величина в столбце B больше';
+                      else if (opt.key === 'C') displayText = currentQuestion.option_c || 'Величины равны';
+                      else displayText = currentQuestion.option_d || 'Недостаточно информации';
+
+                      return (
+                        <button
+                          key={opt.key}
+                          onClick={() => handleAnswerSelect(opt.key)}
+                          className={`w-full rounded-lg border p-4 text-left transition-all ${
+                            isSelected
+                              ? 'border-accent bg-accent/10 ring-2 ring-accent'
+                              : 'border-border hover:border-accent/50 hover:bg-muted/50'
+                          }`}
+                        >
+                          <span className={`mr-3 inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${
+                            isSelected ? 'border-accent bg-accent text-accent-foreground' : 'border-border'
+                          }`}>
+                            {opt.key}
+                          </span>
+                          {displayText}
+                        </button>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -338,16 +346,16 @@ export default function MathTestTaking() {
                   Назад
                 </Button>
 
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-1.5 max-w-md">
                   {questions.map((q, index) => (
                     <button
                       key={q.question_number}
                       onClick={() => setCurrentIndex(index)}
-                      className={`h-8 w-8 rounded text-sm font-medium transition-colors ${
+                      className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
                         index === currentIndex
                           ? 'bg-accent text-accent-foreground'
                           : answers[q.question_number] !== undefined
-                          ? 'bg-success/20 text-success'
+                          ? 'bg-accent/20 text-accent'
                           : 'bg-muted text-muted-foreground hover:bg-muted/80'
                       }`}
                     >
@@ -356,15 +364,15 @@ export default function MathTestTaking() {
                   ))}
                 </div>
 
-                {currentIndex === questions.length - 1 ? (
-                  <Button variant="accent" onClick={() => setShowExitDialog(true)} disabled={submitting}>
-                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isLastQuestion ? (
+                  <Button variant="accent" onClick={() => setShowFinishDialog(true)} disabled={submitting}>
+                    {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Завершить
                   </Button>
                 ) : (
                   <Button
                     variant="default"
-                    onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
+                    onClick={() => setCurrentIndex(currentIndex + 1)}
                   >
                     Далее
                     <ChevronRight className="ml-1 h-4 w-4" />
@@ -376,8 +384,8 @@ export default function MathTestTaking() {
         </div>
       </main>
 
-      {/* Exit/Finish Dialog */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+      {/* Finish Dialog */}
+      <AlertDialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -396,7 +404,7 @@ export default function MathTestTaking() {
           <AlertDialogFooter>
             <AlertDialogCancel>Продолжить тест</AlertDialogCancel>
             <AlertDialogAction onClick={handleSubmit} disabled={submitting}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Завершить и показать результаты
             </AlertDialogAction>
           </AlertDialogFooter>

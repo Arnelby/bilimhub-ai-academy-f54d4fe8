@@ -583,11 +583,11 @@ export type Database = {
       }
       math_questions: {
         Row: {
+          column_a: string
+          column_b: string
           correct_answer: string
           id: number
           instruction: string | null
-          option_a: string | null
-          option_b: string | null
           option_c: string | null
           option_d: string | null
           question_number: number
@@ -595,11 +595,11 @@ export type Database = {
           topic: string
         }
         Insert: {
+          column_a: string
+          column_b: string
           correct_answer: string
           id?: number
           instruction?: string | null
-          option_a?: string | null
-          option_b?: string | null
           option_c?: string | null
           option_d?: string | null
           question_number: number
@@ -607,11 +607,11 @@ export type Database = {
           topic: string
         }
         Update: {
+          column_a?: string
+          column_b?: string
           correct_answer?: string
           id?: number
           instruction?: string | null
-          option_a?: string | null
-          option_b?: string | null
           option_c?: string | null
           option_d?: string | null
           question_number?: number
