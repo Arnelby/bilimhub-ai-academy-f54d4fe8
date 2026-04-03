@@ -336,7 +336,7 @@ export default function LearningPlanV2() {
                       {actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                          {toDisplayString(action)}
+                          <MathRenderer content={toDisplayString(action)} inline />
                         </li>
                       ))}
                     </ul>
