@@ -358,7 +358,7 @@ export default function LearningPlanV2() {
                       <ul className="space-y-1 pl-4">
                         {(task.problems ?? []).map((p, j) => (
                           <li key={j} className="text-sm text-muted-foreground list-disc">
-                            {toDisplayString(p)}
+                            <MathRenderer content={toDisplayString(p)} inline />
                           </li>
                         ))}
                       </ul>
