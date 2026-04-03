@@ -295,7 +295,7 @@ export default function MathTestTaking() {
                   <div className="mb-6 grid grid-cols-2 gap-4">
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
-                      <p className="text-xl font-bold">{currentQuestion?.column_a}</p>
+                      <MathRenderer content={currentQuestion?.column_a || ''} className="text-xl font-bold" />
                     </div>
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
