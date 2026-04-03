@@ -76,6 +76,8 @@ export default function Tests() {
     // Navigate to the test
     if (testId === '3fa85f64-5717-4562-b3fc-2c963f66afa6' || testId.includes('testing58')) {
       navigate('/tests/testing58');
+    } else if (testId === '00000000-0000-0000-0000-000000000001') {
+      navigate('/tests/math-test');
     } else {
       navigate(`/tests/${testId}`);
     }
@@ -117,6 +119,9 @@ export default function Tests() {
             questionCountMap[q.test_id] = (questionCountMap[q.test_id] || 0) + 1;
           }
         });
+
+        // Add math_questions count for math test
+        questionCountMap['00000000-0000-0000-0000-000000000001'] = 30;
 
         // Map tests with their status - filter out tests with 0 questions
         const testsWithStatus: TestWithStatus[] = (testsData || [])
@@ -291,7 +296,11 @@ export default function Tests() {
                       </div>
                     )}
                     <Button variant="accent" className="w-full" asChild>
-                      <Link to={test.id === '3fa85f64-5717-4562-b3fc-2c963f66afa6' ? '/tests/testing58' : `/tests/${test.id}`}>
+                      <Link to={
+                        test.id === '3fa85f64-5717-4562-b3fc-2c963f66afa6' ? '/tests/testing58' 
+                        : test.id === '00000000-0000-0000-0000-000000000001' ? '/tests/math-test'
+                        : `/tests/${test.id}`
+                      }>
                         <Play className="mr-2 h-4 w-4" />
                         {t.tests.startTest}
                       </Link>

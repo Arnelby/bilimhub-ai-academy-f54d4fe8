@@ -581,6 +581,45 @@ export type Database = {
           },
         ]
       }
+      math_questions: {
+        Row: {
+          correct_answer: string
+          id: number
+          instruction: string | null
+          option_a: string | null
+          option_b: string | null
+          option_c: string | null
+          option_d: string | null
+          question_number: number
+          test_id: number
+          topic: string
+        }
+        Insert: {
+          correct_answer: string
+          id?: number
+          instruction?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question_number: number
+          test_id: number
+          topic: string
+        }
+        Update: {
+          correct_answer?: string
+          id?: number
+          instruction?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question_number?: number
+          test_id?: number
+          topic?: string
+        }
+        Relationships: []
+      }
       mini_test_results: {
         Row: {
           answers: Json | null
