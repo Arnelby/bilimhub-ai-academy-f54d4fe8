@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,20 +34,20 @@ interface MathQuestion {
 }
 
 const DURATION_SECONDS = 30 * 60;
-const TEST_UUID = '00000000-0000-0000-0000-000000000001';
-const TEST_NAME = 'Математика — Диагностический тест (Вариант 2)';
 
-const OPTION_LABELS: { key: string; getLabel: (q: MathQuestion) => string }[] = [
-  { key: 'A', getLabel: (q) => `Столбец A больше: ${q.column_a}` },
-  { key: 'B', getLabel: (q) => `Столбец B больше: ${q.column_b}` },
-  { key: 'C', getLabel: (q) => q.option_c || 'Величины равны' },
-  { key: 'D', getLabel: (q) => q.option_d || 'Недостаточно информации' },
-];
+const TEST_CONFIG: Record<number, { uuid: string; name: string }> = {
+  1: { uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1' },
+  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2' },
+};
 
 export default function MathTestTaking() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { testId: testIdParam } = useParams<{ testId: string }>();
+
+  const mathTestId = parseInt(testIdParam || '1', 10);
+  const config = TEST_CONFIG[mathTestId] || TEST_CONFIG[1];
 
   const [questions, setQuestions] = useState<MathQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -66,7 +66,7 @@ export default function MathTestTaking() {
         const { data, error } = await supabase
           .from('math_questions')
           .select('*')
-          .eq('test_id', 1)
+          .eq('test_id', mathTestId)
           .order('question_number')
           .order('id');
 
@@ -90,7 +90,7 @@ export default function MathTestTaking() {
       }
     }
     fetchQuestions();
-  }, [user, navigate, toast]);
+  }, [user, mathTestId, navigate, toast]);
 
   useEffect(() => {
     if (timeLeft <= 0 || loading || isPaused) return;
@@ -117,9 +117,9 @@ export default function MathTestTaking() {
       const optionMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
       saveUserAnswer({
         userId: user.id,
-        testId: 'math_test_1',
-        testName: TEST_NAME,
-        questionId: `mq_${q.question_number}`,
+        testId: `math_test_${mathTestId}`,
+        testName: config.name,
+        questionId: `mq_${mathTestId}_${q.question_number}`,
         topic: q.topic,
         selectedOption: optionMap[option] ?? 0,
         correctOption: optionMap[q.correct_answer] ?? 0,
@@ -142,7 +142,7 @@ export default function MathTestTaking() {
         const isCorrect = userAnswer === q.correct_answer;
         if (isCorrect) correct++;
         questionAttempts.push({
-          question_id: `mq_${q.question_number}`,
+          question_id: `mq_${mathTestId}_${q.question_number}`,
           topic: q.topic,
           is_correct: isCorrect,
         });
@@ -155,7 +155,7 @@ export default function MathTestTaking() {
         .from('user_tests')
         .insert({
           user_id: user.id,
-          test_id: TEST_UUID,
+          test_id: config.uuid,
           score: percentage,
           total_questions: total,
           time_taken_seconds: timeTaken,
@@ -166,8 +166,9 @@ export default function MathTestTaking() {
           })),
           ai_analysis: {
             correct_count: correct,
-            total: total,
+            total,
             percentage,
+            math_test_id: mathTestId,
           },
         })
         .select('id')
@@ -187,13 +188,13 @@ export default function MathTestTaking() {
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
 
-      navigate(`/tests/${TEST_UUID}/results/${attemptData?.id}`);
+      navigate(`/tests/${config.uuid}/results/${attemptData?.id}`);
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
       setSubmitting(false);
     }
-  }, [user, submitting, answers, questions, startTime, navigate, toast]);
+  }, [user, submitting, answers, questions, startTime, navigate, toast, config, mathTestId]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -233,7 +234,7 @@ export default function MathTestTaking() {
               <ChevronLeft className="mr-1 h-4 w-4" />
               Выйти
             </Button>
-            <h1 className="hidden sm:block font-semibold text-sm">{TEST_NAME}</h1>
+            <h1 className="hidden sm:block font-semibold text-sm">{config.name}</h1>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -279,7 +280,6 @@ export default function MathTestTaking() {
                     <Badge variant="outline">{currentQuestion?.topic}</Badge>
                   </div>
 
-                  {/* Instruction */}
                   {currentQuestion?.instruction ? (
                     <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
                       <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
@@ -291,7 +291,6 @@ export default function MathTestTaking() {
                     </p>
                   )}
 
-                  {/* Columns A and B side by side */}
                   <div className="mb-6 grid grid-cols-2 gap-4">
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
@@ -303,16 +302,14 @@ export default function MathTestTaking() {
                     </div>
                   </div>
 
-                  {/* Answer options */}
                   <div className="space-y-3">
-                    {currentQuestion && OPTION_LABELS.map(opt => {
+                    {currentQuestion && [
+                      { key: 'A', label: 'Величина в столбце A больше' },
+                      { key: 'B', label: 'Величина в столбце B больше' },
+                      { key: 'C', label: currentQuestion.option_c || 'Величины равны' },
+                      { key: 'D', label: currentQuestion.option_d || 'Недостаточно информации' },
+                    ].map(opt => {
                       const isSelected = answers[currentQuestion.question_number] === opt.key;
-                      let displayText = '';
-                      if (opt.key === 'A') displayText = 'Величина в столбце A больше';
-                      else if (opt.key === 'B') displayText = 'Величина в столбце B больше';
-                      else if (opt.key === 'C') displayText = currentQuestion.option_c || 'Величины равны';
-                      else displayText = currentQuestion.option_d || 'Недостаточно информации';
-
                       return (
                         <button
                           key={opt.key}
@@ -328,7 +325,7 @@ export default function MathTestTaking() {
                           }`}>
                             {opt.key}
                           </span>
-                          <MathRenderer content={displayText} inline />
+                          <MathRenderer content={opt.label} inline />
                         </button>
                       );
                     })}
@@ -385,7 +382,6 @@ export default function MathTestTaking() {
         </div>
       </main>
 
-      {/* Finish Dialog */}
       <AlertDialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -11,14 +11,23 @@ import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-const TEST_UUID = '00000000-0000-0000-0000-000000000001';
-const TEST_NAME = 'Математика — Диагностический тест (Вариант 2)';
+interface TestVariant {
+  mathTestId: number;
+  uuid: string;
+  name: string;
+}
+
+const TEST_VARIANTS: TestVariant[] = [
+  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1' },
+  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2' },
+];
 
 interface UserTestRecord {
   id: string;
   score: number | null;
   total_questions: number | null;
   completed_at: string | null;
+  test_id: string;
 }
 
 export default function Tests() {
@@ -26,31 +35,28 @@ export default function Tests() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState<UserTestRecord[]>([]);
-  const [questionCount, setQuestionCount] = useState(0);
+  const [questionCounts, setQuestionCounts] = useState<Record<number, number>>({});
 
   useEffect(() => {
     async function fetchData() {
       if (!user) return;
       try {
-        const [attemptsRes, countRes] = await Promise.all([
+        const [attemptsRes, q1Res, q2Res] = await Promise.all([
           supabase
             .from('user_tests')
-            .select('id, score, total_questions, completed_at')
+            .select('id, score, total_questions, completed_at, test_id')
             .eq('user_id', user.id)
-            .eq('test_id', TEST_UUID)
             .not('completed_at', 'is', null)
             .order('completed_at', { ascending: false }),
-          supabase
-            .from('math_questions')
-            .select('id')
-            .eq('test_id', 1),
+          supabase.from('math_questions').select('id').eq('test_id', 1),
+          supabase.from('math_questions').select('id').eq('test_id', 2),
         ]);
 
         setAttempts(attemptsRes.data || []);
-
-        const seen = new Set<number>();
-        (countRes.data || []).forEach(q => seen.add(q.id));
-        setQuestionCount(seen.size);
+        setQuestionCounts({
+          1: new Set((q1Res.data || []).map(q => q.id)).size,
+          2: new Set((q2Res.data || []).map(q => q.id)).size,
+        });
       } catch (err) {
         console.error('Error:', err);
       } finally {
@@ -60,16 +66,27 @@ export default function Tests() {
     fetchData();
   }, [user]);
 
-  const handleStartTest = () => {
+  const handleStartTest = (mathTestId: number) => {
     localStorage.removeItem('testing58_answers');
     localStorage.removeItem('testing58_currentPage');
     localStorage.removeItem('testing58_startTime');
-    navigate('/tests/math-test');
+    navigate(`/tests/math-test/${mathTestId}`);
   };
 
-  const latestAttempt = attempts[0];
-  const bestScore = attempts.length > 0 ? Math.max(...attempts.map(a => a.score || 0)) : 0;
-  const avgScore = attempts.length > 0
+  const getAttemptsForTest = (uuid: string) =>
+    attempts.filter(a => a.test_id === uuid);
+
+  const getBestScore = (testAttempts: UserTestRecord[]) =>
+    testAttempts.length > 0 ? Math.max(...testAttempts.map(a => a.score || 0)) : 0;
+
+  const getAvgScore = (testAttempts: UserTestRecord[]) =>
+    testAttempts.length > 0
+      ? Math.round(testAttempts.reduce((s, a) => s + (a.score || 0), 0) / testAttempts.length)
+      : 0;
+
+  const totalAttempts = attempts.length;
+  const overallBest = attempts.length > 0 ? Math.max(...attempts.map(a => a.score || 0)) : 0;
+  const overallAvg = attempts.length > 0
     ? Math.round(attempts.reduce((s, a) => s + (a.score || 0), 0) / attempts.length)
     : 0;
 
@@ -91,8 +108,8 @@ export default function Tests() {
           <p className="text-muted-foreground">Пройдите диагностический тест для анализа знаний</p>
         </div>
 
-        {/* Stats */}
-        {attempts.length > 0 && (
+        {/* Global Stats */}
+        {totalAttempts > 0 && (
           <div className="mb-8 grid gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="flex items-center gap-4 p-6">
@@ -100,7 +117,7 @@ export default function Tests() {
                   <CheckCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{attempts.length}</p>
+                  <p className="text-2xl font-bold">{totalAttempts}</p>
                   <p className="text-sm text-muted-foreground">Попыток пройдено</p>
                 </div>
               </CardContent>
@@ -111,7 +128,7 @@ export default function Tests() {
                   <BarChart3 className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{avgScore}%</p>
+                  <p className="text-2xl font-bold">{overallAvg}%</p>
                   <p className="text-sm text-muted-foreground">Средний балл</p>
                 </div>
               </CardContent>
@@ -122,7 +139,7 @@ export default function Tests() {
                   <Trophy className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{bestScore}%</p>
+                  <p className="text-2xl font-bold">{overallBest}%</p>
                   <p className="text-sm text-muted-foreground">Лучший результат</p>
                 </div>
               </CardContent>
@@ -130,32 +147,49 @@ export default function Tests() {
           </div>
         )}
 
-        {/* Test Card */}
+        {/* Test Cards */}
         <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold">Доступный тест</h2>
-          <Card variant="interactive" className="max-w-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <Badge variant="accent">Диагностика</Badge>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>30 мин</span>
-                </div>
-              </div>
-              <CardTitle className="text-lg">{TEST_NAME}</CardTitle>
-              <CardDescription>{questionCount} вопросов · Сравнение величин</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 space-y-1 text-sm text-muted-foreground">
-                <p>Сравните величины в столбцах A и B</p>
-                <p>Выберите один из 4 вариантов ответа</p>
-              </div>
-              <Button variant="accent" className="w-full" onClick={handleStartTest}>
-                <Play className="mr-2 h-4 w-4" />
-                {attempts.length > 0 ? 'Пройти снова' : 'Начать тест'}
-              </Button>
-            </CardContent>
-          </Card>
+          <h2 className="mb-4 text-xl font-semibold">Доступные тесты</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            {TEST_VARIANTS.map((variant) => {
+              const testAttempts = getAttemptsForTest(variant.uuid);
+              const qCount = questionCounts[variant.mathTestId] || 0;
+              return (
+                <Card key={variant.mathTestId} variant="interactive">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="accent">Вариант {variant.mathTestId}</Badge>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>30 мин</span>
+                      </div>
+                    </div>
+                    <CardTitle className="text-lg">{variant.name}</CardTitle>
+                    <CardDescription>{qCount} вопросов · Сравнение величин</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {testAttempts.length > 0 && (
+                      <div className="mb-4 flex items-center gap-4 text-sm">
+                        <span className="text-muted-foreground">
+                          Попыток: <strong>{testAttempts.length}</strong>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Лучший: <strong className="text-accent">{getBestScore(testAttempts)}%</strong>
+                        </span>
+                        <span className="text-muted-foreground">
+                          Средний: <strong>{getAvgScore(testAttempts)}%</strong>
+                        </span>
+                      </div>
+                    )}
+                    <Button variant="accent" className="w-full" onClick={() => handleStartTest(variant.mathTestId)}>
+                      <Play className="mr-2 h-4 w-4" />
+                      {testAttempts.length > 0 ? 'Пройти снова' : 'Начать тест'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* Past Attempts */}
@@ -163,43 +197,46 @@ export default function Tests() {
           <div>
             <h2 className="mb-4 text-xl font-semibold">История попыток</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {attempts.map((attempt) => (
-                <Card key={attempt.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary">
-                        <CheckCircle className="mr-1 h-3 w-3" />
-                        Завершено
-                      </Badge>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString('ru-RU') : ''}</span>
+              {attempts.map((attempt) => {
+                const variant = TEST_VARIANTS.find(v => v.uuid === attempt.test_id);
+                return (
+                  <Card key={attempt.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary">
+                          <CheckCircle className="mr-1 h-3 w-3" />
+                          Завершено
+                        </Badge>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString('ru-RU') : ''}</span>
+                        </div>
                       </div>
-                    </div>
-                    <CardTitle className="text-base">{TEST_NAME}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Результат</span>
-                      <span className={`text-2xl font-bold ${
-                        (attempt.score || 0) >= 80 ? 'text-success' : (attempt.score || 0) >= 60 ? 'text-warning' : 'text-destructive'
-                      }`}>
-                        {attempt.score || 0}%
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => navigate(`/tests/${TEST_UUID}/results/${attempt.id}`)}>
-                        Результаты
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                      <Button variant="accent" className="flex-1 gap-2" onClick={handleStartTest}>
-                        <RotateCcw className="h-4 w-4" />
-                        Пересдать
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <CardTitle className="text-base">{variant?.name || 'Тест'}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="mb-4 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Результат</span>
+                        <span className={`text-2xl font-bold ${
+                          (attempt.score || 0) >= 80 ? 'text-success' : (attempt.score || 0) >= 60 ? 'text-warning' : 'text-destructive'
+                        }`}>
+                          {attempt.score || 0}%
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1" onClick={() => navigate(`/tests/${attempt.test_id}/results/${attempt.id}`)}>
+                          Результаты
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                        <Button variant="accent" className="flex-1 gap-2" onClick={() => handleStartTest(variant?.mathTestId || 1)}>
+                          <RotateCcw className="h-4 w-4" />
+                          Пересдать
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}

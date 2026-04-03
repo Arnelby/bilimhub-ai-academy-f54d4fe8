@@ -30,12 +30,18 @@ import { useToast } from '@/hooks/use-toast';
 
 interface TestAttempt {
   id: string;
+  test_id: string;
   score: number | null;
   total_questions: number | null;
   completed_at: string | null;
   created_at: string | null;
   time_taken_seconds: number | null;
 }
+
+const TEST_VARIANTS = [
+  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Вариант 1' },
+  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Вариант 2' },
+];
 
 interface TopicAccuracy {
   topic: string;
@@ -93,6 +99,7 @@ export default function Dashboard() {
 
   const [profileName, setProfileName] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData>(EMPTY_ANALYTICS);
+  const [rawTests, setRawTests] = useState<TestAttempt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -105,8 +112,8 @@ export default function Dashboard() {
       // Parallel fetches
       const [profileRes, testsRes, answersRes, attemptsRes, sessionsRes] = await Promise.all([
         supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
-        supabase.from('user_tests').select('id, score, total_questions, completed_at, created_at, time_taken_seconds')
-          .eq('user_id', user.id).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
+        supabase.from('user_tests').select('id, test_id, score, total_questions, completed_at, created_at, time_taken_seconds')
+           .eq('user_id', user.id).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
         supabase.from('user_answers').select('question_id, topic, is_correct, answered_at').eq('user_id', user.id),
         supabase.from('question_attempts').select('question_id, topic, is_correct, time_spent_seconds, created_at')
           .eq('user_id', user.id),
@@ -116,6 +123,7 @@ export default function Dashboard() {
       setProfileName(profileRes.data?.name || null);
 
       const tests: TestAttempt[] = testsRes.data || [];
+      setRawTests(tests);
       const userAnswers = answersRes.data || [];
       const questionAttempts = attemptsRes.data || [];
       const sessions = sessionsRes.data || [];
@@ -305,6 +313,43 @@ export default function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* ===== PER-TEST COMPARISON ===== */}
+                {analytics.testHistory.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Hash className="h-5 w-5 text-accent" />
+                        Результаты по вариантам
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        {TEST_VARIANTS.map(v => {
+                          const vTests = rawTests.filter(t => t.test_id === v.uuid);
+                          if (vTests.length === 0) return (
+                            <div key={v.uuid} className="rounded-lg border border-border p-4 text-center">
+                              <p className="font-medium mb-1">{v.name}</p>
+                              <p className="text-sm text-muted-foreground">Нет попыток</p>
+                            </div>
+                          );
+                          const best = Math.max(...vTests.map((t: any) => t.score ?? 0));
+                          const avg = Math.round(vTests.reduce((s: number, t: any) => s + (t.score ?? 0), 0) / vTests.length);
+                          return (
+                            <div key={v.uuid} className="rounded-lg border border-border p-4">
+                              <p className="font-medium mb-2">{v.name}</p>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex justify-between"><span className="text-muted-foreground">Попыток</span><span className="font-semibold">{vTests.length}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Лучший</span><span className="font-semibold text-accent">{best}%</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Средний</span><span className="font-semibold">{avg}%</span></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* ===== SCORE TREND ===== */}
                 {analytics.testHistory.length > 0 && (
