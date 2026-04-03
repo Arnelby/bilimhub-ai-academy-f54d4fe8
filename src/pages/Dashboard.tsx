@@ -111,8 +111,8 @@ export default function Dashboard() {
       // Parallel fetches
       const [profileRes, testsRes, answersRes, attemptsRes, sessionsRes] = await Promise.all([
         supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
-        supabase.from('user_tests').select('id, score, total_questions, completed_at, created_at, time_taken_seconds')
-          .eq('user_id', user.id).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
+        supabase.from('user_tests').select('id, test_id, score, total_questions, completed_at, created_at, time_taken_seconds')
+           .eq('user_id', user.id).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
         supabase.from('user_answers').select('question_id, topic, is_correct, answered_at').eq('user_id', user.id),
         supabase.from('question_attempts').select('question_id, topic, is_correct, time_spent_seconds, created_at')
           .eq('user_id', user.id),
