@@ -42,7 +42,7 @@ export default function Tests() {
     async function fetchData() {
       if (!user) return;
       try {
-        const [attemptsRes, q1Res, q2Res] = await Promise.all([
+        const [attemptsRes, q1Res, q2Res, q3Res] = await Promise.all([
           supabase
             .from('user_tests')
             .select('id, score, total_questions, completed_at, test_id')
@@ -51,6 +51,7 @@ export default function Tests() {
             .order('completed_at', { ascending: false }),
           supabase.from('math_questions').select('id').eq('test_id', 1),
           supabase.from('math_questions').select('id').eq('test_id', 2),
+          supabase.from('math_questions').select('id').eq('test_id', 3),
         ]);
 
         setAttempts(attemptsRes.data || []);
