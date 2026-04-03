@@ -299,7 +299,7 @@ export default function MathTestTaking() {
                     </div>
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
-                      <p className="text-xl font-bold">{currentQuestion?.column_b}</p>
+                      <MathRenderer content={currentQuestion?.column_b || ''} className="text-xl font-bold" />
                     </div>
                   </div>
 
