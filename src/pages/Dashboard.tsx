@@ -30,12 +30,18 @@ import { useToast } from '@/hooks/use-toast';
 
 interface TestAttempt {
   id: string;
+  test_id: string;
   score: number | null;
   total_questions: number | null;
   completed_at: string | null;
   created_at: string | null;
   time_taken_seconds: number | null;
 }
+
+const TEST_VARIANTS = [
+  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Вариант 1' },
+  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Вариант 2' },
+];
 
 interface TopicAccuracy {
   topic: string;
