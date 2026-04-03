@@ -45,7 +45,7 @@ export default function Tests() {
     async function fetchData() {
       if (!user) return;
       try {
-        const [attemptsRes, q1Res, q2Res, q3Res] = await Promise.all([
+        const [attemptsRes, q1Res, q2Res, q3Res, q4Res] = await Promise.all([
           supabase
             .from('user_tests')
             .select('id, score, total_questions, completed_at, test_id')
@@ -55,6 +55,7 @@ export default function Tests() {
           supabase.from('math_questions').select('id').eq('test_id', 1),
           supabase.from('math_questions').select('id').eq('test_id', 2),
           supabase.from('math_questions').select('id').eq('test_id', 3),
+          supabase.from('math_test_questions').select('id').eq('test_id', 4),
         ]);
 
         setAttempts(attemptsRes.data || []);
@@ -62,6 +63,7 @@ export default function Tests() {
           1: new Set((q1Res.data || []).map(q => q.id)).size,
           2: new Set((q2Res.data || []).map(q => q.id)).size,
           3: new Set((q3Res.data || []).map(q => q.id)).size,
+          4: new Set((q4Res.data || []).map(q => q.id)).size,
         });
       } catch (err) {
         console.error('Error:', err);
