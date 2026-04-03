@@ -327,8 +327,7 @@ export default function MathTestTaking() {
                             isSelected ? 'border-accent bg-accent text-accent-foreground' : 'border-border'
                           }`}>
                             {opt.key}
-                          </span>
-                          {displayText}
+                          <MathRenderer content={displayText} inline />
                         </button>
                       );
                     })}
