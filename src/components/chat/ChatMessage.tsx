@@ -1,9 +1,6 @@
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
 import { cn } from '@/lib/utils';
 import { Bot, User } from 'lucide-react';
+import { MathRenderer } from '@/components/math/MathRenderer';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant';
