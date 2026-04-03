@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface MathQuestion {
+interface ComparisonQuestion {
+  type: 'comparison';
   id: number;
   question_number: number;
   topic: string;
@@ -33,11 +34,25 @@ interface MathQuestion {
   correct_answer: string;
 }
 
+interface McqQuestion {
+  type: 'mcq';
+  id: number;
+  question_number: number;
+  topic: string;
+  instruction: string;
+  options: Record<string, string>;
+  correct_answer: string;
+}
+
+type TestQuestion = ComparisonQuestion | McqQuestion;
+
 const DURATION_SECONDS = 30 * 60;
 
-const TEST_CONFIG: Record<number, { uuid: string; name: string }> = {
-  1: { uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1' },
-  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2' },
+const TEST_CONFIG: Record<number, { uuid: string; name: string; table: 'math_questions' | 'math_test_questions' }> = {
+  1: { uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions' },
+  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions' },
+  3: { uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions' },
+  4: { uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions' },
 };
 
 export default function MathTestTaking() {
@@ -49,7 +64,7 @@ export default function MathTestTaking() {
   const mathTestId = parseInt(testIdParam || '1', 10);
   const config = TEST_CONFIG[mathTestId] || TEST_CONFIG[1];
 
-  const [questions, setQuestions] = useState<MathQuestion[]>([]);
+  const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [timeLeft, setTimeLeft] = useState(DURATION_SECONDS);
@@ -63,24 +78,60 @@ export default function MathTestTaking() {
     async function fetchQuestions() {
       if (!user) return;
       try {
-        const { data, error } = await supabase
-          .from('math_questions')
-          .select('*')
-          .eq('test_id', mathTestId)
-          .order('question_number')
-          .order('id');
-
-        if (error) throw error;
-
-        const seen = new Set<number>();
-        const unique: MathQuestion[] = [];
-        for (const q of (data || [])) {
-          if (!seen.has(q.question_number)) {
-            seen.add(q.question_number);
-            unique.push(q);
+        if (config.table === 'math_test_questions') {
+          const { data, error } = await supabase
+            .from('math_test_questions')
+            .select('*')
+            .eq('test_id', mathTestId)
+            .order('question_number')
+            .order('id');
+          if (error) throw error;
+          const seen = new Set<number>();
+          const unique: TestQuestion[] = [];
+          for (const q of (data || [])) {
+            if (!seen.has(q.question_number)) {
+              seen.add(q.question_number);
+              unique.push({
+                type: 'mcq',
+                id: q.id,
+                question_number: q.question_number,
+                topic: q.topic || '',
+                instruction: q.instruction || '',
+                options: (q.options as Record<string, string>) || {},
+                correct_answer: q.correct_answer,
+              });
+            }
           }
+          setQuestions(unique);
+        } else {
+          const { data, error } = await supabase
+            .from('math_questions')
+            .select('*')
+            .eq('test_id', mathTestId)
+            .order('question_number')
+            .order('id');
+          if (error) throw error;
+          const seen = new Set<number>();
+          const unique: TestQuestion[] = [];
+          for (const q of (data || [])) {
+            if (!seen.has(q.question_number)) {
+              seen.add(q.question_number);
+              unique.push({
+                type: 'comparison',
+                id: q.id,
+                question_number: q.question_number,
+                topic: q.topic,
+                instruction: q.instruction,
+                column_a: q.column_a,
+                column_b: q.column_b,
+                option_c: q.option_c,
+                option_d: q.option_d,
+                correct_answer: q.correct_answer,
+              });
+            }
+          }
+          setQuestions(unique);
         }
-        setQuestions(unique);
       } catch (err) {
         console.error('Error loading questions:', err);
         toast({ title: 'Ошибка', description: 'Не удалось загрузить вопросы', variant: 'destructive' });
@@ -90,7 +141,7 @@ export default function MathTestTaking() {
       }
     }
     fetchQuestions();
-  }, [user, mathTestId, navigate, toast]);
+  }, [user, mathTestId, navigate, toast, config.table]);
 
   useEffect(() => {
     if (timeLeft <= 0 || loading || isPaused) return;
@@ -114,15 +165,17 @@ export default function MathTestTaking() {
     setAnswers(prev => ({ ...prev, [q.question_number]: option }));
 
     if (user) {
-      const optionMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+      const optionKeys = q.type === 'mcq' ? Object.keys(q.options) : ['A', 'B', 'C', 'D'];
+      const selectedIdx = optionKeys.indexOf(option);
+      const correctIdx = optionKeys.indexOf(q.correct_answer);
       saveUserAnswer({
         userId: user.id,
         testId: `math_test_${mathTestId}`,
         testName: config.name,
         questionId: `mq_${mathTestId}_${q.question_number}`,
         topic: q.topic,
-        selectedOption: optionMap[option] ?? 0,
-        correctOption: optionMap[q.correct_answer] ?? 0,
+        selectedOption: selectedIdx >= 0 ? selectedIdx : 0,
+        correctOption: correctIdx >= 0 ? correctIdx : 0,
       });
     }
   };
@@ -224,9 +277,80 @@ export default function MathTestTaking() {
     );
   }
 
+  const renderComparisonQuestion = (q: ComparisonQuestion) => (
+    <>
+      {q.instruction ? (
+        <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
+          <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+          <MathRenderer content={q.instruction} />
+        </div>
+      ) : (
+        <p className="mb-5 text-base text-muted-foreground">
+          Сравните величины в столбцах A и B. Выберите правильный ответ.
+        </p>
+      )}
+
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="rounded-lg border border-border bg-card p-4 text-center">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
+          <MathRenderer content={q.column_a} className="text-xl font-bold" />
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 text-center">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
+          <MathRenderer content={q.column_b} className="text-xl font-bold" />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {[
+          { key: 'A', label: 'Величина в столбце A больше' },
+          { key: 'B', label: 'Величина в столбце B больше' },
+          { key: 'C', label: q.option_c || 'Величины равны' },
+          { key: 'D', label: q.option_d || 'Недостаточно информации' },
+        ].map(opt => renderOptionButton(opt.key, opt.label, q.question_number))}
+      </div>
+    </>
+  );
+
+  const renderMcqQuestion = (q: McqQuestion) => (
+    <>
+      <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
+        <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+        <MathRenderer content={q.instruction} />
+      </div>
+
+      <div className="space-y-3">
+        {Object.entries(q.options).map(([key, value]) =>
+          renderOptionButton(key, value, q.question_number)
+        )}
+      </div>
+    </>
+  );
+
+  const renderOptionButton = (key: string, label: string, questionNumber: number) => {
+    const isSelected = answers[questionNumber] === key;
+    return (
+      <button
+        key={key}
+        onClick={() => handleAnswerSelect(key)}
+        className={`w-full rounded-lg border p-4 text-left transition-all ${
+          isSelected
+            ? 'border-accent bg-accent/10 ring-2 ring-accent'
+            : 'border-border hover:border-accent/50 hover:bg-muted/50'
+        }`}
+      >
+        <span className={`mr-3 inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${
+          isSelected ? 'border-accent bg-accent text-accent-foreground' : 'border-border'
+        }`}>
+          {key}
+        </span>
+        <MathRenderer content={label} inline />
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
@@ -272,7 +396,6 @@ export default function MathTestTaking() {
             </Card>
           ) : (
             <>
-              {/* SAT-style question card */}
               <Card className="mb-6">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center justify-between">
@@ -280,60 +403,14 @@ export default function MathTestTaking() {
                     <Badge variant="outline">{currentQuestion?.topic}</Badge>
                   </div>
 
-                  {currentQuestion?.instruction ? (
-                    <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
-                      <MathRenderer content={currentQuestion.instruction} />
-                    </div>
-                  ) : (
-                    <p className="mb-5 text-base text-muted-foreground">
-                      Сравните величины в столбцах A и B. Выберите правильный ответ.
-                    </p>
-                  )}
-
-                  <div className="mb-6 grid grid-cols-2 gap-4">
-                    <div className="rounded-lg border border-border bg-card p-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
-                      <MathRenderer content={currentQuestion?.column_a || ''} className="text-xl font-bold" />
-                    </div>
-                    <div className="rounded-lg border border-border bg-card p-4 text-center">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
-                      <MathRenderer content={currentQuestion?.column_b || ''} className="text-xl font-bold" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {currentQuestion && [
-                      { key: 'A', label: 'Величина в столбце A больше' },
-                      { key: 'B', label: 'Величина в столбце B больше' },
-                      { key: 'C', label: currentQuestion.option_c || 'Величины равны' },
-                      { key: 'D', label: currentQuestion.option_d || 'Недостаточно информации' },
-                    ].map(opt => {
-                      const isSelected = answers[currentQuestion.question_number] === opt.key;
-                      return (
-                        <button
-                          key={opt.key}
-                          onClick={() => handleAnswerSelect(opt.key)}
-                          className={`w-full rounded-lg border p-4 text-left transition-all ${
-                            isSelected
-                              ? 'border-accent bg-accent/10 ring-2 ring-accent'
-                              : 'border-border hover:border-accent/50 hover:bg-muted/50'
-                          }`}
-                        >
-                          <span className={`mr-3 inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${
-                            isSelected ? 'border-accent bg-accent text-accent-foreground' : 'border-border'
-                          }`}>
-                            {opt.key}
-                          </span>
-                          <MathRenderer content={opt.label} inline />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {currentQuestion?.type === 'mcq'
+                    ? renderMcqQuestion(currentQuestion)
+                    : currentQuestion?.type === 'comparison'
+                    ? renderComparisonQuestion(currentQuestion)
+                    : null}
                 </CardContent>
               </Card>
 
-              {/* Navigation */}
               <div className="flex items-center justify-between">
                 <Button
                   variant="outline"

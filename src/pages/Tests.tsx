@@ -15,12 +15,15 @@ interface TestVariant {
   mathTestId: number;
   uuid: string;
   name: string;
+  table: 'math_questions' | 'math_test_questions';
+  description: string;
 }
 
 const TEST_VARIANTS: TestVariant[] = [
-  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1' },
-  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2' },
-  { mathTestId: 3, uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3' },
+  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 3, uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 4, uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions', description: 'Тест с вариантами ответов' },
 ];
 
 interface UserTestRecord {
