@@ -83,20 +83,37 @@ export default function LearningPlanV2() {
 
     setGenerating(true);
     try {
-      // Get latest completed test answers (practice test = diagnostic source)
+      // Check for completed tests first
       const { data: testData } = await supabase
         .from('user_tests')
-        .select('answers, score, total_questions')
+        .select('id, answers, score, total_questions')
         .eq('user_id', user.id)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      let answers = Array.isArray(testData?.answers) ? testData.answers : [];
+      // Always try question_attempts for topic-level data (most reliable)
+      const { data: qAttempts } = await supabase
+        .from('question_attempts')
+        .select('question_id, topic, is_correct')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-      // Fallback to user_answers table
-      if (answers.length === 0) {
+      let answers: any[] = [];
+
+      // Prefer question_attempts (has topic data from math_questions)
+      if (qAttempts && qAttempts.length > 0) {
+        answers = qAttempts.map(a => ({
+          questionId: a.question_id,
+          topic: a.topic || null,
+          isCorrect: a.is_correct,
+        }));
+      } else if (testData?.answers && Array.isArray(testData.answers) && testData.answers.length > 0) {
+        answers = testData.answers;
+      } else {
+        // Fallback to user_answers
         const { data: userAnswers } = await supabase
           .from('user_answers')
           .select('*')
