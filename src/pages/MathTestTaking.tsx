@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { saveUserAnswer } from '@/lib/saveUserAnswer';
+import { MathRenderer } from '@/components/math/MathRenderer';
 import {
   AlertDialog,
   AlertDialogAction,

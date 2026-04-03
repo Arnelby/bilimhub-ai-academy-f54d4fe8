@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight, BookOpen } from "lucide-react";
+import { MathRenderer } from "@/components/math/MathRenderer";
 
 /** Safely convert any value to a renderable string */
 const toDisplayString = (value: unknown): string => {
