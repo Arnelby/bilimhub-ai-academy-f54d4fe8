@@ -326,7 +326,7 @@ export default function Dashboard() {
                     <CardContent>
                       <div className="grid gap-4 sm:grid-cols-2">
                         {TEST_VARIANTS.map(v => {
-                          const vTests = (testsRes.data || []).filter((t: any) => t.test_id === v.uuid);
+                          const vTests = rawTests.filter(t => t.test_id === v.uuid);
                           if (vTests.length === 0) return (
                             <div key={v.uuid} className="rounded-lg border border-border p-4 text-center">
                               <p className="font-medium mb-1">{v.name}</p>
