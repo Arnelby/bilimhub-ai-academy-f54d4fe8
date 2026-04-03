@@ -620,6 +620,45 @@ export type Database = {
         }
         Relationships: []
       }
+      math_test_questions: {
+        Row: {
+          column_a: string | null
+          column_b: string | null
+          correct_answer: string
+          id: number
+          instruction: string | null
+          options: Json | null
+          question_number: number
+          question_type: string
+          test_id: number
+          topic: string | null
+        }
+        Insert: {
+          column_a?: string | null
+          column_b?: string | null
+          correct_answer: string
+          id?: number
+          instruction?: string | null
+          options?: Json | null
+          question_number: number
+          question_type: string
+          test_id: number
+          topic?: string | null
+        }
+        Update: {
+          column_a?: string | null
+          column_b?: string | null
+          correct_answer?: string
+          id?: number
+          instruction?: string | null
+          options?: Json | null
+          question_number?: number
+          question_type?: string
+          test_id?: number
+          topic?: string | null
+        }
+        Relationships: []
+      }
       mini_test_results: {
         Row: {
           answers: Json | null

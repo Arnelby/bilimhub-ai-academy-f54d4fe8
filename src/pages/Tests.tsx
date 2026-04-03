@@ -15,12 +15,15 @@ interface TestVariant {
   mathTestId: number;
   uuid: string;
   name: string;
+  table: 'math_questions' | 'math_test_questions';
+  description: string;
 }
 
 const TEST_VARIANTS: TestVariant[] = [
-  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1' },
-  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2' },
-  { mathTestId: 3, uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3' },
+  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 3, uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions', description: 'Сравнение величин' },
+  { mathTestId: 4, uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions', description: 'Тест с вариантами ответов' },
 ];
 
 interface UserTestRecord {
@@ -42,7 +45,7 @@ export default function Tests() {
     async function fetchData() {
       if (!user) return;
       try {
-        const [attemptsRes, q1Res, q2Res, q3Res] = await Promise.all([
+        const [attemptsRes, q1Res, q2Res, q3Res, q4Res] = await Promise.all([
           supabase
             .from('user_tests')
             .select('id, score, total_questions, completed_at, test_id')
@@ -52,6 +55,7 @@ export default function Tests() {
           supabase.from('math_questions').select('id').eq('test_id', 1),
           supabase.from('math_questions').select('id').eq('test_id', 2),
           supabase.from('math_questions').select('id').eq('test_id', 3),
+          supabase.from('math_test_questions').select('id').eq('test_id', 4),
         ]);
 
         setAttempts(attemptsRes.data || []);
@@ -59,6 +63,7 @@ export default function Tests() {
           1: new Set((q1Res.data || []).map(q => q.id)).size,
           2: new Set((q2Res.data || []).map(q => q.id)).size,
           3: new Set((q3Res.data || []).map(q => q.id)).size,
+          4: new Set((q4Res.data || []).map(q => q.id)).size,
         });
       } catch (err) {
         console.error('Error:', err);
@@ -168,7 +173,7 @@ export default function Tests() {
                       </div>
                     </div>
                     <CardTitle className="text-lg">{variant.name}</CardTitle>
-                    <CardDescription>{qCount} вопросов · Сравнение величин</CardDescription>
+                    <CardDescription>{qCount} вопросов · {variant.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {testAttempts.length > 0 && (
