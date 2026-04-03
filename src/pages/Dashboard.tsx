@@ -123,6 +123,7 @@ export default function Dashboard() {
       setProfileName(profileRes.data?.name || null);
 
       const tests: TestAttempt[] = testsRes.data || [];
+      setRawTests(tests);
       const userAnswers = answersRes.data || [];
       const questionAttempts = attemptsRes.data || [];
       const sessions = sessionsRes.data || [];
