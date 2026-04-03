@@ -173,7 +173,7 @@ export default function Tests() {
                       </div>
                     </div>
                     <CardTitle className="text-lg">{variant.name}</CardTitle>
-                    <CardDescription>{qCount} вопросов · Сравнение величин</CardDescription>
+                    <CardDescription>{qCount} вопросов · {variant.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {testAttempts.length > 0 && (
