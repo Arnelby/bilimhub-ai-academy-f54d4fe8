@@ -120,6 +120,9 @@ export default function Tests() {
           }
         });
 
+        // Add math_questions count for math test
+        questionCountMap['00000000-0000-0000-0000-000000000001'] = 30;
+
         // Map tests with their status - filter out tests with 0 questions
         const testsWithStatus: TestWithStatus[] = (testsData || [])
           .filter(test => (questionCountMap[test.id] || 0) > 0)
