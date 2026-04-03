@@ -99,6 +99,7 @@ export default function Dashboard() {
 
   const [profileName, setProfileName] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData>(EMPTY_ANALYTICS);
+  const [rawTests, setRawTests] = useState<TestAttempt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
