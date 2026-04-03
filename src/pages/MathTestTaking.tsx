@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { saveUserAnswer } from '@/lib/saveUserAnswer';
+import { MathRenderer } from '@/components/math/MathRenderer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -282,7 +283,7 @@ export default function MathTestTaking() {
                   {currentQuestion?.instruction ? (
                     <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
                       <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
-                      <p className="text-base font-medium whitespace-pre-line">{currentQuestion.instruction}</p>
+                      <MathRenderer content={currentQuestion.instruction} />
                     </div>
                   ) : (
                     <p className="mb-5 text-base text-muted-foreground">
@@ -294,11 +295,11 @@ export default function MathTestTaking() {
                   <div className="mb-6 grid grid-cols-2 gap-4">
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
-                      <p className="text-xl font-bold">{currentQuestion?.column_a}</p>
+                      <MathRenderer content={currentQuestion?.column_a || ''} className="text-xl font-bold" />
                     </div>
                     <div className="rounded-lg border border-border bg-card p-4 text-center">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
-                      <p className="text-xl font-bold">{currentQuestion?.column_b}</p>
+                      <MathRenderer content={currentQuestion?.column_b || ''} className="text-xl font-bold" />
                     </div>
                   </div>
 
@@ -327,7 +328,7 @@ export default function MathTestTaking() {
                           }`}>
                             {opt.key}
                           </span>
-                          {displayText}
+                          <MathRenderer content={displayText} inline />
                         </button>
                       );
                     })}

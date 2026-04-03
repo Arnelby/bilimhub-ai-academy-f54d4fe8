@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight, BookOpen } from "lucide-react";
+import { MathRenderer } from "@/components/math/MathRenderer";
 
 /** Safely convert any value to a renderable string */
 const toDisplayString = (value: unknown): string => {
@@ -329,13 +330,13 @@ export default function LearningPlanV2() {
                   <CardTitle className="text-lg">Рекомендации</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{toDisplayString(result.plan.summary)}</p>
+                  <p className="text-sm text-muted-foreground"><MathRenderer content={toDisplayString(result.plan.summary)} inline /></p>
                   {actions.length > 0 && (
                     <ul className="space-y-2">
                       {actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
                           <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                          {toDisplayString(action)}
+                          <MathRenderer content={toDisplayString(action)} inline />
                         </li>
                       ))}
                     </ul>
@@ -357,7 +358,7 @@ export default function LearningPlanV2() {
                       <ul className="space-y-1 pl-4">
                         {(task.problems ?? []).map((p, j) => (
                           <li key={j} className="text-sm text-muted-foreground list-disc">
-                            {toDisplayString(p)}
+                            <MathRenderer content={toDisplayString(p)} inline />
                           </li>
                         ))}
                       </ul>
