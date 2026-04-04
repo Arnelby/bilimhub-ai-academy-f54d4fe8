@@ -10,21 +10,16 @@ import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { TEST_CONFIG, formatDurationMinutes } from '@/lib/mathTestConfig';
 
-interface TestVariant {
-  mathTestId: number;
-  uuid: string;
-  name: string;
-  table: 'math_questions' | 'math_test_questions';
-  description: string;
-}
-
-const TEST_VARIANTS: TestVariant[] = [
-  { mathTestId: 1, uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions', description: 'Сравнение величин' },
-  { mathTestId: 2, uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions', description: 'Сравнение величин' },
-  { mathTestId: 3, uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions', description: 'Сравнение величин' },
-  { mathTestId: 4, uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions', description: 'Тест с вариантами ответов' },
-];
+const TEST_VARIANTS = Object.entries(TEST_CONFIG).map(([id, c]) => ({
+  mathTestId: parseInt(id),
+  uuid: c.uuid,
+  name: c.name,
+  table: c.table,
+  description: c.description,
+  durationMinutes: formatDurationMinutes(c.durationSeconds),
+}));
 
 interface UserTestRecord {
   id: string;
@@ -169,7 +164,7 @@ export default function Tests() {
                       <Badge variant="accent">Вариант {variant.mathTestId}</Badge>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>30 мин</span>
+                        <span>{variant.durationMinutes} мин</span>
                       </div>
                     </div>
                     <CardTitle className="text-lg">{variant.name}</CardTitle>

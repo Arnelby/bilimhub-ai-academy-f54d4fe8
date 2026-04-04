@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { saveUserAnswer } from '@/lib/saveUserAnswer';
 import { MathRenderer } from '@/components/math/MathRenderer';
+import { TEST_CONFIG, toCyrillicKey, toLatinKey } from '@/lib/mathTestConfig';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,15 +47,6 @@ interface McqQuestion {
 
 type TestQuestion = ComparisonQuestion | McqQuestion;
 
-const DURATION_SECONDS = 30 * 60;
-
-const TEST_CONFIG: Record<number, { uuid: string; name: string; table: 'math_questions' | 'math_test_questions' }> = {
-  1: { uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions' },
-  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions' },
-  3: { uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions' },
-  4: { uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions' },
-};
-
 export default function MathTestTaking() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -66,8 +58,9 @@ export default function MathTestTaking() {
 
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  // answers stored with LATIN keys internally (A,B,C,D,E)
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [timeLeft, setTimeLeft] = useState(DURATION_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(config.durationSeconds);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
@@ -91,14 +84,20 @@ export default function MathTestTaking() {
           for (const q of (data || [])) {
             if (!seen.has(q.question_number)) {
               seen.add(q.question_number);
+              // Normalize option keys: DB may have Cyrillic keys like Б
+              const rawOptions = (q.options as Record<string, string>) || {};
+              const normalizedOptions: Record<string, string> = {};
+              for (const [k, v] of Object.entries(rawOptions)) {
+                normalizedOptions[toLatinKey(k)] = v;
+              }
               unique.push({
                 type: 'mcq',
                 id: q.id,
                 question_number: q.question_number,
                 topic: q.topic || '',
                 instruction: q.instruction || '',
-                options: (q.options as Record<string, string>) || {},
-                correct_answer: q.correct_answer,
+                options: normalizedOptions,
+                correct_answer: toLatinKey(q.correct_answer),
               });
             }
           }
@@ -126,7 +125,7 @@ export default function MathTestTaking() {
                 column_b: q.column_b,
                 option_c: q.option_c,
                 option_d: q.option_d,
-                correct_answer: q.correct_answer,
+                correct_answer: toLatinKey(q.correct_answer),
               });
             }
           }
@@ -159,14 +158,15 @@ export default function MathTestTaking() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, loading, isPaused]);
 
-  const handleAnswerSelect = (option: string) => {
+  // option is always Latin (A-E)
+  const handleAnswerSelect = (latinKey: string) => {
     const q = questions[currentIndex];
     if (!q) return;
-    setAnswers(prev => ({ ...prev, [q.question_number]: option }));
+    setAnswers(prev => ({ ...prev, [q.question_number]: latinKey }));
 
     if (user) {
       const optionKeys = q.type === 'mcq' ? Object.keys(q.options) : ['A', 'B', 'C', 'D'];
-      const selectedIdx = optionKeys.indexOf(option);
+      const selectedIdx = optionKeys.indexOf(latinKey);
       const correctIdx = optionKeys.indexOf(q.correct_answer);
       saveUserAnswer({
         userId: user.id,
@@ -327,8 +327,10 @@ export default function MathTestTaking() {
     </>
   );
 
+  // key is always Latin; display as Cyrillic
   const renderOptionButton = (key: string, label: string, questionNumber: number) => {
     const isSelected = answers[questionNumber] === key;
+    const displayKey = toCyrillicKey(key);
     return (
       <button
         key={key}
@@ -342,7 +344,7 @@ export default function MathTestTaking() {
         <span className={`mr-3 inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold ${
           isSelected ? 'border-accent bg-accent text-accent-foreground' : 'border-border'
         }`}>
-          {key}
+          {displayKey}
         </span>
         <MathRenderer content={label} inline />
       </button>
