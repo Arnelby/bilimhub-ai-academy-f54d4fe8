@@ -109,7 +109,8 @@ export default function MathTestTaking() {
             .select('*')
             .eq('test_id', mathTestId)
             .order('question_number')
-            .order('id');
+            .order('id')
+            .limit(30);
           if (error) throw error;
           const seen = new Set<number>();
           const unique: TestQuestion[] = [];
