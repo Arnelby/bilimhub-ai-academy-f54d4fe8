@@ -15,6 +15,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Lessons from "./pages/Lessons";
+import LessonVariant from "./pages/LessonVariant";
 import LessonViewer from "./pages/LessonViewer";
 import Tests from "./pages/Tests";
 import TestTaking from "./pages/TestTaking";
