@@ -15,6 +15,9 @@ export const translations = {
       login: 'Login',
       signup: 'Sign Up',
       logout: 'Logout',
+      aiTutor: 'AI Tutor',
+      myPlan: 'My Plan',
+      practice: 'Practice',
     },
     // Landing page
     landing: {
