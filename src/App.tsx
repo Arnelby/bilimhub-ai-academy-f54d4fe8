@@ -33,6 +33,7 @@ import MathLessons from "./pages/MathLessons";
 import FractionsLesson from "./pages/FractionsLesson";
 import DynamicLessonViewer from "./pages/DynamicLessonViewer";
 import MathTestTaking from "./pages/MathTestTaking";
+import Practice from "./pages/Practice";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
