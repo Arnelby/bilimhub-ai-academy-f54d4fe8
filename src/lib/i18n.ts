@@ -157,6 +157,9 @@ export const translations = {
       login: 'Войти',
       signup: 'Регистрация',
       logout: 'Выйти',
+      aiTutor: 'AI Тьютор',
+      myPlan: 'Мой план',
+      practice: 'Практика',
     },
     landing: {
       hero: {
