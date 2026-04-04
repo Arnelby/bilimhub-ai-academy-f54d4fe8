@@ -436,6 +436,41 @@ export default function LearningPlanV2() {
           </CardContent>
         </Card>
 
+        {/* Mistake Review */}
+        {mistakes.length > 0 && (
+          <Card className="mb-6 border-destructive/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Video className="w-5 h-5 text-accent" />
+                Разбор ошибок
+              </CardTitle>
+              <CardDescription>Посмотрите видеоразбор задач, в которых были допущены ошибки</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {mistakes.map((m, i) => {
+                  const variantMatch = m.testId.match(/math_test_(\d+)/);
+                  const variantKey = variantMatch ? `variant${variantMatch[1]}` : '';
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                      <div>
+                        <span className="text-sm font-medium">Задача {m.questionNumber}</span>
+                        {m.topic && <span className="text-xs text-muted-foreground ml-2">({m.topic})</span>}
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/lessons?variant=${variantKey}&question=${m.questionNumber}`}>
+                          <Video className="mr-1 h-3 w-3" />
+                          Смотреть разбор
+                        </Link>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Actions */}
         <div className="flex flex-wrap justify-center gap-4">
           <Button variant="outline" onClick={() => navigate('/tests')}>
