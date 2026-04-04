@@ -14,6 +14,13 @@ import {
   BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
+import { Link } from "react-router-dom";
+
+interface MistakeQuestion {
+  questionNumber: string;
+  topic: string | null;
+  testId: string;
+}
 
 interface TopicStat {
   topic: string;
