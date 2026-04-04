@@ -1397,6 +1397,30 @@ export type Database = {
           },
         ]
       }
+      video_solutions: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_number: number
+          test_id: string
+          youtube_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_number: number
+          test_id: string
+          youtube_url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_number?: number
+          test_id?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
