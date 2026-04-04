@@ -11,9 +11,16 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles
+  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
+import { Link } from "react-router-dom";
+
+interface MistakeQuestion {
+  questionNumber: string;
+  topic: string | null;
+  testId: string;
+}
 
 interface TopicStat {
   topic: string;
@@ -43,6 +50,7 @@ export default function LearningPlanV2() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
+  const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
 
   useEffect(() => {
     if (user) loadAnalysis();
@@ -151,6 +159,26 @@ export default function LearningPlanV2() {
         const pd = savedPlan.plan_data as any;
         if (pd?.plan?.actions) {
           setAiRecommendations(pd.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
+        }
+      }
+
+      // Load incorrect answers for mistake review
+      const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : '';
+      if (latestTestId) {
+        const { data: wrongAnswers } = await supabase
+          .from('user_answers')
+          .select('question_id, topic, test_id')
+          .eq('user_id', user.id)
+          .eq('test_id', latestTestId)
+          .eq('is_correct', false)
+          .limit(10);
+
+        if (wrongAnswers) {
+          setMistakes(wrongAnswers.map(a => ({
+            questionNumber: a.question_id,
+            topic: a.topic,
+            testId: a.test_id,
+          })));
         }
       }
     } catch (e) {
@@ -427,6 +455,41 @@ export default function LearningPlanV2() {
             )}
           </CardContent>
         </Card>
+
+        {/* Mistake Review */}
+        {mistakes.length > 0 && (
+          <Card className="mb-6 border-destructive/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Video className="w-5 h-5 text-accent" />
+                Разбор ошибок
+              </CardTitle>
+              <CardDescription>Посмотрите видеоразбор задач, в которых были допущены ошибки</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {mistakes.map((m, i) => {
+                  const variantMatch = m.testId.match(/math_test_(\d+)/);
+                  const variantKey = variantMatch ? `variant${variantMatch[1]}` : '';
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                      <div>
+                        <span className="text-sm font-medium">Задача {m.questionNumber}</span>
+                        {m.topic && <span className="text-xs text-muted-foreground ml-2">({m.topic})</span>}
+                      </div>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/lessons?variant=${variantKey}&question=${m.questionNumber}`}>
+                          <Video className="mr-1 h-3 w-3" />
+                          Смотреть разбор
+                        </Link>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex flex-wrap justify-center gap-4">
