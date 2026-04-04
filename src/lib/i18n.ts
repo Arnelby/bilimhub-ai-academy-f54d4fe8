@@ -15,6 +15,9 @@ export const translations = {
       login: 'Login',
       signup: 'Sign Up',
       logout: 'Logout',
+      aiTutor: 'AI Tutor',
+      myPlan: 'My Plan',
+      practice: 'Practice',
     },
     // Landing page
     landing: {
@@ -154,6 +157,9 @@ export const translations = {
       login: 'Войти',
       signup: 'Регистрация',
       logout: 'Выйти',
+      aiTutor: 'AI Тьютор',
+      myPlan: 'Мой план',
+      practice: 'Практика',
     },
     landing: {
       hero: {
@@ -286,6 +292,9 @@ export const translations = {
       login: 'Кирүү',
       signup: 'Каттоо',
       logout: 'Чыгуу',
+      aiTutor: 'AI Тьютор',
+      myPlan: 'Менин планым',
+      practice: 'Практика',
     },
     landing: {
       hero: {

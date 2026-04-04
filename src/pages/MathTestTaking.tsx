@@ -77,7 +77,8 @@ export default function MathTestTaking() {
             .select('*')
             .eq('test_id', mathTestId)
             .order('question_number')
-            .order('id');
+            .order('id')
+            .limit(30);
           if (error) throw error;
           const seen = new Set<number>();
           const unique: TestQuestion[] = [];
@@ -108,7 +109,8 @@ export default function MathTestTaking() {
             .select('*')
             .eq('test_id', mathTestId)
             .order('question_number')
-            .order('id');
+            .order('id')
+            .limit(30);
           if (error) throw error;
           const seen = new Set<number>();
           const unique: TestQuestion[] = [];
@@ -241,7 +243,7 @@ export default function MathTestTaking() {
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
 
-      navigate(`/tests/${config.uuid}/results/${attemptData?.id}`);
+      navigate('/learning-plan');
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });

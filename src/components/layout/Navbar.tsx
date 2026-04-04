@@ -42,8 +42,9 @@ export function Navbar() {
     { href: '/tests', label: t.nav.tests },
     { href: '/homework', label: t.nav.homework || 'Homework' },
     { href: '/dashboard', label: t.nav.dashboard },
-    { href: '/ai-tutor', label: 'AI Tutor' },
-    { href: '/learning-plan', label: 'My Plan' },
+    { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor' },
+    { href: '/learning-plan', label: t.nav.myPlan || 'My Plan' },
+    { href: '/practice', label: t.nav.practice || 'Практика' },
     { href: '/profile', label: t.nav.profile },
   ];
 
