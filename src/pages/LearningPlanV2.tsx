@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles
+  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 

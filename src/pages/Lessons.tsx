@@ -1,165 +1,119 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
-  BookOpen, 
-  Search, 
-  Clock,
-  CheckCircle,
-  Play,
-  Lock,
-  ChevronRight,
-  Loader2
+  BookOpen, Video, Lock, Loader2, ChevronDown, ChevronRight, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { VideoEmbed } from '@/components/lessons/storage/VideoEmbed';
+import { TEST_CONFIG } from '@/lib/mathTestConfig';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
-interface Lesson {
+interface VideoSolution {
   id: string;
-  title: string;
-  title_ru: string | null;
-  topic_id: string | null;
-  duration_minutes: number | null;
-  difficulty_level: number | null;
-  topic?: {
-    id: string;
-    title: string;
-    title_ru: string | null;
-    subject: string;
-  };
+  test_id: string;
+  question_number: number;
+  youtube_url: string;
 }
 
-interface LessonProgress {
-  lesson_id: string;
-  completed: boolean;
-  progress_percentage: number;
-}
-
-interface LessonWithProgress extends Lesson {
-  progress: number;
-  status: 'completed' | 'in-progress' | 'not-started' | 'locked';
-}
-
-const subjects = [
-  { value: 'all', label: 'Все предметы' },
-  { value: 'mathematics', label: 'Математика' },
-  { value: 'russian', label: 'Русский язык' },
-  { value: 'kyrgyz', label: 'Кыргызский язык' },
+const VARIANT_CONFIG = [
+  { variantKey: 'variant1', testConfigId: 1, label: 'Математика тест вариант 1' },
+  { variantKey: 'variant2', testConfigId: 2, label: 'Математика тест вариант 2' },
+  { variantKey: 'variant3', testConfigId: 3, label: 'Математика тест вариант 3' },
+  { variantKey: 'variant4', testConfigId: 4, label: 'Математика тест вариант 4' },
 ];
 
-const statusConfig = {
-  completed: {
-    badge: 'success',
-    icon: CheckCircle,
-    label: 'Завершено',
-  },
-  'in-progress': {
-    badge: 'warning',
-    icon: Play,
-    label: 'В процессе',
-  },
-  'not-started': {
-    badge: 'ghost',
-    icon: BookOpen,
-    label: 'Не начато',
-  },
-  locked: {
-    badge: 'secondary',
-    icon: Lock,
-    label: 'Заблокировано',
-  },
-} as const;
+// Map math_test_X → variantX
+function testIdToVariantKey(testId: string): string | null {
+  const match = testId.match(/^math_test_(\d+)$/);
+  if (match) return `variant${match[1]}`;
+  // Also check UUID-based test_ids from TEST_CONFIG
+  for (const [num, cfg] of Object.entries(TEST_CONFIG)) {
+    if (cfg.uuid === testId) return `variant${num}`;
+  }
+  return null;
+}
 
 export default function Lessons() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
-  const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
-  const [topics, setTopics] = useState<Array<{ id: string; title: string; title_ru: string | null; title_kg: string | null; subject: string; order_index: number | null }>>([]);
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [videos, setVideos] = useState<VideoSolution[]>([]);
+  const [completedVariants, setCompletedVariants] = useState<Set<string>>(new Set());
+  const [openVariant, setOpenVariant] = useState<string>('');
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Read scroll-to params from URL
+  const scrollVariant = searchParams.get('variant');
+  const scrollQuestion = searchParams.get('question');
 
   useEffect(() => {
+    if (!user) { setLoading(false); return; }
+
     async function fetchData() {
-      if (!user) return;
+      const [videosRes, testsRes] = await Promise.all([
+        supabase.from('video_solutions').select('*').order('question_number'),
+        supabase.from('user_tests').select('test_id').eq('user_id', user!.id).not('completed_at', 'is', null),
+      ]);
 
-      try {
-        // Fetch topics, lessons, and progress in parallel
-        const [topicsRes, lessonsRes, progressRes] = await Promise.all([
-          supabase.from('topics').select('id, title, title_ru, title_kg, subject, order_index').order('order_index', { ascending: true }),
-          supabase.from('lessons').select('*, topic:topics(*)').order('difficulty_level', { ascending: true }),
-          supabase.from('user_lesson_progress').select('*').eq('user_id', user.id),
-        ]);
+      setVideos((videosRes.data as VideoSolution[]) || []);
 
-        if (topicsRes.data) setTopics(topicsRes.data);
+      // Also check user_answers for math_test_X completions
+      const { data: answerTests } = await supabase
+        .from('user_answers')
+        .select('test_id')
+        .eq('user_id', user!.id);
 
-        const lessonsData = lessonsRes.data || [];
-        const progressData = progressRes.data || [];
-
-        // Map progress to lessons
-        const progressMap = new Map<string, LessonProgress>();
-        progressData.forEach(p => {
-          progressMap.set(p.lesson_id, p);
-        });
-
-        const lessonsWithProgress: LessonWithProgress[] = lessonsData.map((lesson, index) => {
-          const progress = progressMap.get(lesson.id);
-          let status: LessonWithProgress['status'] = 'not-started';
-          
-          if (progress?.completed) {
-            status = 'completed';
-          } else if (progress && progress.progress_percentage > 0) {
-            status = 'in-progress';
-          } else if (index > 0 && !progressMap.get(lessonsData[index - 1]?.id)?.completed && lesson.difficulty_level && lesson.difficulty_level > 2) {
-            status = 'locked';
-          }
-
-          return { ...lesson, progress: progress?.progress_percentage || 0, status };
-        });
-
-        setLessons(lessonsWithProgress);
-      } catch (error) {
-        console.error('Error fetching lessons:', error);
-      } finally {
-        setLoading(false);
+      const completed = new Set<string>();
+      
+      // From user_tests (UUID-based)
+      for (const t of (testsRes.data || [])) {
+        const vk = testIdToVariantKey(t.test_id);
+        if (vk) completed.add(vk);
       }
+      
+      // From user_answers (math_test_X based)
+      const answerTestIds = new Set((answerTests || []).map(a => a.test_id));
+      for (const tid of answerTestIds) {
+        const vk = testIdToVariantKey(tid);
+        if (vk) completed.add(vk);
+      }
+
+      setCompletedVariants(completed);
+      setLoading(false);
     }
 
     fetchData();
   }, [user]);
 
-  const filteredLessons = lessons.filter((lesson) => {
-    const title = getLessonTitle(lesson);
-    const topicTitle = lesson.topic?.title_ru || lesson.topic?.title || '';
-    const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      topicTitle.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || lesson.topic?.subject === selectedSubject;
-    const matchesStatus = selectedStatus === 'all' || lesson.status === selectedStatus;
-    return matchesSearch && matchesSubject && matchesStatus;
-  });
+  // Auto-open and scroll to specific question
+  useEffect(() => {
+    if (scrollVariant && !loading) {
+      setOpenVariant(scrollVariant);
+      
+      if (scrollQuestion) {
+        const refKey = `${scrollVariant}-${scrollQuestion}`;
+        setTimeout(() => {
+          questionRefs.current[refKey]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 400);
+      }
+    }
+  }, [scrollVariant, scrollQuestion, loading]);
 
-  function getLessonTitle(lesson: Lesson) {
-    if (language === 'ru' && lesson.title_ru) return lesson.title_ru;
-    return lesson.title;
-  }
-
-  function getTopicTitle(lesson: LessonWithProgress) {
-    if (language === 'ru' && lesson.topic?.title_ru) return lesson.topic.title_ru;
-    return lesson.topic?.title || '';
-  }
+  const getVideosForVariant = (variantKey: string) => {
+    return videos.filter(v => v.test_id === variantKey).sort((a, b) => a.question_number - b.question_number);
+  };
 
   if (loading) {
     return (
@@ -173,186 +127,95 @@ export default function Lessons() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">{t.lessons.title}</h1>
-          <p className="text-muted-foreground">{t.lessons.subtitle}</p>
+          <h1 className="text-3xl font-bold">
+            {language === 'ru' ? 'Видеоразборы' : language === 'kg' ? 'Видео чечмелер' : 'Video Solutions'}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {language === 'ru' 
+              ? 'Пройдите тест, чтобы разблокировать видеоразборы задач' 
+              : language === 'kg' 
+                ? 'Видео чечмелерди ачуу үчүн тестти тапшырыңыз' 
+                : 'Complete a test to unlock video explanations'}
+          </p>
         </div>
 
-        {/* Filters */}
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder={t.lessons.searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder={t.lessons.allSubjects} />
-            </SelectTrigger>
-            <SelectContent>
-              {subjects.map((subject) => (
-                <SelectItem key={subject.value} value={subject.value}>
-                  {subject.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Статус" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="completed">{t.lessons.mastered}</SelectItem>
-              <SelectItem value="in-progress">{t.lessons.inProgress}</SelectItem>
-              <SelectItem value="not-started">{t.lessons.notStarted}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Featured Interactive Lessons - Dynamic from DB */}
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4 mb-8">
-          {topics.map((topic, idx) => {
-            const topicSlugMap: Record<string, string> = {
-              'Algebra Basics': 'algebra',
-              'Linear Equations': 'linear-equations',
-              'Quadratic Equations': 'quadratics',
-              'Functions': 'functions',
-              'Geometry Basics': 'geometry',
-              'Trigonometry': 'trigonometry',
-              'Probability': 'probability',
-              'Statistics': 'statistics',
-            };
-            const topicEmojis: Record<string, string> = {
-              'Algebra Basics': '📐',
-              'Linear Equations': '📏',
-              'Quadratic Equations': '✖️',
-              'Functions': '📈',
-              'Geometry Basics': '📐',
-              'Trigonometry': '📊',
-              'Probability': '🎲',
-              'Statistics': '📉',
-            };
-            const gradients = [
-              'from-primary/10 via-purple-500/10 to-pink-500/10 border-primary/20',
-              'from-orange-500/10 via-amber-500/10 to-yellow-500/10 border-orange-500/20',
-              'from-blue-500/10 via-cyan-500/10 to-teal-500/10 border-blue-500/20',
-              'from-green-500/10 via-emerald-500/10 to-teal-500/10 border-green-500/20',
-              'from-indigo-500/10 via-violet-500/10 to-purple-500/10 border-indigo-500/20',
-              'from-rose-500/10 via-pink-500/10 to-red-500/10 border-rose-500/20',
-              'from-amber-500/10 via-yellow-500/10 to-orange-500/10 border-amber-500/20',
-              'from-teal-500/10 via-cyan-500/10 to-blue-500/10 border-teal-500/20',
-            ];
-            const slug = topicSlugMap[topic.title] || topic.title.toLowerCase().replace(/\s+/g, '-');
-            const topicName = language === 'ru' && topic.title_ru ? topic.title_ru : language === 'kg' && topic.title_kg ? topic.title_kg : topic.title;
-            
-            return (
-              <Card key={topic.id} className={`bg-gradient-to-r ${gradients[idx % gradients.length]}`}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 rounded-full bg-primary/20">
-                        <span className="text-3xl">{topicEmojis[topic.title] || '📚'}</span>
-                      </div>
-                      <div>
-                        <Badge variant="secondary" className="mb-2">
-                          ✨ {language === 'ru' ? 'Интерактивный' : 'Interactive'}
-                        </Badge>
-                        <h3 className="text-lg font-bold">{topicName}</h3>
-                      </div>
-                    </div>
-                    <Button asChild variant={idx === 0 ? 'default' : 'outline'}>
-                      <Link to={`/lessons/topic/${slug}`}>
-                        {language === 'ru' ? 'Начать урок' : 'Start Lesson'}
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Lessons Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredLessons.map((lesson) => {
-            const status = statusConfig[lesson.status];
-            const StatusIcon = status.icon;
-            const isLocked = lesson.status === 'locked';
+        <Accordion 
+          type="single" 
+          collapsible 
+          value={openVariant} 
+          onValueChange={setOpenVariant}
+          className="space-y-4"
+        >
+          {VARIANT_CONFIG.map(({ variantKey, testConfigId, label }) => {
+            const isUnlocked = completedVariants.has(variantKey);
+            const variantVideos = getVideosForVariant(variantKey);
+            const hasVideos = variantVideos.length > 0;
 
             return (
-              <Card
-                key={lesson.id}
-                variant={isLocked ? 'default' : 'interactive'}
-                className={isLocked ? 'opacity-60' : ''}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <Badge variant={status.badge as any} className="mb-2">
-                      <StatusIcon className="mr-1 h-3 w-3" />
-                      {status.label}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">Уровень {lesson.difficulty_level || 1}</span>
-                  </div>
-                  <CardTitle className="text-lg">{getLessonTitle(lesson)}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{getTopicTitle(lesson)}</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {lesson.progress > 0 && lesson.status !== 'completed' && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Прогресс</span>
-                        <span>{lesson.progress}%</span>
+              <AccordionItem key={variantKey} value={variantKey} className="border rounded-lg overflow-hidden">
+                <AccordionTrigger 
+                  className={`px-6 py-4 hover:no-underline ${!isUnlocked ? 'opacity-60' : ''}`}
+                  disabled={!isUnlocked}
+                >
+                  <div className="flex items-center gap-3 text-left">
+                    {isUnlocked ? (
+                      <Video className="h-5 w-5 text-accent shrink-0" />
+                    ) : (
+                      <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
+                    )}
+                    <div>
+                      <span className="font-semibold text-base">{label}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        {isUnlocked ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {hasVideos ? `${variantVideos.length} видео` : 'Скоро'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            {language === 'ru' ? 'Пройдите тест' : 'Complete test'}
+                          </Badge>
+                        )}
                       </div>
-                      <Progress value={lesson.progress} className="h-2" />
                     </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>{lesson.duration_minutes || 15} мин</span>
-                    </div>
-                    <Button
-                      variant={isLocked ? 'ghost' : lesson.status === 'in-progress' ? 'accent' : 'default'}
-                      size="sm"
-                      disabled={isLocked}
-                      asChild={!isLocked}
-                    >
-                      {isLocked ? (
-                        <span>
-                          <Lock className="mr-1 h-4 w-4" />
-                          Заблокировано
-                        </span>
-                      ) : (
-                        <Link to={`/lessons/${lesson.id}`}>
-                          {lesson.status === 'in-progress' ? t.lessons.continueLesson : t.lessons.startLesson}
-                          <ChevronRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      )}
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </AccordionTrigger>
+                
+                {isUnlocked && (
+                  <AccordionContent className="px-6 pb-6">
+                    {hasVideos ? (
+                      <div className="space-y-6">
+                        {variantVideos.map((video) => (
+                          <div 
+                            key={video.id}
+                            ref={(el) => { questionRefs.current[`${variantKey}-${video.question_number}`] = el; }}
+                            className={`rounded-lg border p-4 ${
+                              scrollVariant === variantKey && scrollQuestion === String(video.question_number)
+                                ? 'ring-2 ring-accent'
+                                : ''
+                            }`}
+                          >
+                            <h3 className="font-medium mb-3 flex items-center gap-2">
+                              <Play className="h-4 w-4 text-accent" />
+                              {language === 'ru' ? 'Задача' : 'Question'} {video.question_number}
+                            </h3>
+                            <VideoEmbed url={video.youtube_url} title={`${label} — Задача ${video.question_number}`} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Video className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                        <p>{language === 'ru' ? 'Видеоразборы скоро будут добавлены' : 'Video solutions coming soon'}</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                )}
+              </AccordionItem>
             );
           })}
-        </div>
-
-        {filteredLessons.length === 0 && (
-          <div className="py-12 text-center">
-            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">Уроки не найдены</h3>
-            <p className="text-muted-foreground">Попробуйте изменить фильтры поиска</p>
-          </div>
-        )}
+        </Accordion>
       </div>
     </Layout>
   );
