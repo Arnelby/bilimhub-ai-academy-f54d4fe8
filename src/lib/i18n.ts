@@ -292,6 +292,9 @@ export const translations = {
       login: 'Кирүү',
       signup: 'Каттоо',
       logout: 'Чыгуу',
+      aiTutor: 'AI Тьютор',
+      myPlan: 'Менин планым',
+      practice: 'Практика',
     },
     landing: {
       hero: {
