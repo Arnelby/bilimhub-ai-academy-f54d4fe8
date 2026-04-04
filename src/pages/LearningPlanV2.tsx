@@ -462,7 +462,7 @@ export default function LearningPlanV2() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Video className="w-5 h-5 text-accent" />
-                Разбор ошибок
+                Видеоразбор задач
               </CardTitle>
               <CardDescription>Посмотрите видеоразбор задач, в которых были допущены ошибки</CardDescription>
             </CardHeader>
