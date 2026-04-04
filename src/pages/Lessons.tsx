@@ -108,7 +108,7 @@ export default function Lessons() {
               <Card
                 key={variantKey}
                 className={`cursor-pointer transition-colors hover:bg-muted/50 ${!isUnlocked ? 'opacity-60' : ''}`}
-                onClick={() => navigate(`/lessons/${variantKey}`)}
+                onClick={() => navigate(`/lessons/video/${variantKey}`)}
               >
                 <CardContent className="flex items-center justify-between p-5">
                   <div className="flex items-center gap-4">

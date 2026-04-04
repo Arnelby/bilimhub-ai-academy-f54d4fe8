@@ -478,7 +478,7 @@ export default function LearningPlanV2() {
                         {m.topic && <span className="text-xs text-muted-foreground ml-2">({m.topic})</span>}
                       </div>
                       <Button size="sm" variant="outline" asChild>
-                        <Link to={`/lessons/${variantKey}?question=${m.questionNumber}`}>
+                        <Link to={`/lessons/video/${variantKey}?question=${m.questionNumber}`}>
                           <Video className="mr-1 h-3 w-3" />
                           Смотреть видеоразбор
                         </Link>
