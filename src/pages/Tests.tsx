@@ -164,7 +164,7 @@ export default function Tests() {
                       <Badge variant="accent">Вариант {variant.mathTestId}</Badge>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>30 мин</span>
+                        <span>{variant.durationMinutes} мин</span>
                       </div>
                     </div>
                     <CardTitle className="text-lg">{variant.name}</CardTitle>
