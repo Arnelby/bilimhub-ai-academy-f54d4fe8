@@ -161,6 +161,26 @@ export default function LearningPlanV2() {
           setAiRecommendations(pd.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
         }
       }
+
+      // Load incorrect answers for mistake review
+      const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : '';
+      if (latestTestId) {
+        const { data: wrongAnswers } = await supabase
+          .from('user_answers')
+          .select('question_id, topic, test_id')
+          .eq('user_id', user.id)
+          .eq('test_id', latestTestId)
+          .eq('is_correct', false)
+          .limit(10);
+
+        if (wrongAnswers) {
+          setMistakes(wrongAnswers.map(a => ({
+            questionNumber: a.question_id,
+            topic: a.topic,
+            testId: a.test_id,
+          })));
+        }
+      }
     } catch (e) {
       console.error('Error loading analysis:', e);
     } finally {
