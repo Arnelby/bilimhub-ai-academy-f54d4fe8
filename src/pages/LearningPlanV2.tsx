@@ -502,17 +502,28 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
-        {/* Actions */}
+        {/* Practice CTA */}
+        {weakTopics.length > 0 && (
+          <Card className="mb-6 border-accent bg-accent/5">
+            <CardContent className="flex items-center justify-between py-5">
+              <div>
+                <h3 className="font-semibold text-lg">Работа над ошибками</h3>
+                <p className="text-sm text-muted-foreground">
+                  Практикуйтесь по слабым темам в формате ОРТ — задачи подбираются автоматически
+                </p>
+              </div>
+              <Button variant="accent" size="lg" onClick={() => navigate('/practice')}>
+                <Target className="mr-2 h-5 w-5" />
+                Начать практику
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="flex flex-wrap justify-center gap-4">
           <Button variant="outline" onClick={() => navigate('/tests')}>
             Все тесты
           </Button>
-          {weakTopics.length > 0 && (
-            <Button variant="accent" onClick={() => navigate('/practice')}>
-              Практика по слабым темам
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
     </Layout>
