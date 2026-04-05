@@ -27,37 +27,22 @@ function normalizeMath(raw: string): string {
 
   let text = raw;
 
-  // Don't touch content that already has LaTeX delimiters
-  const hasDelimiters = /\$/.test(text);
+  // If already has proper LaTeX delimiters, leave untouched
+  if (/\$/.test(text)) return text;
 
-  if (!hasDelimiters) {
-    // fraction(a,b) → $\frac{a}{b}$
-    text = text.replace(/fraction\(([^,)]+),\s*([^)]+)\)/gi, '$$\\frac{$1}{$2}$$');
+  // Step 1: Convert shorthand notation to LaTeX commands (NO delimiters yet)
+  text = text.replace(/fraction\(([^,)]+),\s*([^)]+)\)/gi, '\\frac{$1}{$2}');
+  text = text.replace(/sqrt\(([^)]+)\)/gi, '\\sqrt{$1}');
+  text = text.replace(/\*\*/g, '^');
 
-    // sqrt(x) → $\sqrt{x}$
-    text = text.replace(/sqrt\(([^)]+)\)/gi, '$$\\sqrt{$1}$$');
+  // Step 2: Check if text now contains any math-worthy content
+  const hasMath = /\\frac|\\sqrt|\^|(?<![a-zA-Z:\/])\d+\s*\/\s*\d+(?![a-zA-Z\/])/.test(text);
 
-    // Detect if text contains math-like patterns (exponents, fractions, operators with numbers)
-    const hasMathPatterns = /\^|\*\*|\\frac|\\sqrt|(?<![a-zA-Z:\/])\d+\s*\/\s*\d+(?![a-zA-Z\/])/.test(text);
-
-    if (hasMathPatterns) {
-      // Wrap the entire expression in $ delimiters for KaTeX rendering
-      // Replace ** with ^ for exponents
-      text = text.replace(/\*\*/g, '^');
-      // Convert standalone numeric fractions a/b → \frac{a}{b}
-      text = text.replace(/(?<![a-zA-Z:\/])(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)(?![a-zA-Z\/])/g, '\\frac{$1}{$2}');
-      // Wrap bare LaTeX commands
-      text = text.replace(/(?<!\$)(\\frac\{[^}]*\}\{[^}]*\})(?!\$)/g, '$1');
-      text = text.replace(/(?<!\$)(\\sqrt\{[^}]*\})(?!\$)/g, '$1');
-      // Wrap entire text in $ if it looks like a math expression
-      text = `$${text}$`;
-    } else {
-      // Standalone numeric fractions like 2/3
-      text = text.replace(/(?<![a-zA-Z:\/])(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)(?![a-zA-Z\/])/g, '$$\\frac{$1}{$2}$$');
-      // Wrap bare LaTeX commands that aren't delimited
-      text = text.replace(/(?<!\$)(\\frac\{[^}]*\}\{[^}]*\})(?!\$)/g, '$$$$1$$');
-      text = text.replace(/(?<!\$)(\\sqrt\{[^}]*\})(?!\$)/g, '$$$$1$$');
-    }
+  if (hasMath) {
+    // Convert standalone numeric fractions a/b → \frac{a}{b}
+    text = text.replace(/(?<![a-zA-Z:\/\\])(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)(?![a-zA-Z\/])/g, '\\frac{$1}{$2}');
+    // Wrap entire expression in single $ for inline KaTeX
+    text = `$${text}$`;
   }
 
   return text;
