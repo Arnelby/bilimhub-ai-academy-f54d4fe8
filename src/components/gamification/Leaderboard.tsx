@@ -99,10 +99,15 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         .order('points', { ascending: false })
         .limit(limit);
 
-      const weeklyLeadersData = (weeklyData || []).map((entry, index) => ({
-        ...entry,
-        rank: index + 1,
-      }));
+      const weeklyLeadersData: LeaderboardEntry[] = (weeklyData || []).map((entry, index) => {
+        const st = userStats.get(entry.id);
+        return {
+          ...entry,
+          rank: index + 1,
+          testsCompleted: st?.count || 0,
+          averageScore: st ? Math.round(st.totalPct / st.count) : 0,
+        };
+      });
       setWeeklyLeaders(weeklyLeadersData);
 
     } catch (error) {
