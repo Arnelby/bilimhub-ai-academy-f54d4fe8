@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
+import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
 
 interface MistakeQuestion {
   questionNumber: string;
