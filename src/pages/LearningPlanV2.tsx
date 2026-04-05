@@ -414,7 +414,7 @@ export default function LearningPlanV2() {
               <div className="flex flex-wrap gap-2">
                 {strongTopics.map((t, i) => (
                   <Badge key={i} variant="secondary">
-                    {t.topic} — {t.accuracy}%
+                    {translateTopic(t.topic, language)} — {t.accuracy}%
                   </Badge>
                 ))}
               </div>
