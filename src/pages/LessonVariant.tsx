@@ -155,28 +155,41 @@ export default function LessonVariant() {
             defaultValue={scrollQuestion ? `q-${scrollQuestion}` : undefined}
             className="space-y-3"
           >
-            {videos.map((video) => (
-              <AccordionItem
-                key={video.id}
-                value={`q-${video.question_number}`}
-                className="border rounded-lg overflow-hidden"
-              >
-                <div ref={(el) => { questionRefs.current[video.question_number] = el; }}>
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline">
-                    <div className="flex items-center gap-3">
-                      <Play className="h-4 w-4 text-accent shrink-0" />
-                      <span className="font-medium">Разбор задачи {video.question_number}</span>
-                    </div>
-                  </AccordionTrigger>
-                </div>
-                <AccordionContent className="px-5 pb-5">
-                  <VideoEmbed
-                    url={video.youtube_url}
-                    title={`${config.label} — Задача ${video.question_number}`}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+            {videos.map((video) => {
+              const hasResult = video.question_number in userResults;
+              const isCorrect = userResults[video.question_number];
+              return (
+                <AccordionItem
+                  key={video.id}
+                  value={`q-${video.question_number}`}
+                  className="border rounded-lg overflow-hidden"
+                >
+                  <div ref={(el) => { questionRefs.current[video.question_number] = el; }}>
+                    <AccordionTrigger className="px-5 py-4 hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Play className="h-4 w-4 text-accent shrink-0" />
+                        <span className="font-medium">Разбор задачи {video.question_number}</span>
+                        {hasResult && (
+                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                            isCorrect
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {isCorrect ? 'Ответили правильно ✓' : 'Была ошибка — рекомендуется посмотреть'}
+                          </span>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                  </div>
+                  <AccordionContent className="px-5 pb-5">
+                    <VideoEmbed
+                      url={video.youtube_url}
+                      title={`${config.label} — Задача ${video.question_number}`}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         ) : (
           <div className="text-center py-12 text-muted-foreground">

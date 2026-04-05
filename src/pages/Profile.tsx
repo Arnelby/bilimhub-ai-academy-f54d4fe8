@@ -396,6 +396,11 @@ export default function Profile() {
               </CardContent>
             </Card>
 
+            {/* Leaderboard */}
+            {profile?.leaderboard_visible && (
+              <Leaderboard limit={10} showTabs={false} />
+            )}
+
             {/* Quick Actions */}
             <Card>
               <CardHeader>
