@@ -364,7 +364,7 @@ export default function LearningPlanV2() {
               <div className="space-y-3">
                 {weakTopics.map((t, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm">{t.topic}</span>
+                    <span className="text-sm">{translateTopic(t.topic, language)}</span>
                     <div className="flex items-center gap-3 w-48">
                       <Progress value={t.accuracy} className="h-2 flex-1" />
                       <span className="text-sm font-mono text-destructive w-12 text-right">{t.accuracy}%</span>
