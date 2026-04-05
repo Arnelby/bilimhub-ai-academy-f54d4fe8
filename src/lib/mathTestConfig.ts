@@ -10,7 +10,7 @@ export interface MathTestConfig {
 
 export const TEST_CONFIG: Record<number, MathTestConfig> = {
   1: { uuid: '00000000-0000-0000-0000-000000000001', name: 'Математика тест вариант 1', table: 'math_questions', durationSeconds: 30 * 60, description: 'Сравнение величин', questionType: 'comparison' },
-  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_questions', durationSeconds: 60 * 60, description: 'Сравнение величин', questionType: 'comparison' },
+  2: { uuid: '00000000-0000-0000-0000-000000000002', name: 'Математика тест вариант 2', table: 'math_test_questions', durationSeconds: 60 * 60, description: 'Тест с вариантами ответов', questionType: 'mcq' },
   3: { uuid: '00000000-0000-0000-0000-000000000003', name: 'Математика тест вариант 3', table: 'math_questions', durationSeconds: 30 * 60, description: 'Сравнение величин', questionType: 'comparison' },
   4: { uuid: '00000000-0000-0000-0000-000000000004', name: 'Математика тест вариант 4', table: 'math_test_questions', durationSeconds: 60 * 60, description: 'Тест с вариантами ответов', questionType: 'mcq' },
 };
