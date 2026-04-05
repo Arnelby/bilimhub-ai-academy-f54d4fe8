@@ -41,6 +41,7 @@ export default function LessonVariant() {
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<VideoSolution[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [userResults, setUserResults] = useState<Record<number, boolean>>({});
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const scrollQuestion = searchParams.get('question');
