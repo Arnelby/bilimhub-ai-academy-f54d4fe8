@@ -56,6 +56,14 @@ export default function MathTestTaking() {
   const mathTestId = parseInt(testIdParam || '1', 10);
   const config = TEST_CONFIG[mathTestId] || TEST_CONFIG[1];
 
+  // Variant 2 stores question_numbers 31-60 in DB but should display as 1-30
+  const getDisplayNumber = (dbQuestionNumber: number) => {
+    if (mathTestId === 2 && dbQuestionNumber >= 31) {
+      return dbQuestionNumber - 30;
+    }
+    return dbQuestionNumber;
+  };
+
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   // answers stored with LATIN keys internally (A,B,C,D,E)
@@ -188,11 +196,12 @@ export default function MathTestTaking() {
       const optionKeys = q.type === 'mcq' ? Object.keys(q.options) : ['A', 'B', 'C', 'D'];
       const selectedIdx = optionKeys.indexOf(latinKey);
       const correctIdx = optionKeys.indexOf(q.correct_answer);
+      const displayNum = getDisplayNumber(q.question_number);
       saveUserAnswer({
         userId: user.id,
         testId: `math_test_${mathTestId}`,
         testName: config.name,
-        questionId: `mq_${mathTestId}_${q.question_number}`,
+        questionId: `mq_${mathTestId}_${displayNum}`,
         topic: q.topic,
         selectedOption: selectedIdx >= 0 ? selectedIdx : 0,
         correctOption: correctIdx >= 0 ? correctIdx : 0,
@@ -214,8 +223,9 @@ export default function MathTestTaking() {
         const userAnswer = answers[q.question_number];
         const isCorrect = userAnswer === q.correct_answer;
         if (isCorrect) correct++;
+        const displayNum = getDisplayNumber(q.question_number);
         questionAttempts.push({
-          question_id: `mq_${mathTestId}_${q.question_number}`,
+          question_id: `mq_${mathTestId}_${displayNum}`,
           topic: q.topic,
           is_correct: isCorrect,
         });
