@@ -15,6 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { translateTopic } from '@/lib/topicTranslations';
 
 interface VideoSolution {
   id: string;
@@ -40,6 +41,7 @@ export default function LessonVariant() {
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<VideoSolution[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [userResults, setUserResults] = useState<Record<number, boolean>>({});
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const scrollQuestion = searchParams.get('question');
@@ -49,10 +51,11 @@ export default function LessonVariant() {
     if (!user || !variantId || !config) { setLoading(false); return; }
 
     async function fetchData() {
+      const mathTestId = `math_test_${config!.testConfigId}`;
       const [videosRes, testsRes, answersRes] = await Promise.all([
         supabase.from('video_solutions').select('*').eq('test_id', variantId!).order('question_number'),
         supabase.from('user_tests').select('test_id').eq('user_id', user!.id).not('completed_at', 'is', null),
-        supabase.from('user_answers').select('test_id').eq('user_id', user!.id),
+        supabase.from('user_answers').select('test_id, question_id, is_correct').eq('user_id', user!.id).eq('test_id', mathTestId),
       ]);
 
       setVideos((videosRes.data as VideoSolution[]) || []);
@@ -61,8 +64,18 @@ export default function LessonVariant() {
       let unlocked = false;
       const uuid = TEST_CONFIG[config!.testConfigId]?.uuid;
       if (uuid && (testsRes.data || []).some(t => t.test_id === uuid)) unlocked = true;
-      const mathTestId = `math_test_${config!.testConfigId}`;
-      if ((answersRes.data || []).some(a => a.test_id === mathTestId)) unlocked = true;
+      if ((answersRes.data || []).length > 0) unlocked = true;
+
+      // Build per-question result map
+      const results: Record<number, boolean> = {};
+      for (const a of (answersRes.data || [])) {
+        // question_id format: mq_{variant}_{number}
+        const match = a.question_id?.match(/^mq_\d+_(\d+)$/);
+        if (match) {
+          results[parseInt(match[1], 10)] = a.is_correct;
+        }
+      }
+      setUserResults(results);
 
       setIsUnlocked(unlocked);
       setLoading(false);
@@ -142,28 +155,41 @@ export default function LessonVariant() {
             defaultValue={scrollQuestion ? `q-${scrollQuestion}` : undefined}
             className="space-y-3"
           >
-            {videos.map((video) => (
-              <AccordionItem
-                key={video.id}
-                value={`q-${video.question_number}`}
-                className="border rounded-lg overflow-hidden"
-              >
-                <div ref={(el) => { questionRefs.current[video.question_number] = el; }}>
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline">
-                    <div className="flex items-center gap-3">
-                      <Play className="h-4 w-4 text-accent shrink-0" />
-                      <span className="font-medium">Разбор задачи {video.question_number}</span>
-                    </div>
-                  </AccordionTrigger>
-                </div>
-                <AccordionContent className="px-5 pb-5">
-                  <VideoEmbed
-                    url={video.youtube_url}
-                    title={`${config.label} — Задача ${video.question_number}`}
-                  />
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+            {videos.map((video) => {
+              const hasResult = video.question_number in userResults;
+              const isCorrect = userResults[video.question_number];
+              return (
+                <AccordionItem
+                  key={video.id}
+                  value={`q-${video.question_number}`}
+                  className="border rounded-lg overflow-hidden"
+                >
+                  <div ref={(el) => { questionRefs.current[video.question_number] = el; }}>
+                    <AccordionTrigger className="px-5 py-4 hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Play className="h-4 w-4 text-accent shrink-0" />
+                        <span className="font-medium">Разбор задачи {video.question_number}</span>
+                        {hasResult && (
+                          <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                            isCorrect
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {isCorrect ? 'Ответили правильно ✓' : 'Была ошибка — рекомендуется посмотреть'}
+                          </span>
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                  </div>
+                  <AccordionContent className="px-5 pb-5">
+                    <VideoEmbed
+                      url={video.youtube_url}
+                      title={`${config.label} — Задача ${video.question_number}`}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         ) : (
           <div className="text-center py-12 text-muted-foreground">

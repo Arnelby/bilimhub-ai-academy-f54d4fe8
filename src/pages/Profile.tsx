@@ -29,6 +29,7 @@ import { LevelBadge } from '@/components/gamification/LevelBadge';
 import { AchievementCard } from '@/components/gamification/AchievementCard';
 import { LearningTree } from '@/components/gamification/LearningTree';
 import { MasteryLevel } from '@/components/gamification/MasteryNode';
+import { Leaderboard } from '@/components/gamification/Leaderboard';
 
 interface Profile {
   name: string | null;
@@ -394,6 +395,11 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Leaderboard */}
+            {profile?.leaderboard_visible && (
+              <Leaderboard limit={10} showTabs={false} />
+            )}
 
             {/* Quick Actions */}
             <Card>

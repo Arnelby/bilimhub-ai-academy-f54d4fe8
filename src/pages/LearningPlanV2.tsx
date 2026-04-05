@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
+import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
 
 interface MistakeQuestion {
   questionNumber: string;
@@ -363,7 +364,7 @@ export default function LearningPlanV2() {
               <div className="space-y-3">
                 {weakTopics.map((t, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm">{t.topic}</span>
+                    <span className="text-sm">{translateTopic(t.topic, language)}</span>
                     <div className="flex items-center gap-3 w-48">
                       <Progress value={t.accuracy} className="h-2 flex-1" />
                       <span className="text-sm font-mono text-destructive w-12 text-right">{t.accuracy}%</span>
@@ -388,7 +389,7 @@ export default function LearningPlanV2() {
               <div className="space-y-3">
                 {mediumTopics.map((t, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <span className="text-sm">{t.topic}</span>
+                    <span className="text-sm">{translateTopic(t.topic, language)}</span>
                     <div className="flex items-center gap-3 w-48">
                       <Progress value={t.accuracy} className="h-2 flex-1" />
                       <span className="text-sm font-mono text-warning w-12 text-right">{t.accuracy}%</span>
@@ -413,7 +414,7 @@ export default function LearningPlanV2() {
               <div className="flex flex-wrap gap-2">
                 {strongTopics.map((t, i) => (
                   <Badge key={i} variant="secondary">
-                    {t.topic} — {t.accuracy}%
+                    {translateTopic(t.topic, language)} — {t.accuracy}%
                   </Badge>
                 ))}
               </div>
@@ -470,15 +471,25 @@ export default function LearningPlanV2() {
               <div className="space-y-2">
                 {mistakes.map((m, i) => {
                   const variantMatch = m.testId.match(/math_test_(\d+)/);
-                  const variantKey = variantMatch ? `variant${variantMatch[1]}` : '';
+                  const variantNum = variantMatch ? variantMatch[1] : '';
+                  const variantKey = variantNum ? `variant${variantNum}` : '';
+                  const parsed = parseQuestionId(m.questionNumber);
+                  const displayNum = parsed ? parsed.questionNumber : m.questionNumber;
+                  const displayVariant = parsed ? parsed.variant : (variantNum ? parseInt(variantNum) : null);
                   return (
                     <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
                       <div>
-                        <span className="text-sm font-medium">Задача {m.questionNumber}</span>
-                        {m.topic && <span className="text-xs text-muted-foreground ml-2">({m.topic})</span>}
+                        <span className="text-sm font-medium">
+                          Задача {displayNum}{displayVariant ? ` — Тест вариант ${displayVariant}` : ''}
+                        </span>
+                        {m.topic && (
+                          <p className="text-xs text-muted-foreground">
+                            Тема: {translateTopic(m.topic, language)}
+                          </p>
+                        )}
                       </div>
                       <Button size="sm" variant="outline" asChild>
-                        <Link to={`/lessons/video/${variantKey}?question=${m.questionNumber}`}>
+                        <Link to={`/lessons/video/${variantKey}?question=${displayNum}`}>
                           <Video className="mr-1 h-3 w-3" />
                           Смотреть видеоразбор
                         </Link>
