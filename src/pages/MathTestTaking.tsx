@@ -85,21 +85,39 @@ export default function MathTestTaking() {
           for (const q of (data || [])) {
             if (!seen.has(q.question_number)) {
               seen.add(q.question_number);
-              // Normalize option keys: DB may have Cyrillic keys like Б
               const rawOptions = (q.options as Record<string, string>) || {};
-              const normalizedOptions: Record<string, string> = {};
-              for (const [k, v] of Object.entries(rawOptions)) {
-                normalizedOptions[toLatinKey(k)] = v;
+              const hasOptions = Object.keys(rawOptions).length > 0;
+              
+              if (hasOptions) {
+                // MCQ with explicit options
+                const normalizedOptions: Record<string, string> = {};
+                for (const [k, v] of Object.entries(rawOptions)) {
+                  normalizedOptions[toLatinKey(k)] = v;
+                }
+                unique.push({
+                  type: 'mcq',
+                  id: q.id,
+                  question_number: q.question_number,
+                  topic: q.topic || '',
+                  instruction: q.instruction || '',
+                  options: normalizedOptions,
+                  correct_answer: toLatinKey(q.correct_answer),
+                });
+              } else {
+                // Comparison-style question stored in math_test_questions
+                unique.push({
+                  type: 'comparison',
+                  id: q.id,
+                  question_number: q.question_number,
+                  topic: q.topic || '',
+                  instruction: q.instruction,
+                  column_a: q.column_a || '',
+                  column_b: q.column_b || '',
+                  option_c: null,
+                  option_d: null,
+                  correct_answer: toLatinKey(q.correct_answer),
+                });
               }
-              unique.push({
-                type: 'mcq',
-                id: q.id,
-                question_number: q.question_number,
-                topic: q.topic || '',
-                instruction: q.instruction || '',
-                options: normalizedOptions,
-                correct_answer: toLatinKey(q.correct_answer),
-              });
             }
           }
           setQuestions(unique);
