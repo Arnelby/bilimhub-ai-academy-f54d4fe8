@@ -51,10 +51,11 @@ export default function LessonVariant() {
     if (!user || !variantId || !config) { setLoading(false); return; }
 
     async function fetchData() {
+      const mathTestId = `math_test_${config!.testConfigId}`;
       const [videosRes, testsRes, answersRes] = await Promise.all([
         supabase.from('video_solutions').select('*').eq('test_id', variantId!).order('question_number'),
         supabase.from('user_tests').select('test_id').eq('user_id', user!.id).not('completed_at', 'is', null),
-        supabase.from('user_answers').select('test_id').eq('user_id', user!.id),
+        supabase.from('user_answers').select('test_id, question_id, is_correct').eq('user_id', user!.id).eq('test_id', mathTestId),
       ]);
 
       setVideos((videosRes.data as VideoSolution[]) || []);
@@ -63,8 +64,18 @@ export default function LessonVariant() {
       let unlocked = false;
       const uuid = TEST_CONFIG[config!.testConfigId]?.uuid;
       if (uuid && (testsRes.data || []).some(t => t.test_id === uuid)) unlocked = true;
-      const mathTestId = `math_test_${config!.testConfigId}`;
-      if ((answersRes.data || []).some(a => a.test_id === mathTestId)) unlocked = true;
+      if ((answersRes.data || []).length > 0) unlocked = true;
+
+      // Build per-question result map
+      const results: Record<number, boolean> = {};
+      for (const a of (answersRes.data || [])) {
+        // question_id format: mq_{variant}_{number}
+        const match = a.question_id?.match(/^mq_\d+_(\d+)$/);
+        if (match) {
+          results[parseInt(match[1], 10)] = a.is_correct;
+        }
+      }
+      setUserResults(results);
 
       setIsUnlocked(unlocked);
       setLoading(false);
