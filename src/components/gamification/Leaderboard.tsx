@@ -16,6 +16,8 @@ interface LeaderboardEntry {
   level: number;
   streak: number;
   rank: number;
+  testsCompleted: number;
+  averageScore: number;
 }
 
 interface LeaderboardProps {
