@@ -39,7 +39,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
 
   async function fetchLeaderboard() {
     try {
-      // Fetch all-time leaders
+      // Fetch visible profiles
       const { data: allTimeData } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, points, level, streak')
@@ -47,10 +47,35 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         .order('points', { ascending: false })
         .limit(limit);
 
-      const allTimeLeaders = (allTimeData || []).map((entry, index) => ({
-        ...entry,
-        rank: index + 1,
-      }));
+      // Fetch test stats for these users
+      const userIds = (allTimeData || []).map(u => u.id);
+      const { data: testsData } = userIds.length > 0
+        ? await supabase
+            .from('user_tests')
+            .select('user_id, score, total_questions')
+            .in('user_id', userIds)
+            .not('completed_at', 'is', null)
+        : { data: [] };
+
+      // Calculate per-user stats
+      const userStats = new Map<string, { count: number; totalPct: number }>();
+      for (const t of (testsData || [])) {
+        const s = userStats.get(t.user_id) || { count: 0, totalPct: 0 };
+        s.count++;
+        const pct = t.total_questions ? Math.round(((t.score || 0) / t.total_questions) * 100) : 0;
+        s.totalPct += pct;
+        userStats.set(t.user_id, s);
+      }
+
+      const allTimeLeaders: LeaderboardEntry[] = (allTimeData || []).map((entry, index) => {
+        const st = userStats.get(entry.id);
+        return {
+          ...entry,
+          rank: index + 1,
+          testsCompleted: st?.count || 0,
+          averageScore: st ? Math.round(st.totalPct / st.count) : 0,
+        };
+      });
       setLeaders(allTimeLeaders);
 
       // Find user's rank
