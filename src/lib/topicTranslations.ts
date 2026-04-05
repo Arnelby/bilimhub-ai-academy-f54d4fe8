@@ -75,5 +75,11 @@ export function translateTopic(topic: string, language: 'en' | 'ru' | 'kg'): str
 export function parseQuestionId(questionId: string): { variant: number; questionNumber: number } | null {
   const match = questionId.match(/^mq_(\d+)_(\d+)$/);
   if (!match) return null;
-  return { variant: parseInt(match[1], 10), questionNumber: parseInt(match[2], 10) };
+  const variant = parseInt(match[1], 10);
+  let questionNumber = parseInt(match[2], 10);
+  // Handle legacy data: variant 2 stored question_numbers 31-60, normalize to 1-30
+  if (variant === 2 && questionNumber >= 31) {
+    questionNumber = questionNumber - 30;
+  }
+  return { variant, questionNumber };
 }
