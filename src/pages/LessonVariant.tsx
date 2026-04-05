@@ -15,6 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { translateTopic } from '@/lib/topicTranslations';
 
 interface VideoSolution {
   id: string;
