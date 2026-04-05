@@ -167,7 +167,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
                 {isCurrentUser && <span className="ml-2 text-xs text-accent">(вы)</span>}
               </p>
               <p className="text-xs text-muted-foreground">
-                Уровень {entry.level} • Стрик {entry.streak}🔥
+                {entry.testsCompleted} тестов • Средний: {entry.averageScore}%
               </p>
             </div>
             <div className="text-right">
