@@ -254,8 +254,14 @@ export default function Practice() {
 
       const { data } = await supabase.functions.invoke('ai-chat-tutor', {
         body: {
-          message: `Ученик решал задачу по теме "${q.topic}".\n\n${questionText}\n\nУченик выбрал ответ: ${userLabel}\nПравильный ответ: ${correctLabel}\n\nОбъясни кратко:\n1. Почему ответ ученика неправильный\n2. Как правильно решить эту задачу\n3. Какой верный ход рассуждений\n\nОтветь на русском языке, кратко и понятно.`,
-          context: 'mistake_review',
+          messages: [
+            {
+              role: 'user',
+              content: `Ученик решал задачу по теме "${q.topic}".\n\n${questionText}\n\nУченик выбрал ответ: ${userLabel}\nПравильный ответ: ${correctLabel}\n\nОбъясни кратко:\n1. Почему ответ ученика неправильный\n2. Как правильно решить эту задачу\n3. Какой верный ход рассуждений\n\nОтветь на русском языке, кратко и понятно.`,
+            },
+          ],
+          context: { type: 'mistake_review' },
+          language: 'ru',
         },
       });
 
