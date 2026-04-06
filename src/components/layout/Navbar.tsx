@@ -40,7 +40,7 @@ export function Navbar() {
   const protectedLinks = [
     { href: '/lessons', label: t.nav.lessons },
     { href: '/tests', label: t.nav.tests },
-    { href: '/homework', label: t.nav.homework || 'Homework' },
+    
     { href: '/dashboard', label: t.nav.dashboard },
     { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor' },
     { href: '/learning-plan', label: t.nav.myPlan || 'My Plan' },

@@ -29,7 +29,7 @@ import NotFound from "./pages/NotFound";
 import DiagnosticTest from "./pages/DiagnosticTest";
 import LearningPlanV2 from "./pages/LearningPlanV2";
 import AISmartTutor from "./pages/AISmartTutor";
-import Homework from "./pages/Homework";
+
 import MathLessons from "./pages/MathLessons";
 import FractionsLesson from "./pages/FractionsLesson";
 import DynamicLessonViewer from "./pages/DynamicLessonViewer";
@@ -74,7 +74,7 @@ const App = () => (
                   <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><DiagnosticTest /></ProtectedRoute>} />
                   <Route path="/learning-plan" element={<ProtectedRoute><LearningPlanV2 /></ProtectedRoute>} />
                   <Route path="/ai-tutor" element={<ProtectedRoute><AISmartTutor /></ProtectedRoute>} />
-                  <Route path="/homework" element={<ProtectedRoute><Homework /></ProtectedRoute>} />
+                  
                   <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
                   <Route path="/tests/math-test/:testId" element={<ProtectedRoute><MathTestTaking /></ProtectedRoute>} />
                   <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
