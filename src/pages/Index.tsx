@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -20,7 +19,6 @@ import {
   ChevronRight,
   Award,
   Rocket,
-  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,50 +29,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import heroPattern from '@/assets/hero-pattern.png';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
-// Topic slug mapping for URL routing
-const topicSlugMap: Record<string, string> = {
-  'Algebra Basics': 'algebra',
-  'Linear Equations': 'linear-equations',
-  'Quadratic Equations': 'quadratics',
-  'Functions': 'functions',
-  'Geometry Basics': 'geometry',
-  'Trigonometry': 'trigonometry',
-  'Probability': 'probability',
-  'Statistics': 'statistics',
-};
 
-const topicEmojis: Record<string, string> = {
-  'Algebra Basics': '📐',
-  'Linear Equations': '📏',
-  'Quadratic Equations': '✖️',
-  'Functions': '📈',
-  'Geometry Basics': '📐',
-  'Trigonometry': '📊',
-  'Probability': '🎲',
-  'Statistics': '📉',
-};
-
-const topicGradients = [
-  'from-blue-500 to-cyan-500',
-  'from-purple-500 to-pink-500',
-  'from-orange-500 to-red-500',
-  'from-green-500 to-emerald-500',
-  'from-indigo-500 to-violet-500',
-  'from-rose-500 to-pink-500',
-  'from-amber-500 to-yellow-500',
-  'from-teal-500 to-cyan-500',
-];
-
-interface DBTopic {
-  id: string;
-  title: string;
-  title_ru: string | null;
-  title_kg: string | null;
-  subject: string;
-  order_index: number | null;
-}
 
 // Animated stat circle component
 function StatCircle({ 
@@ -156,9 +112,6 @@ function QuickActionCard({
 // Component for authenticated users - Dashboard Home
 function AuthenticatedHome() {
   const { profile } = useAuth();
-  const { language } = useLanguage();
-  const [topics, setTopics] = useState<DBTopic[]>([]);
-  const [topicsLoading, setTopicsLoading] = useState(true);
   
   const userName = profile?.name || 'Ученик';
   const userPoints = profile?.points || 0;
@@ -169,33 +122,6 @@ function AuthenticatedHome() {
   
   // Calculate progress percentage (mock)
   const progressPercent = Math.min(Math.round((userPoints / 1000) * 100), 100);
-
-  useEffect(() => {
-    async function fetchTopics() {
-      try {
-        const { data, error } = await supabase
-          .from('topics')
-          .select('id, title, title_ru, title_kg, subject, order_index')
-          .order('order_index', { ascending: true });
-        if (!error && data) setTopics(data);
-      } catch (e) {
-        console.error('Error fetching topics:', e);
-      } finally {
-        setTopicsLoading(false);
-      }
-    }
-    fetchTopics();
-  }, []);
-
-  const getTopicName = (topic: DBTopic) => {
-    if (language === 'ru' && topic.title_ru) return topic.title_ru;
-    if (language === 'kg' && topic.title_kg) return topic.title_kg;
-    return topic.title;
-  };
-
-  const getTopicSlug = (topic: DBTopic) => {
-    return topicSlugMap[topic.title] || topic.title.toLowerCase().replace(/\s+/g, '-');
-  };
 
   return (
     <Layout>
@@ -340,53 +266,55 @@ function AuthenticatedHome() {
             </div>
           </section>
 
-          {/* Topics & Progress Section */}
+          {/* Quick Actions & Achievements Section */}
           <section className="mb-12">
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Topics Card */}
+              {/* Recent Activity Card */}
               <Card className="lg:col-span-2 overflow-hidden animate-fade-in" style={{ animationDelay: '300ms' }}>
                 <CardHeader className="border-b bg-muted/30">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-primary" />
-                      Доступные темы
+                      Быстрый доступ
                     </CardTitle>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to="/lessons">
-                        Все темы <ArrowRight className="ml-1 h-4 w-4" />
+                        Все уроки <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {topicsLoading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-4">
-                      {topics.map((topic, idx) => (
-                        <Link
-                          key={topic.id}
-                          to={`/lessons/topic/${getTopicSlug(topic)}`}
-                          className="group block"
-                        >
-                          <div className="rounded-xl border-2 border-transparent bg-muted/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
-                            <div className="mb-3 text-3xl">{topicEmojis[topic.title] || '📚'}</div>
-                            <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{getTopicName(topic)}</h4>
-                            <div className="mt-2">
-                              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                                <div 
-                                  className={cn("h-full rounded-full bg-gradient-to-r transition-all", topicGradients[idx % topicGradients.length])}
-                                  style={{ width: '0%' }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Link to="/tests" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <Target className="h-8 w-8 text-primary mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Тесты ОРТ</h4>
+                        <p className="text-sm text-muted-foreground mt-1">4 варианта тестов</p>
+                      </div>
+                    </Link>
+                    <Link to="/practice" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Практика</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Задачи по слабым темам</p>
+                      </div>
+                    </Link>
+                    <Link to="/lessons" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <BookOpenCheck className="h-8 w-8 text-blue-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Базовые уроки</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Видеоуроки по темам</p>
+                      </div>
+                    </Link>
+                    <Link to="/learning-plan" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <Lightbulb className="h-8 w-8 text-yellow-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Мой план</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Персональный путь обучения</p>
+                      </div>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
 

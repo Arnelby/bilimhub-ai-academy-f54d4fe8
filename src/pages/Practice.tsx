@@ -252,54 +252,45 @@ export default function Practice() {
         console.error('AI practice generation failed, falling back to DB:', aiErr);
       }
 
-      // Fallback: use DB questions if AI fails (but shuffle to vary)
-      const allQuestions: PracticeQuestion[] = [];
-      if (formatType === 'mcq') {
-        const { data: mcqData } = await supabase
-          .from('math_test_questions')
-          .select('*')
-          .in('topic', weak)
-          .limit(30);
-
-        if (mcqData) {
-          for (const q of mcqData) {
-            const rawOptions = (q.options as Record<string, string>) || {};
-            if (Object.keys(rawOptions).length > 0) {
-              const normalizedOptions: Record<string, string> = {};
-              for (const [k, v] of Object.entries(rawOptions)) {
-                normalizedOptions[toLatinKey(k)] = v;
-              }
-              allQuestions.push({
-                type: 'mcq', id: q.id, question_number: q.question_number,
-                topic: q.topic || '', instruction: q.instruction || '',
-                options: normalizedOptions, correct_answer: toLatinKey(q.correct_answer),
-                variantId: q.test_id,
-              });
-            }
+      // Fallback: retry AI generation once more with simpler prompt
+      try {
+        const simplePrompt = `Создай 5 задач на сравнение величин для тем: ${weak.slice(0, 2).join(', ')}.
+JSON формат: {"questions":[{"type":"comparison","topic":"тема","instruction":null,"column_a":"2^3","column_b":"3^2","correct_answer":"B"}]}
+Только JSON.`;
+        const retryResp = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({ messages: [{ role: 'user', content: simplePrompt }], context: { type: 'practice_generation' }, language: 'ru' }),
+          }
+        );
+        if (retryResp.ok) {
+          const rdr = retryResp.body?.getReader();
+          const dec = new TextDecoder();
+          let txt = '';
+          if (rdr) { while (true) { const { done, value } = await rdr.read(); if (done) break; const c = dec.decode(value, { stream: true }); for (const l of c.split('\n')) { if (l.startsWith('data: ')) { const d = l.slice(6).trim(); if (d === '[DONE]') continue; try { const p = JSON.parse(d); const ct = p.choices?.[0]?.delta?.content; if (ct) txt += ct; } catch {} } } } }
+          const jm = txt.match(/\{[\s\S]*\}/);
+          if (jm) {
+            const gen = JSON.parse(jm[0]);
+            const qs: PracticeQuestion[] = (gen.questions || []).map((q: any, i: number) => ({
+              type: 'comparison' as const, id: 90000 + i, question_number: i + 1,
+              topic: q.topic || weak[0] || '', instruction: q.instruction || null,
+              column_a: q.column_a || '', column_b: q.column_b || '',
+              option_c: null, option_d: null, correct_answer: q.correct_answer || 'A',
+            }));
+            if (qs.length > 0) { setQuestions(qs); setLoading(false); return; }
           }
         }
-      } else {
-        const { data: compData } = await supabase
-          .from('math_questions')
-          .select('*')
-          .in('topic', weak)
-          .limit(30);
+      } catch { /* final fallback below */ }
 
-        if (compData) {
-          for (const q of compData) {
-            allQuestions.push({
-              type: 'comparison', id: q.id, question_number: q.question_number,
-              topic: q.topic, instruction: q.instruction,
-              column_a: q.column_a, column_b: q.column_b,
-              option_c: q.option_c, option_d: q.option_d,
-              correct_answer: toLatinKey(q.correct_answer), variantId: q.test_id,
-            });
-          }
-        }
-      }
-
-      const shuffled = allQuestions.sort(() => Math.random() - 0.5);
-      setQuestions(shuffled.slice(0, 12));
+      // If all AI attempts fail, show error - DO NOT fall back to DB questions
+      console.error('All AI generation attempts failed');
+      setQuestions([]);
     } catch (err) {
       console.error('Practice load error:', err);
     } finally {

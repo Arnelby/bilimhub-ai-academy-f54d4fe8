@@ -514,6 +514,8 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           email: string | null
+          full_name: string | null
+          group_type: string | null
           id: string
           language_preference: string | null
           last_activity_date: string | null
@@ -529,6 +531,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
+          group_type?: string | null
           id: string
           language_preference?: string | null
           last_activity_date?: string | null
@@ -544,6 +548,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email?: string | null
+          full_name?: string | null
+          group_type?: string | null
           id?: string
           language_preference?: string | null
           last_activity_date?: string | null
@@ -1086,12 +1092,14 @@ export type Database = {
         Row: {
           ai_analysis: Json | null
           answers: Json | null
+          attempt_number: number | null
           completed_at: string | null
           created_at: string | null
           id: string
           score: number | null
           started_at: string | null
           test_id: string
+          test_type: string | null
           time_taken_seconds: number | null
           total_questions: number | null
           user_id: string
@@ -1099,12 +1107,14 @@ export type Database = {
         Insert: {
           ai_analysis?: Json | null
           answers?: Json | null
+          attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
           id?: string
           score?: number | null
           started_at?: string | null
           test_id: string
+          test_type?: string | null
           time_taken_seconds?: number | null
           total_questions?: number | null
           user_id: string
@@ -1112,12 +1122,14 @@ export type Database = {
         Update: {
           ai_analysis?: Json | null
           answers?: Json | null
+          attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
           id?: string
           score?: number | null
           started_at?: string | null
           test_id?: string
+          test_type?: string | null
           time_taken_seconds?: number | null
           total_questions?: number | null
           user_id?: string
