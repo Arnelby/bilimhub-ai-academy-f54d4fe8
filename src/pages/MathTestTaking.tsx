@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { saveUserAnswer } from '@/lib/saveUserAnswer';
 import { MathRenderer } from '@/components/math/MathRenderer';
+import { QuestionImage } from '@/components/math/QuestionImage';
 import { TEST_CONFIG, toCyrillicKey, toLatinKey } from '@/lib/mathTestConfig';
 import {
   AlertDialog,
@@ -434,6 +435,13 @@ export default function MathTestTaking() {
                     <Badge variant="accent">Вопрос {currentIndex + 1} из {questions.length}</Badge>
                     <Badge variant="outline">{currentQuestion?.topic}</Badge>
                   </div>
+
+                  {currentQuestion && (
+                    <QuestionImage
+                      variantId={mathTestId}
+                      questionNumber={getDisplayNumber(currentQuestion.question_number)}
+                    />
+                  )}
 
                   {currentQuestion?.type === 'mcq'
                     ? renderMcqQuestion(currentQuestion)
