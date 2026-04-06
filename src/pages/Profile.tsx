@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { 
   User, 
@@ -33,6 +34,7 @@ import { Leaderboard } from '@/components/gamification/Leaderboard';
 
 interface Profile {
   name: string | null;
+  full_name: string | null;
   email: string | null;
   streak: number;
   points: number;
@@ -61,6 +63,9 @@ export default function Profile() {
   const [topics, setTopics] = useState<TopicProgress[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [savedTerms, setSavedTerms] = useState<SavedTerm[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editFullName, setEditFullName] = useState('');
   const [stats, setStats] = useState({
     testsCompleted: 0,
     lessonsCompleted: 0,
@@ -89,6 +94,7 @@ export default function Profile() {
       if (profileData) {
         setProfile({
           name: profileData.name,
+          full_name: (profileData as any).full_name || null,
           email: profileData.email,
           streak: profileData.streak || 0,
           points: profileData.points || 0,
@@ -96,6 +102,8 @@ export default function Profile() {
           created_at: profileData.created_at,
           leaderboard_visible: profileData.leaderboard_visible ?? false,
         });
+        setEditName(profileData.name || '');
+        setEditFullName((profileData as any).full_name || '');
       }
 
       // Fetch stats
@@ -230,14 +238,47 @@ export default function Profile() {
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/10 text-accent">
                   <User className="h-10 w-10" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold">{profile?.name || 'Студент'}</h1>
-                  <p className="text-muted-foreground">{profile?.email || user?.email}</p>
-                  <p className="text-sm text-muted-foreground">
-                    <Calendar className="mr-1 inline h-3 w-3" />
-                    Участник с {formatJoinDate(profile?.created_at || null)}
-                  </p>
-                </div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Имя (ник)"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Input
+                      placeholder="ФИО (Фамилия Имя Отчество)"
+                      value={editFullName}
+                      onChange={(e) => setEditFullName(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={async () => {
+                        if (!user) return;
+                        await supabase
+                          .from('profiles')
+                          .update({ name: editName, full_name: editFullName } as any)
+                          .eq('id', user.id);
+                        setProfile(prev => prev ? { ...prev, name: editName, full_name: editFullName } : prev);
+                        setIsEditing(false);
+                      }}>
+                        Сохранить
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+                        Отмена
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h1 className="text-2xl font-bold">{profile?.full_name || profile?.name || 'Студент'}</h1>
+                    <p className="text-muted-foreground">{profile?.email || user?.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      <Calendar className="mr-1 inline h-3 w-3" />
+                      Участник с {formatJoinDate(profile?.created_at || null)}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <StreakBadge streak={profile?.streak || 0} size="lg" />
@@ -261,10 +302,12 @@ export default function Profile() {
                     Показать в рейтинге
                   </Label>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Edit className="mr-2 h-4 w-4" />
-                  {t.profile.editProfile}
-                </Button>
+                {!isEditing && (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    {t.profile.editProfile}
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
