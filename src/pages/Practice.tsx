@@ -137,12 +137,124 @@ export default function Practice() {
         return;
       }
 
-      // 4. Fetch questions matching the test format
-      const allQuestions: PracticeQuestion[] = [];
-      const usedIds = new Set<string>();
+      // 4. Generate NEW practice questions via AI (never reuse DB questions)
+      const formatType = configEntry?.questionType || 'comparison';
+      const questionCount = Math.min(10, Math.max(5, weak.length * 3));
 
-      if (configEntry?.questionType === 'mcq') {
-        // MCQ format — fetch from math_test_questions
+      try {
+        const prompt = formatType === 'mcq'
+          ? `Сгенерируй ${questionCount} НОВЫХ уникальных задач по математике в формате ОРТ (множественный выбор) для следующих слабых тем: ${weak.join(', ')}.
+
+Формат JSON (строго):
+{"questions": [{"type":"mcq","topic":"тема","instruction":"текст задачи","options":{"A":"вариант1","B":"вариант2","C":"вариант3","D":"вариант4","E":"вариант5"},"correct_answer":"A"}]}
+
+Требования:
+- Каждая задача НОВАЯ, не копируй из учебников
+- 5 вариантов ответа (A, Б→B, В→C, Г→D, Д→E)
+- Правильный ответ в поле correct_answer (латинская буква A-E)
+- Стиль ОРТ экзамена
+- Разная сложность
+- Ответь ТОЛЬКО JSON, без пояснений`
+          : `Сгенерируй ${questionCount} НОВЫХ уникальных задач по математике в формате ОРТ (сравнение величин) для следующих слабых тем: ${weak.join(', ')}.
+
+Формат JSON (строго):
+{"questions": [{"type":"comparison","topic":"тема","instruction":"условие или null","column_a":"выражение A","column_b":"выражение B","correct_answer":"A"}]}
+
+Требования:
+- Каждая задача НОВАЯ, не копируй из учебников
+- correct_answer: A (столбец A больше), B (столбец B больше), C (равны), D (невозможно определить)
+- Стиль ОРТ экзамена
+- Разная сложность
+- Ответь ТОЛЬКО JSON, без пояснений`;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: prompt }],
+              context: { type: 'practice_generation' },
+              language: 'ru',
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let fullText = '';
+
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6).trim();
+                  if (data === '[DONE]') continue;
+                  try {
+                    const parsed = JSON.parse(data);
+                    const content = parsed.choices?.[0]?.delta?.content;
+                    if (content) fullText += content;
+                  } catch { /* skip */ }
+                }
+              }
+            }
+          }
+
+          // Parse AI-generated questions
+          const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const generated = JSON.parse(jsonMatch[0]);
+            const aiQuestions: PracticeQuestion[] = (generated.questions || []).map((q: any, idx: number) => {
+              if (q.type === 'mcq' || formatType === 'mcq') {
+                return {
+                  type: 'mcq' as const,
+                  id: 90000 + idx,
+                  question_number: idx + 1,
+                  topic: q.topic || weak[0] || '',
+                  instruction: q.instruction || '',
+                  options: q.options || {},
+                  correct_answer: q.correct_answer || 'A',
+                  variantId: mathTestId,
+                };
+              }
+              return {
+                type: 'comparison' as const,
+                id: 90000 + idx,
+                question_number: idx + 1,
+                topic: q.topic || weak[0] || '',
+                instruction: q.instruction || null,
+                column_a: q.column_a || '',
+                column_b: q.column_b || '',
+                option_c: null,
+                option_d: null,
+                correct_answer: q.correct_answer || 'A',
+                variantId: mathTestId,
+              };
+            });
+
+            if (aiQuestions.length > 0) {
+              setQuestions(aiQuestions);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch (aiErr) {
+        console.error('AI practice generation failed, falling back to DB:', aiErr);
+      }
+
+      // Fallback: use DB questions if AI fails (but shuffle to vary)
+      const allQuestions: PracticeQuestion[] = [];
+      if (formatType === 'mcq') {
         const { data: mcqData } = await supabase
           .from('math_test_questions')
           .select('*')
@@ -151,9 +263,6 @@ export default function Practice() {
 
         if (mcqData) {
           for (const q of mcqData) {
-            const uid = `mcq_${q.id}`;
-            if (usedIds.has(uid)) continue;
-            usedIds.add(uid);
             const rawOptions = (q.options as Record<string, string>) || {};
             if (Object.keys(rawOptions).length > 0) {
               const normalizedOptions: Record<string, string> = {};
@@ -161,20 +270,15 @@ export default function Practice() {
                 normalizedOptions[toLatinKey(k)] = v;
               }
               allQuestions.push({
-                type: 'mcq',
-                id: q.id,
-                question_number: q.question_number,
-                topic: q.topic || '',
-                instruction: q.instruction || '',
-                options: normalizedOptions,
-                correct_answer: toLatinKey(q.correct_answer),
+                type: 'mcq', id: q.id, question_number: q.question_number,
+                topic: q.topic || '', instruction: q.instruction || '',
+                options: normalizedOptions, correct_answer: toLatinKey(q.correct_answer),
                 variantId: q.test_id,
               });
             }
           }
         }
       } else {
-        // Comparison format — fetch from math_questions
         const { data: compData } = await supabase
           .from('math_questions')
           .select('*')
@@ -183,35 +287,19 @@ export default function Practice() {
 
         if (compData) {
           for (const q of compData) {
-            const uid = `comp_${q.id}`;
-            if (usedIds.has(uid)) continue;
-            usedIds.add(uid);
             allQuestions.push({
-              type: 'comparison',
-              id: q.id,
-              question_number: q.question_number,
-              topic: q.topic,
-              instruction: q.instruction,
-              column_a: q.column_a,
-              column_b: q.column_b,
-              option_c: q.option_c,
-              option_d: q.option_d,
-              correct_answer: toLatinKey(q.correct_answer),
-              variantId: q.test_id,
+              type: 'comparison', id: q.id, question_number: q.question_number,
+              topic: q.topic, instruction: q.instruction,
+              column_a: q.column_a, column_b: q.column_b,
+              option_c: q.option_c, option_d: q.option_d,
+              correct_answer: toLatinKey(q.correct_answer), variantId: q.test_id,
             });
           }
         }
       }
 
-      // Shuffle and pick 10-12, prioritizing weakest topics
       const shuffled = allQuestions.sort(() => Math.random() - 0.5);
-      const weakest = weak.slice(0, 2);
-      const prioritized = [
-        ...shuffled.filter(q => weakest.includes(q.topic)),
-        ...shuffled.filter(q => !weakest.includes(q.topic)),
-      ];
-
-      setQuestions(prioritized.slice(0, 12));
+      setQuestions(shuffled.slice(0, 12));
     } catch (err) {
       console.error('Practice load error:', err);
     } finally {
