@@ -33,48 +33,7 @@ import heroPattern from '@/assets/hero-pattern.png';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
-// Topic slug mapping for URL routing
-const topicSlugMap: Record<string, string> = {
-  'Algebra Basics': 'algebra',
-  'Linear Equations': 'linear-equations',
-  'Quadratic Equations': 'quadratics',
-  'Functions': 'functions',
-  'Geometry Basics': 'geometry',
-  'Trigonometry': 'trigonometry',
-  'Probability': 'probability',
-  'Statistics': 'statistics',
-};
 
-const topicEmojis: Record<string, string> = {
-  'Algebra Basics': '📐',
-  'Linear Equations': '📏',
-  'Quadratic Equations': '✖️',
-  'Functions': '📈',
-  'Geometry Basics': '📐',
-  'Trigonometry': '📊',
-  'Probability': '🎲',
-  'Statistics': '📉',
-};
-
-const topicGradients = [
-  'from-blue-500 to-cyan-500',
-  'from-purple-500 to-pink-500',
-  'from-orange-500 to-red-500',
-  'from-green-500 to-emerald-500',
-  'from-indigo-500 to-violet-500',
-  'from-rose-500 to-pink-500',
-  'from-amber-500 to-yellow-500',
-  'from-teal-500 to-cyan-500',
-];
-
-interface DBTopic {
-  id: string;
-  title: string;
-  title_ru: string | null;
-  title_kg: string | null;
-  subject: string;
-  order_index: number | null;
-}
 
 // Animated stat circle component
 function StatCircle({ 
