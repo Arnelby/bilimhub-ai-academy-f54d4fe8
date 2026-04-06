@@ -60,6 +60,7 @@ export default function LearningPlanV2() {
   const [generating, setGenerating] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
+  const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
 
   useEffect(() => {
     if (user) loadAnalysis();
