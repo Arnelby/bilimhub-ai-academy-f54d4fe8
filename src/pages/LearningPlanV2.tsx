@@ -11,11 +11,19 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video
+  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
+
+interface RecommendedLesson {
+  id: string;
+  title_ru: string | null;
+  title: string;
+  youtube_url: string;
+  topicTitle: string;
+}
 
 interface MistakeQuestion {
   questionNumber: string;
@@ -52,6 +60,7 @@ export default function LearningPlanV2() {
   const [generating, setGenerating] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
+  const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
 
   useEffect(() => {
     if (user) loadAnalysis();
@@ -180,6 +189,38 @@ export default function LearningPlanV2() {
             topic: a.topic,
             testId: a.test_id,
           })));
+        }
+      }
+
+      // Load recommended lessons for weak topics
+      if (weak.length > 0) {
+        const weakTopicNames = weak.map(w => w.topic);
+        // Find topics matching weak topic names
+        const { data: matchingTopics } = await supabase
+          .from('topics')
+          .select('id, title, title_ru')
+          .in('title', weakTopicNames);
+
+        if (matchingTopics && matchingTopics.length > 0) {
+          const topicIds = matchingTopics.map(t => t.id);
+          const { data: lessonsData } = await supabase
+            .from('lessons')
+            .select('id, title, title_ru, topic_id, content')
+            .in('topic_id', topicIds);
+
+          if (lessonsData) {
+            const recLessons: RecommendedLesson[] = lessonsData.map(l => {
+              const topic = matchingTopics.find(t => t.id === l.topic_id);
+              return {
+                id: l.id,
+                title: l.title,
+                title_ru: l.title_ru,
+                youtube_url: (l.content as any)?.youtube_url || '',
+                topicTitle: topic?.title_ru || topic?.title || '',
+              };
+            });
+            setRecommendedLessons(recLessons);
+          }
         }
       }
     } catch (e) {
@@ -502,7 +543,38 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
-        {/* Practice CTA */}
+        {/* Recommended Lessons */}
+        {recommendedLessons.length > 0 && (
+          <Card className="mb-6 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Рекомендуемые базовые уроки
+              </CardTitle>
+              <CardDescription>Видеоуроки по вашим слабым темам</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recommendedLessons.map((lesson) => (
+                  <div key={lesson.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                      <span className="text-sm font-medium">{lesson.title_ru || lesson.title}</span>
+                      <p className="text-xs text-muted-foreground">Тема: {lesson.topicTitle}</p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to="/lessons">
+                        <Play className="mr-1 h-3 w-3" />
+                        Смотреть базовый урок
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-accent bg-accent/5">
             <CardContent className="flex items-center justify-between py-5">
