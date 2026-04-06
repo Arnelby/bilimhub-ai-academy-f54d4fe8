@@ -272,6 +272,27 @@ export default function MathTestTaking() {
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
 
+      // Mark diagnostic as completed if this is the user's first test
+      const { data: existingProfile } = await supabase
+        .from('user_diagnostic_profile')
+        .select('diagnostic_completed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!existingProfile?.diagnostic_completed) {
+        await supabase
+          .from('user_diagnostic_profile')
+          .upsert({
+            user_id: user.id,
+            diagnostic_completed: true,
+            completed_at: new Date().toISOString(),
+            math_level: Math.min(5, Math.max(1, Math.ceil((percentage / 100) * 5))),
+            accuracy_score: percentage,
+            target_ort_score: 170,
+            months_until_exam: 6,
+          }, { onConflict: 'user_id' });
+      }
+
       navigate('/learning-plan');
     } catch (err) {
       console.error('Error submitting:', err);
