@@ -17,6 +17,7 @@ import {
   BarChart3,
   Activity,
   Hash,
+  Dumbbell,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -27,6 +28,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AchievementsPanel } from '@/components/gamification/AchievementsPanel';
 
 interface TestAttempt {
   id: string;
@@ -536,6 +538,12 @@ export default function Dashboard() {
                       </Link>
                     </Button>
                     <Button variant="outline" className="w-full justify-start" asChild>
+                      <Link to="/practice">
+                        <Dumbbell className="mr-2 h-4 w-4" />
+                        Практика
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/learning-plan">
                         <Brain className="mr-2 h-4 w-4" />
                         AI План обучения
@@ -550,6 +558,11 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+
+            {/* Achievements - full width below */}
+            <div className="mt-8">
+              <AchievementsPanel />
             </div>
           </>
         )}
