@@ -115,9 +115,6 @@ function QuickActionCard({
 // Component for authenticated users - Dashboard Home
 function AuthenticatedHome() {
   const { profile } = useAuth();
-  const { language } = useLanguage();
-  const [topics, setTopics] = useState<DBTopic[]>([]);
-  const [topicsLoading, setTopicsLoading] = useState(true);
   
   const userName = profile?.name || 'Ученик';
   const userPoints = profile?.points || 0;
@@ -128,33 +125,6 @@ function AuthenticatedHome() {
   
   // Calculate progress percentage (mock)
   const progressPercent = Math.min(Math.round((userPoints / 1000) * 100), 100);
-
-  useEffect(() => {
-    async function fetchTopics() {
-      try {
-        const { data, error } = await supabase
-          .from('topics')
-          .select('id, title, title_ru, title_kg, subject, order_index')
-          .order('order_index', { ascending: true });
-        if (!error && data) setTopics(data);
-      } catch (e) {
-        console.error('Error fetching topics:', e);
-      } finally {
-        setTopicsLoading(false);
-      }
-    }
-    fetchTopics();
-  }, []);
-
-  const getTopicName = (topic: DBTopic) => {
-    if (language === 'ru' && topic.title_ru) return topic.title_ru;
-    if (language === 'kg' && topic.title_kg) return topic.title_kg;
-    return topic.title;
-  };
-
-  const getTopicSlug = (topic: DBTopic) => {
-    return topicSlugMap[topic.title] || topic.title.toLowerCase().replace(/\s+/g, '-');
-  };
 
   return (
     <Layout>
