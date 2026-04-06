@@ -235,15 +235,26 @@ export default function MathTestTaking() {
       const total = questions.length;
       const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
 
+      // Calculate attempt number
+      const { count: prevAttempts } = await supabase
+        .from('user_tests')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      const attemptNumber = (prevAttempts || 0) + 1;
+      const testType = attemptNumber === 1 ? 'pre' : 'post';
+
       const { data: attemptData, error: attemptError } = await supabase
         .from('user_tests')
         .insert({
           user_id: user.id,
           test_id: config.uuid,
-          score: percentage,
+          score: correct,
           total_questions: total,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
+          attempt_number: attemptNumber,
+          test_type: testType,
           answers: Object.entries(answers).map(([qNum, ans]) => ({
             questionNumber: parseInt(qNum),
             answer: ans,
@@ -254,7 +265,7 @@ export default function MathTestTaking() {
             percentage,
             math_test_id: mathTestId,
           },
-        })
+        } as any)
         .select('id')
         .single();
 

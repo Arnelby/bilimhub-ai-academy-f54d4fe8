@@ -340,53 +340,55 @@ function AuthenticatedHome() {
             </div>
           </section>
 
-          {/* Topics & Progress Section */}
+          {/* Quick Actions & Achievements Section */}
           <section className="mb-12">
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Topics Card */}
+              {/* Recent Activity Card */}
               <Card className="lg:col-span-2 overflow-hidden animate-fade-in" style={{ animationDelay: '300ms' }}>
                 <CardHeader className="border-b bg-muted/30">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-primary" />
-                      Доступные темы
+                      Быстрый доступ
                     </CardTitle>
                     <Button variant="ghost" size="sm" asChild>
                       <Link to="/lessons">
-                        Все темы <ArrowRight className="ml-1 h-4 w-4" />
+                        Все уроки <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {topicsLoading ? (
-                    <div className="flex justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 sm:grid-cols-3 md:grid-cols-4">
-                      {topics.map((topic, idx) => (
-                        <Link
-                          key={topic.id}
-                          to={`/lessons/topic/${getTopicSlug(topic)}`}
-                          className="group block"
-                        >
-                          <div className="rounded-xl border-2 border-transparent bg-muted/50 p-4 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
-                            <div className="mb-3 text-3xl">{topicEmojis[topic.title] || '📚'}</div>
-                            <h4 className="font-semibold group-hover:text-primary transition-colors text-sm">{getTopicName(topic)}</h4>
-                            <div className="mt-2">
-                              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                                <div 
-                                  className={cn("h-full rounded-full bg-gradient-to-r transition-all", topicGradients[idx % topicGradients.length])}
-                                  style={{ width: '0%' }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Link to="/tests" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <Target className="h-8 w-8 text-primary mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Тесты ОРТ</h4>
+                        <p className="text-sm text-muted-foreground mt-1">4 варианта тестов</p>
+                      </div>
+                    </Link>
+                    <Link to="/practice" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <CheckCircle className="h-8 w-8 text-green-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Практика</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Задачи по слабым темам</p>
+                      </div>
+                    </Link>
+                    <Link to="/lessons" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <BookOpenCheck className="h-8 w-8 text-blue-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Базовые уроки</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Видеоуроки по темам</p>
+                      </div>
+                    </Link>
+                    <Link to="/learning-plan" className="group block">
+                      <div className="rounded-xl border-2 border-transparent bg-muted/50 p-5 transition-all hover:border-primary/30 hover:shadow-lg hover:-translate-y-1">
+                        <Lightbulb className="h-8 w-8 text-yellow-500 mb-3" />
+                        <h4 className="font-semibold group-hover:text-primary transition-colors">Мой план</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Персональный путь обучения</p>
+                      </div>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
 
