@@ -543,7 +543,38 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
-        {/* Practice CTA */}
+        {/* Recommended Lessons */}
+        {recommendedLessons.length > 0 && (
+          <Card className="mb-6 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Рекомендуемые базовые уроки
+              </CardTitle>
+              <CardDescription>Видеоуроки по вашим слабым темам</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recommendedLessons.map((lesson) => (
+                  <div key={lesson.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                      <span className="text-sm font-medium">{lesson.title_ru || lesson.title}</span>
+                      <p className="text-xs text-muted-foreground">Тема: {lesson.topicTitle}</p>
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to="/lessons">
+                        <Play className="mr-1 h-3 w-3" />
+                        Смотреть базовый урок
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-accent bg-accent/5">
             <CardContent className="flex items-center justify-between py-5">
