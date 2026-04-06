@@ -252,20 +252,60 @@ export default function Practice() {
       const correctLabel = toCyrillicKey(q.correct_answer);
       const userLabel = toCyrillicKey(userAnswer);
 
-      const { data } = await supabase.functions.invoke('ai-chat-tutor', {
-        body: {
-          messages: [
-            {
-              role: 'user',
-              content: `Ученик решал задачу по теме "${q.topic}".\n\n${questionText}\n\nУченик выбрал ответ: ${userLabel}\nПравильный ответ: ${correctLabel}\n\nОбъясни кратко:\n1. Почему ответ ученика неправильный\n2. Как правильно решить эту задачу\n3. Какой верный ход рассуждений\n\nОтветь на русском языке, кратко и понятно.`,
-            },
-          ],
-          context: { type: 'mistake_review' },
-          language: 'ru',
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            messages: [
+              {
+                role: 'user',
+                content: `Ученик решал задачу по теме "${q.topic}".\n\n${questionText}\n\nУченик выбрал ответ: ${userLabel}\nПравильный ответ: ${correctLabel}\n\nОбъясни кратко:\n1. Почему ответ ученика неправильный\n2. Как правильно решить эту задачу\n3. Какой верный ход рассуждений\n\nОтветь на русском языке, кратко и понятно.`,
+              },
+            ],
+            context: { type: 'mistake_review' },
+            language: 'ru',
+          }),
+        }
+      );
 
-      const explanation = data?.response || data?.reply || 'Не удалось получить объяснение.';
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      // Parse SSE stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) fullText += content;
+              } catch {
+                // skip malformed lines
+              }
+            }
+          }
+        }
+      }
+
+      const explanation = fullText || 'Не удалось получить объяснение.';
       setMistakeExplanations(prev => ({
         ...prev,
         [key]: { explanation, correctReasoning: '', loading: false },
