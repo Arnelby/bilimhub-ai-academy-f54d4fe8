@@ -209,10 +209,14 @@ export default function Practice() {
             }
           }
 
-          // Parse AI-generated questions
-          const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+          // Parse AI-generated questions - sanitize control characters
+          const sanitized = fullText.replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\r' || ch === '\t' ? ch : ' ');
+          const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
-            const generated = JSON.parse(jsonMatch[0]);
+            let jsonStr = jsonMatch[0];
+            // Fix common AI JSON issues: trailing commas before } or ]
+            jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
+            const generated = JSON.parse(jsonStr);
             const aiQuestions: PracticeQuestion[] = (generated.questions || []).map((q: any, idx: number) => {
               if (q.type === 'mcq' || formatType === 'mcq') {
                 return {
@@ -274,9 +278,11 @@ JSON формат: {"questions":[{"type":"comparison","topic":"тема","instru
           const dec = new TextDecoder();
           let txt = '';
           if (rdr) { while (true) { const { done, value } = await rdr.read(); if (done) break; const c = dec.decode(value, { stream: true }); for (const l of c.split('\n')) { if (l.startsWith('data: ')) { const d = l.slice(6).trim(); if (d === '[DONE]') continue; try { const p = JSON.parse(d); const ct = p.choices?.[0]?.delta?.content; if (ct) txt += ct; } catch {} } } } }
-          const jm = txt.match(/\{[\s\S]*\}/);
+           const sanitized2 = txt.replace(/[\x00-\x1F\x7F]/g, (ch) => ch === '\n' || ch === '\r' || ch === '\t' ? ch : ' ');
+          const jm = sanitized2.match(/\{[\s\S]*\}/);
           if (jm) {
-            const gen = JSON.parse(jm[0]);
+            let js2 = jm[0].replace(/,\s*([}\]])/g, '$1');
+            const gen = JSON.parse(js2);
             const qs: PracticeQuestion[] = (gen.questions || []).map((q: any, i: number) => ({
               type: 'comparison' as const, id: 90000 + i, question_number: i + 1,
               topic: q.topic || weak[0] || '', instruction: q.instruction || null,

@@ -33,6 +33,7 @@ import { Leaderboard } from '@/components/gamification/Leaderboard';
 
 interface Profile {
   name: string | null;
+  full_name: string | null;
   email: string | null;
   streak: number;
   points: number;
