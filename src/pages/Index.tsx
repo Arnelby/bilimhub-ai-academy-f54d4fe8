@@ -434,7 +434,7 @@ function AuthenticatedHome() {
           <section className="animate-fade-in" style={{ animationDelay: '500ms' }}>
             <div className="flex flex-wrap gap-3 justify-center">
               {[
-                { to: '/homework', icon: CheckCircle, label: 'Домашка' },
+                { to: '/practice', icon: CheckCircle, label: 'Практика' },
                 { to: '/dashboard', icon: TrendingUp, label: 'Панель' },
                 { to: '/profile', icon: GraduationCap, label: 'Профиль' },
                 { to: '/tests/testing58', icon: Clock, label: 'ОРТ Тест' },
