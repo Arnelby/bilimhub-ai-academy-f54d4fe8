@@ -361,13 +361,6 @@ export default function DynamicLessonViewer() {
   const fetchStudentResults = async () => {
     if (!user) return null;
     try {
-      const { data: miniTestResults } = await supabase
-        .from('mini_test_results')
-        .select('score, total_questions')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(5);
-
       const { data: testResults } = await supabase
         .from('user_tests')
         .select('score, total_questions')
@@ -377,12 +370,6 @@ export default function DynamicLessonViewer() {
 
       let totalCorrect = 0;
       let totalQuestions = 0;
-      if (miniTestResults) {
-        miniTestResults.forEach(r => {
-          totalCorrect += r.score || 0;
-          totalQuestions += r.total_questions || 0;
-        });
-      }
       if (testResults) {
         testResults.forEach(r => {
           totalCorrect += r.score || 0;

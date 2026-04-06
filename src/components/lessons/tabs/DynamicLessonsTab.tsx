@@ -112,14 +112,6 @@ export function DynamicLessonsTab({ data, topicId = 'fractions' }: DynamicLesson
     if (!user) return null;
     
     try {
-      // Get mini test results for this topic
-      const { data: miniTestResults } = await supabase
-        .from('mini_test_results')
-        .select('score, total_questions, answers')
-        .eq('user_id', user.id)
-        .order('completed_at', { ascending: false })
-        .limit(5);
-
       // Get user tests results
       const { data: testResults } = await supabase
         .from('user_tests')
@@ -132,13 +124,6 @@ export function DynamicLessonsTab({ data, topicId = 'fractions' }: DynamicLesson
       let totalCorrect = 0;
       let totalQuestions = 0;
       const weakAreas: string[] = [];
-
-      if (miniTestResults) {
-        miniTestResults.forEach(r => {
-          totalCorrect += r.score || 0;
-          totalQuestions += r.total_questions || 0;
-        });
-      }
 
       if (testResults) {
         testResults.forEach(r => {
