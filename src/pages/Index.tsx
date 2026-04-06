@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -20,7 +19,6 @@ import {
   ChevronRight,
   Award,
   Rocket,
-  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +29,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import heroPattern from '@/assets/hero-pattern.png';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
 
 
