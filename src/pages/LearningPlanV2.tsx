@@ -191,6 +191,38 @@ export default function LearningPlanV2() {
           })));
         }
       }
+
+      // Load recommended lessons for weak topics
+      if (weak.length > 0) {
+        const weakTopicNames = weak.map(w => w.topic);
+        // Find topics matching weak topic names
+        const { data: matchingTopics } = await supabase
+          .from('topics')
+          .select('id, title, title_ru')
+          .in('title', weakTopicNames);
+
+        if (matchingTopics && matchingTopics.length > 0) {
+          const topicIds = matchingTopics.map(t => t.id);
+          const { data: lessonsData } = await supabase
+            .from('lessons')
+            .select('id, title, title_ru, topic_id, content')
+            .in('topic_id', topicIds);
+
+          if (lessonsData) {
+            const recLessons: RecommendedLesson[] = lessonsData.map(l => {
+              const topic = matchingTopics.find(t => t.id === l.topic_id);
+              return {
+                id: l.id,
+                title: l.title,
+                title_ru: l.title_ru,
+                youtube_url: (l.content as any)?.youtube_url || '',
+                topicTitle: topic?.title_ru || topic?.title || '',
+              };
+            });
+            setRecommendedLessons(recLessons);
+          }
+        }
+      }
     } catch (e) {
       console.error('Error loading analysis:', e);
     } finally {
