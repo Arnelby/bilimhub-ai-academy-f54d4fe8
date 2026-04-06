@@ -382,7 +382,7 @@ export default function DynamicLessonViewer() {
 
       return {
         accuracy,
-        testsCompleted: (miniTestResults?.length || 0) + (testResults?.length || 0),
+        testsCompleted: testResults?.length || 0,
         weakAreas,
         strongAreas: accuracy > 70 ? ['Основы дробей'] : [],
         recentMistakes: []
