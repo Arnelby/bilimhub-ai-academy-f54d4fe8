@@ -11,11 +11,19 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video
+  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
+
+interface RecommendedLesson {
+  id: string;
+  title_ru: string | null;
+  title: string;
+  youtube_url: string;
+  topicTitle: string;
+}
 
 interface MistakeQuestion {
   questionNumber: string;
