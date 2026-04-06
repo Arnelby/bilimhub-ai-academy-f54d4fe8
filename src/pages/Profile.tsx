@@ -62,6 +62,9 @@ export default function Profile() {
   const [topics, setTopics] = useState<TopicProgress[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [savedTerms, setSavedTerms] = useState<SavedTerm[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editFullName, setEditFullName] = useState('');
   const [stats, setStats] = useState({
     testsCompleted: 0,
     lessonsCompleted: 0,
@@ -90,6 +93,7 @@ export default function Profile() {
       if (profileData) {
         setProfile({
           name: profileData.name,
+          full_name: (profileData as any).full_name || null,
           email: profileData.email,
           streak: profileData.streak || 0,
           points: profileData.points || 0,
@@ -97,6 +101,8 @@ export default function Profile() {
           created_at: profileData.created_at,
           leaderboard_visible: profileData.leaderboard_visible ?? false,
         });
+        setEditName(profileData.name || '');
+        setEditFullName((profileData as any).full_name || '');
       }
 
       // Fetch stats
