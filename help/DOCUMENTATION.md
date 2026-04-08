@@ -1,94 +1,93 @@
-# BilimHub - AI-Powered ORT Exam Preparation Platform
+# BilimHub AI Platform for ORT Preparation
 
-## 📋 Summary
+## Overview
 
-**BilimHub** is a gamified AI-powered learning platform designed to help students in Kyrgyzstan prepare for national ORT (Общереспубликанское тестирование) exams. It combines adaptive AI-generated lessons, personalized learning paths, and comprehensive gamification to make exam preparation engaging and effective. The platform addresses the critical gap in accessible, personalized test preparation for Kyrgyz students.
+BilimHub is an AI powered web platform that makes preparation for the ORT exam personalized, efficient, and engaging. The system analyzes student performance, builds individual learning plans, and adapts lessons to each learner's needs. The goal is to make high quality preparation accessible to every student in Kyrgyzstan.
 
----
+## Problem
 
-## 🎯 Problem Statement
+Many students preparing for ORT face several challenges.
 
-Students preparing for ORT exams in Kyrgyzstan face significant challenges: limited access to quality tutoring, one-size-fits-all study materials, and lack of personalized feedback on their progress. Traditional preparation methods don't adapt to individual learning styles, leaving many students underprepared. There's no platform that combines AI-driven personalization with gamification specifically designed for the ORT exam format and local educational context.
+- Students often lack access to affordable and structured preparation materials.
+- Most learning resources are not personalized and treat all learners the same.
+- Students rarely receive clear feedback about their weaknesses and progress.
+- Motivation during long preparation periods is difficult to maintain.
 
----
+Currently there is no platform in Kyrgyzstan that combines artificial intelligence, adaptive learning, and ORT focused preparation in one system.
 
-## 💡 Solution Overview
+## Solution
 
-### How It Works
-1. **Adaptive Diagnostic Test** — New users complete an ORT-style assessment that measures math level, learning style (visual/auditory/text-based), and psychological profile
-2. **AI-Generated Learning Plans** — Based on diagnostic results, the AI creates personalized study schedules with target score projections
-3. **Dynamic Lessons** — Content adapts to each student's learning style (visual learners get diagrams, problem-solvers get exercises)
-4. **Gamified Progress** — Streaks, badges, leaderboards, and mastery levels keep students motivated
+BilimHub provides a complete AI driven preparation environment.
 
-### Technology Stack
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18, TypeScript, Tailwind CSS, Vite |
-| Backend | Supabase (PostgreSQL, Auth, Storage, Edge Functions) |
-| AI | Lovable AI Gateway (Google Gemini 2.5 Flash) |
-| Hosting | Lovable Cloud |
+### Diagnostic test
 
-### Unique Features
-- **5 Learning Styles**: Visual, Auditory, Text-based, Problem-solver, ADHD-friendly
-- **Real ORT Format**: Actual exam structure (Part 1: 30 questions/30 min, Part 2: 30 questions/60 min)
-- **Trilingual Support**: English, Russian, Kyrgyz
-- **AI Homework Review**: OCR-powered feedback on uploaded assignments
+The system evaluates the student's current level and identifies weak topics.
 
----
+### AI learning plan
 
-## 🧪 How to Test the Prototype
+Based on the diagnostic results the platform creates a personalized preparation plan and predicts possible exam outcomes.
 
-1. **Open the App** → Navigate to the deployed URL
-2. **Create Account** → Click "Регистрация" and sign up with email/password
-3. **Complete Diagnostic** → Answer ORT-style questions to establish your profile
-4. **Explore Dashboard** → View personalized stats, streaks, and recommendations
-5. **Try a Lesson** → Go to "Уроки" → Select "Дроби" (Fractions) → Navigate through 7 tabs
-6. **Take a Test** → Open "Мини-тесты" tab → Answer questions → See adaptive difficulty
-7. **Chat with AI Tutor** → Use the AI Smart Tutor for personalized explanations
+### Adaptive lessons
 
-**Expected Outputs**: Personalized learning plan, topic mastery visualization, gamification rewards, AI-generated feedback
+Lessons dynamically adjust to the student's pace, mistakes, and learning style.
 
----
+### Gamification system
 
-## 👥 Usage Scenarios
+Streaks, levels, achievements, and rankings help maintain motivation and consistency.
 
-| User | Scenario |
-|------|----------|
-| **Student (Grade 10-11)** | Prepares for ORT with adaptive lessons, tracks progress via gamification, receives AI recommendations for weak topics |
-| **Self-learner** | Uses AI tutor chat for instant explanations, practices with mini-tests that adjust difficulty automatically |
-| **Teacher/Tutor** | Reviews student homework submissions, accesses analytics to identify class-wide knowledge gaps |
-| **Admin** | Manages learning content via Admin Dashboard, uploads new topics and training datasets |
+### AI tutor
 
----
+An integrated AI assistant explains concepts, helps solve problems, and answers student questions.
 
-## 🔧 Technical Details
+## Testing the Platform
 
-### Core Edge Functions (Supabase)
-| Function | Purpose |
-|----------|---------|
-| `ai-chat-tutor` | Streaming AI tutoring with context-aware responses |
-| `ai-learning-plan-v2` | Generates personalized study schedules with ORT score projections |
-| `ai-mini-test` | Creates adaptive questions based on topic and difficulty |
-| `ai-analyze-test` | Provides detailed performance analysis with topic breakdowns |
-| `ai-homework-review` | OCR + AI feedback on uploaded assignments |
-| `ai-recommendations-v2` | Weak topic detection and lesson suggestions |
+To explore the platform users can follow these steps.
 
-### Database Schema (Key Tables)
-- `profiles` — User data, gamification stats
-- `user_diagnostic_profile` — Learning style, goals, psychological metrics
-- `user_topic_progress` — Mastery levels per topic
-- `lessons`, `tests`, `questions` — Educational content
-- `ai_learning_plans_v2` — Generated study schedules
+1. Open the website and go to the registration page.
+2. Create an account.
+3. Complete the diagnostic test.
+4. Open the dashboard to view goals, weak topics, and progress analytics.
+5. Start the lesson titled Fractions and explore the seven lesson sections.
+6. Complete the mini test at the end of the lesson.
+7. Use the AI tutor to request explanations or problem solving assistance.
 
-### AI Integration
-All AI features use **Lovable AI Gateway** with `google/gemini-2.5-flash` model. No external API keys required.
+Expected results include a personalized learning plan, adaptive lessons, progress tracking, achievements, and topic recommendations.
 
----
+## Main Users
 
-## 🚀 Final Notes
+### Student
 
-**BilimHub transforms ORT preparation from a stressful, one-size-fits-all experience into an engaging, personalized learning journey.** By combining AI-driven adaptivity with gamification psychology, we're making quality education accessible to every student in Kyrgyzstan — regardless of their location or economic background.
+A student preparing for the ORT exam who studies lessons, completes tests, interacts with the AI tutor, and tracks personal progress.
 
----
+### Independent learner
 
-*Built with ❤️ for Kyrgyzstan's future*
+A learner who practices independently and uses the AI tutor for explanations and problem solving.
+
+## Technical Architecture
+
+### Frontend
+
+React with TypeScript and Tailwind CSS.
+
+### Backend
+
+Supabase providing PostgreSQL database, authentication, storage, and edge functions.
+
+### Artificial Intelligence
+
+Lovable AI Gateway integrated with Google Gemini 2.5 Flash.
+
+### Key system modules include
+
+- ai learning plan v2
+- ai mini test
+- ai chat tutor
+- ai analyze test
+- ai homework review
+- ai recommendations v2
+
+## Conclusion
+
+BilimHub transforms ORT preparation into a personalized and interactive learning experience. The platform allows every student to learn at their own pace, understand their weaknesses, and receive intelligent support through AI driven tools.
+
+The platform was created to support students in Kyrgyzstan and beyond. 🚀
