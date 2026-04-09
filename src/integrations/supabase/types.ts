@@ -1211,7 +1211,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      research_topic_metrics: {
+        Row: {
+          accuracy_pct: number | null
+          attempts: number | null
+          correct: number | null
+          topic: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
+      research_user_metrics: {
+        Row: {
+          accuracy_pct: number | null
+          ai_usage_count: number | null
+          avg_time_per_question: number | null
+          group_type: string | null
+          improvement: number | null
+          post_score_pct: number | null
+          practice_attempts: number | null
+          pre_score_pct: number | null
+          total_questions_answered: number | null
+          total_tests: number | null
+          total_time_seconds: number | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_rate_limit: {
