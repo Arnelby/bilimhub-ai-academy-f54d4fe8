@@ -251,9 +251,9 @@ export default function TestTaking() {
         user_id: user.id,
         test_attempt_id: testAttemptId,
         question_id: q.id,
-        topic: null, // topic_id not available in generic tests
+        topic: null,
         is_correct: answers[idx] === q.correct_option,
-        time_spent_seconds: 0,
+        time_spent_seconds: questionTimes[idx] || 0,
       }));
       await supabase.from('question_attempts').insert(questionAttemptsToInsert);
 
