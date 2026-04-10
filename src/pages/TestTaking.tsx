@@ -226,6 +226,17 @@ export default function TestTaking() {
         })
         .eq('id', testAttemptId);
 
+      // Save per-question attempts for research tracking
+      const questionAttemptsToInsert = questions.map((q, idx) => ({
+        user_id: user.id,
+        test_attempt_id: testAttemptId,
+        question_id: q.id,
+        topic: null, // topic_id not available in generic tests
+        is_correct: answers[idx] === q.correct_option,
+        time_spent_seconds: 0,
+      }));
+      await supabase.from('question_attempts').insert(questionAttemptsToInsert);
+
       // Update gamification (points, streak, achievements)
       const pointsEarned = Math.round(analysisData.score * 0.5) + 25; // Base 25 points + score bonus
       await updateGamification({
