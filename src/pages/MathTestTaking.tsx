@@ -237,6 +237,8 @@ export default function MathTestTaking() {
     setSubmitting(true);
 
     try {
+      // Record time for current question before submitting
+      recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
       let correct = 0;
@@ -300,7 +302,7 @@ export default function MathTestTaking() {
           question_id: qa.question_id,
           topic: qa.topic,
           is_correct: qa.is_correct,
-          time_spent_seconds: 0,
+          time_spent_seconds: questionTimes[questions.find(q => `mq_${mathTestId}_${getDisplayNumber(q.question_number)}` === qa.question_id)?.question_number || 0] || 0,
         }));
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
