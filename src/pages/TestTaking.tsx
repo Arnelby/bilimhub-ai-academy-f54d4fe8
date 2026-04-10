@@ -408,6 +408,7 @@ export default function TestTaking() {
 
           {/* Navigation */}
           {!isPaused && (
+          <>
           {/* Question number grid - scrollable on mobile */}
           <div className="mb-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-w-0">
@@ -456,6 +457,7 @@ export default function TestTaking() {
               </Button>
             )}
           </div>
+          </>
           )}
         </div>
       </main>
