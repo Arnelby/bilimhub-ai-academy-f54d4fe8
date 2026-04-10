@@ -173,6 +173,22 @@ export default function TestTaking() {
     return () => clearTimeout(debounce);
   }, [answers, testAttemptId]);
 
+  // Track time when changing questions
+  const recordQuestionTime = useCallback(() => {
+    const now = Date.now();
+    const elapsed = Math.round((now - questionStartTime) / 1000);
+    setQuestionTimes(prev => ({
+      ...prev,
+      [currentIndex]: (prev[currentIndex] || 0) + elapsed,
+    }));
+    setQuestionStartTime(now);
+  }, [currentIndex, questionStartTime]);
+
+  const navigateToQuestion = useCallback((newIndex: number) => {
+    recordQuestionTime();
+    setCurrentIndex(newIndex);
+  }, [recordQuestionTime]);
+
   const handleAnswerSelect = (optionIndex: number) => {
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optionIndex;
