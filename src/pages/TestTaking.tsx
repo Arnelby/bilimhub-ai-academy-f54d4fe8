@@ -213,6 +213,7 @@ export default function TestTaking() {
     setSubmitting(true);
 
     try {
+      recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
       // Call AI analysis
