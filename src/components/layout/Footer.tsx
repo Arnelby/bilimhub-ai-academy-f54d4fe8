@@ -9,9 +9,9 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 grid-cols-2 md:grid-cols-4">
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2">
               <img src={logo} alt="BilimHub" className="h-8 w-auto" />
             </Link>
