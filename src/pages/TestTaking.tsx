@@ -92,14 +92,25 @@ export default function TestTaking() {
         setQuestions(formattedQuestions);
         setAnswers(new Array(formattedQuestions.length).fill(null));
 
-        // Create test attempt
+        // Calculate attempt number and test type
+        const { count: prevAttempts } = await supabase
+          .from('user_tests')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        const attemptNumber = (prevAttempts || 0) + 1;
+        const testType = attemptNumber === 1 ? 'pre' : 'post';
+
+        // Create test attempt (started_at = now() via DB default)
         const { data: attemptData, error: attemptError } = await supabase
           .from('user_tests')
           .insert({
             user_id: user.id,
             test_id: testId,
             total_questions: formattedQuestions.length,
-          })
+            attempt_number: attemptNumber,
+            test_type: testType,
+          } as any)
           .select()
           .single();
 
