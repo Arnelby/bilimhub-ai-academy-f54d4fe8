@@ -190,6 +190,25 @@ export default function MathTestTaking() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, loading, isPaused]);
 
+  // Track time when changing questions
+  const recordQuestionTime = useCallback(() => {
+    const now = Date.now();
+    const elapsed = Math.round((now - questionStartTime) / 1000);
+    const q = questions[currentIndex];
+    if (q) {
+      setQuestionTimes(prev => ({
+        ...prev,
+        [q.question_number]: (prev[q.question_number] || 0) + elapsed,
+      }));
+    }
+    setQuestionStartTime(now);
+  }, [currentIndex, questionStartTime, questions]);
+
+  const navigateToQuestion = useCallback((newIndex: number) => {
+    recordQuestionTime();
+    setCurrentIndex(newIndex);
+  }, [recordQuestionTime]);
+
   // option is always Latin (A-E)
   const handleAnswerSelect = (latinKey: string) => {
     const q = questions[currentIndex];
