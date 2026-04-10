@@ -406,7 +406,7 @@ export default function Practice() {
               {weakTopics.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-center mb-6">
                   {weakTopics.map(t => (
-                    <Badge key={t} variant="outline">{translateTopic(t)}</Badge>
+                    <Badge key={t} variant="outline">{translateTopic(t, 'ru')}</Badge>
                   ))}
                 </div>
               )}
@@ -438,7 +438,7 @@ export default function Practice() {
                   return (
                     <div key={key} className="rounded-lg border border-border p-4">
                       <div className="flex items-start justify-between mb-2">
-                        <Badge variant="outline">{translateTopic(q.topic)}</Badge>
+                        <Badge variant="outline">{translateTopic(q.topic, 'ru')}</Badge>
                         <span className="text-sm text-muted-foreground">#{idx + 1}</span>
                       </div>
 
@@ -516,7 +516,7 @@ export default function Practice() {
           <CardContent className="p-6">
             <div className="mb-4 flex items-center justify-between">
               <Badge variant="outline">Вопрос {currentIndex + 1} из {questions.length}</Badge>
-              <Badge variant="secondary">{translateTopic(currentQ?.topic || '')}</Badge>
+              <Badge variant="secondary">{translateTopic(currentQ?.topic || '', 'ru')}</Badge>
             </div>
 
             {currentQ?.type === 'comparison' ? (
