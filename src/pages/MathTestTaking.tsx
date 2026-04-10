@@ -471,7 +471,7 @@ export default function MathTestTaking() {
         <Progress value={(answeredCount / questions.length) * 100} className="h-1" />
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mx-auto max-w-3xl">
           {isPaused ? (
             <Card className="mb-6 bg-muted/50">
