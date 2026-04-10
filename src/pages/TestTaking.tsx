@@ -420,7 +420,7 @@ export default function TestTaking() {
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
-              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+              onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
             >
               <ChevronLeft className="mr-1 h-4 w-4" />
@@ -431,7 +431,7 @@ export default function TestTaking() {
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
+                  onClick={() => navigateToQuestion(index)}
                   className={`h-8 w-8 rounded text-sm font-medium transition-colors ${
                     index === currentIndex
                       ? 'bg-accent text-accent-foreground'
@@ -453,7 +453,7 @@ export default function TestTaking() {
             ) : (
               <Button
                 variant="default"
-                onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
+                onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 Далее
                 <ChevronRight className="ml-1 h-4 w-4" />
