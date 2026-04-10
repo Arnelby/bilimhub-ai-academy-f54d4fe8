@@ -509,6 +509,39 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          id: string
+          question_data: Json
+          question_type: string
+          source: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          id?: string
+          question_data?: Json
+          question_type?: string
+          source?: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          id?: string
+          question_data?: Json
+          question_type?: string
+          source?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1227,7 +1260,6 @@ export type Database = {
           accuracy_pct: number | null
           ai_usage_count: number | null
           avg_time_per_question: number | null
-          group_type: string | null
           improvement: number | null
           post_score_pct: number | null
           practice_attempts: number | null

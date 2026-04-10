@@ -75,6 +75,9 @@ export default function MathTestTaking() {
   const [showFinishDialog, setShowFinishDialog] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [startTime] = useState(new Date());
+  // Per-question time tracking
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [questionTimes, setQuestionTimes] = useState<Record<number, number>>({});
 
   useEffect(() => {
     async function fetchQuestions() {
@@ -187,6 +190,25 @@ export default function MathTestTaking() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, loading, isPaused]);
 
+  // Track time when changing questions
+  const recordQuestionTime = useCallback(() => {
+    const now = Date.now();
+    const elapsed = Math.round((now - questionStartTime) / 1000);
+    const q = questions[currentIndex];
+    if (q) {
+      setQuestionTimes(prev => ({
+        ...prev,
+        [q.question_number]: (prev[q.question_number] || 0) + elapsed,
+      }));
+    }
+    setQuestionStartTime(now);
+  }, [currentIndex, questionStartTime, questions]);
+
+  const navigateToQuestion = useCallback((newIndex: number) => {
+    recordQuestionTime();
+    setCurrentIndex(newIndex);
+  }, [recordQuestionTime]);
+
   // option is always Latin (A-E)
   const handleAnswerSelect = (latinKey: string) => {
     const q = questions[currentIndex];
@@ -215,6 +237,8 @@ export default function MathTestTaking() {
     setSubmitting(true);
 
     try {
+      // Record time for current question before submitting
+      recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
       let correct = 0;
@@ -278,7 +302,7 @@ export default function MathTestTaking() {
           question_id: qa.question_id,
           topic: qa.topic,
           is_correct: qa.is_correct,
-          time_spent_seconds: 0,
+          time_spent_seconds: questionTimes[questions.find(q => `mq_${mathTestId}_${getDisplayNumber(q.question_number)}` === qa.question_id)?.question_number || 0] || 0,
         }));
         await supabase.from('question_attempts').insert(attemptsToInsert);
       }
@@ -486,7 +510,7 @@ export default function MathTestTaking() {
               <div className="flex items-center justify-between">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                  onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
                   disabled={currentIndex === 0}
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
@@ -497,7 +521,7 @@ export default function MathTestTaking() {
                   {questions.map((q, index) => (
                     <button
                       key={q.question_number}
-                      onClick={() => setCurrentIndex(index)}
+                      onClick={() => navigateToQuestion(index)}
                       className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
                         index === currentIndex
                           ? 'bg-accent text-accent-foreground'
@@ -519,7 +543,7 @@ export default function MathTestTaking() {
                 ) : (
                   <Button
                     variant="default"
-                    onClick={() => setCurrentIndex(currentIndex + 1)}
+                    onClick={() => navigateToQuestion(currentIndex + 1)}
                   >
                     Далее
                     <ChevronRight className="ml-1 h-4 w-4" />

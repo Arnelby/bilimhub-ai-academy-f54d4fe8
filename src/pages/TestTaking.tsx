@@ -57,6 +57,9 @@ export default function TestTaking() {
   const [testAttemptId, setTestAttemptId] = useState<string | null>(null);
   const [startTime] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
+  // Per-question time tracking
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [questionTimes, setQuestionTimes] = useState<Record<number, number>>({});
 
   // Fetch test and questions
   useEffect(() => {
@@ -170,6 +173,22 @@ export default function TestTaking() {
     return () => clearTimeout(debounce);
   }, [answers, testAttemptId]);
 
+  // Track time when changing questions
+  const recordQuestionTime = useCallback(() => {
+    const now = Date.now();
+    const elapsed = Math.round((now - questionStartTime) / 1000);
+    setQuestionTimes(prev => ({
+      ...prev,
+      [currentIndex]: (prev[currentIndex] || 0) + elapsed,
+    }));
+    setQuestionStartTime(now);
+  }, [currentIndex, questionStartTime]);
+
+  const navigateToQuestion = useCallback((newIndex: number) => {
+    recordQuestionTime();
+    setCurrentIndex(newIndex);
+  }, [recordQuestionTime]);
+
   const handleAnswerSelect = (optionIndex: number) => {
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optionIndex;
@@ -194,6 +213,7 @@ export default function TestTaking() {
     setSubmitting(true);
 
     try {
+      recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
       // Call AI analysis
@@ -231,9 +251,9 @@ export default function TestTaking() {
         user_id: user.id,
         test_attempt_id: testAttemptId,
         question_id: q.id,
-        topic: null, // topic_id not available in generic tests
+        topic: null,
         is_correct: answers[idx] === q.correct_option,
-        time_spent_seconds: 0,
+        time_spent_seconds: questionTimes[idx] || 0,
       }));
       await supabase.from('question_attempts').insert(questionAttemptsToInsert);
 
@@ -400,7 +420,7 @@ export default function TestTaking() {
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
-              onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+              onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
             >
               <ChevronLeft className="mr-1 h-4 w-4" />
@@ -411,7 +431,7 @@ export default function TestTaking() {
               {questions.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
+                  onClick={() => navigateToQuestion(index)}
                   className={`h-8 w-8 rounded text-sm font-medium transition-colors ${
                     index === currentIndex
                       ? 'bg-accent text-accent-foreground'
@@ -433,7 +453,7 @@ export default function TestTaking() {
             ) : (
               <Button
                 variant="default"
-                onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
+                onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 Далее
                 <ChevronRight className="ml-1 h-4 w-4" />
