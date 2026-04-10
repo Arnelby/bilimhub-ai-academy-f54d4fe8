@@ -510,7 +510,7 @@ export default function MathTestTaking() {
               <div className="flex items-center justify-between">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+                  onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
                   disabled={currentIndex === 0}
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
@@ -521,7 +521,7 @@ export default function MathTestTaking() {
                   {questions.map((q, index) => (
                     <button
                       key={q.question_number}
-                      onClick={() => setCurrentIndex(index)}
+                      onClick={() => navigateToQuestion(index)}
                       className={`h-8 w-8 rounded text-xs font-medium transition-colors ${
                         index === currentIndex
                           ? 'bg-accent text-accent-foreground'
@@ -543,7 +543,7 @@ export default function MathTestTaking() {
                 ) : (
                   <Button
                     variant="default"
-                    onClick={() => setCurrentIndex(currentIndex + 1)}
+                    onClick={() => navigateToQuestion(currentIndex + 1)}
                   >
                     Далее
                     <ChevronRight className="ml-1 h-4 w-4" />
