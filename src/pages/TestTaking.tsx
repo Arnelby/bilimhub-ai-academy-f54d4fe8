@@ -92,14 +92,25 @@ export default function TestTaking() {
         setQuestions(formattedQuestions);
         setAnswers(new Array(formattedQuestions.length).fill(null));
 
-        // Create test attempt
+        // Calculate attempt number and test type
+        const { count: prevAttempts } = await supabase
+          .from('user_tests')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        const attemptNumber = (prevAttempts || 0) + 1;
+        const testType = attemptNumber === 1 ? 'pre' : 'post';
+
+        // Create test attempt (started_at = now() via DB default)
         const { data: attemptData, error: attemptError } = await supabase
           .from('user_tests')
           .insert({
             user_id: user.id,
             test_id: testId,
             total_questions: formattedQuestions.length,
-          })
+            attempt_number: attemptNumber,
+            test_type: testType,
+          } as any)
           .select()
           .single();
 
@@ -214,6 +225,17 @@ export default function TestTaking() {
           ai_analysis: analysisData.analysis,
         })
         .eq('id', testAttemptId);
+
+      // Save per-question attempts for research tracking
+      const questionAttemptsToInsert = questions.map((q, idx) => ({
+        user_id: user.id,
+        test_attempt_id: testAttemptId,
+        question_id: q.id,
+        topic: null, // topic_id not available in generic tests
+        is_correct: answers[idx] === q.correct_option,
+        time_spent_seconds: 0,
+      }));
+      await supabase.from('question_attempts').insert(questionAttemptsToInsert);
 
       // Update gamification (points, streak, achievements)
       const pointsEarned = Math.round(analysisData.score * 0.5) + 25; // Base 25 points + score bonus
