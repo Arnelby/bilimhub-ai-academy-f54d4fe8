@@ -75,6 +75,9 @@ export default function MathTestTaking() {
   const [showFinishDialog, setShowFinishDialog] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [startTime] = useState(new Date());
+  // Per-question time tracking
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [questionTimes, setQuestionTimes] = useState<Record<number, number>>({});
 
   useEffect(() => {
     async function fetchQuestions() {
