@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.ai-orchestrator]
 verify_jwt = false
+
+[functions.ai-practice-generate]
+verify_jwt = false
