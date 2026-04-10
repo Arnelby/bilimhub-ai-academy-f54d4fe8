@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { FullNameModal } from '@/components/onboarding/FullNameModal';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,32 +15,46 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
   const location = useLocation();
   const [diagnosticChecked, setDiagnosticChecked] = useState(false);
   const [diagnosticCompleted, setDiagnosticCompleted] = useState(true);
+  const [needsFullName, setNeedsFullName] = useState(false);
+  const [profileChecked, setProfileChecked] = useState(false);
 
   useEffect(() => {
-    async function checkDiagnostic() {
-      if (!user || skipDiagnosticCheck) {
+    async function checkProfile() {
+      if (!user) {
+        setProfileChecked(true);
         setDiagnosticChecked(true);
         return;
       }
 
-      // Check user_diagnostic_profile first
-      const { data: profileData, error: profileError } = await supabase
+      // Check profile for full_name and diagnostic in one query
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, name')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const hasName = !!(profile?.full_name || profile?.name);
+      setNeedsFullName(!hasName);
+      setProfileChecked(true);
+
+      if (skipDiagnosticCheck) {
+        setDiagnosticChecked(true);
+        return;
+      }
+
+      // Check diagnostic
+      const { data: diagProfile } = await supabase
         .from('user_diagnostic_profile')
         .select('diagnostic_completed')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.error('Error checking diagnostic profile:', profileError);
-      }
-
-      if (profileData?.diagnostic_completed) {
+      if (diagProfile?.diagnostic_completed) {
         setDiagnosticCompleted(true);
         setDiagnosticChecked(true);
         return;
       }
 
-      // Fallback: check if any completed test exists in user_tests
       const { data: testData } = await supabase
         .from('user_tests')
         .select('id')
@@ -48,16 +63,16 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
         .limit(1)
         .maybeSingle();
 
-      setDiagnosticCompleted(!!(profileData?.diagnostic_completed || testData));
+      setDiagnosticCompleted(!!(diagProfile?.diagnostic_completed || testData));
       setDiagnosticChecked(true);
     }
 
     if (user) {
-      checkDiagnostic();
+      checkProfile();
     }
   }, [user, skipDiagnosticCheck]);
 
-  if (loading || !diagnosticChecked) {
+  if (loading || !diagnosticChecked || !profileChecked) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
@@ -67,6 +82,20 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Show full name modal if missing
+  if (needsFullName) {
+    return (
+      <>
+        {children}
+        <FullNameModal
+          userId={user.id}
+          open={true}
+          onComplete={() => setNeedsFullName(false)}
+        />
+      </>
+    );
   }
 
   // Redirect to diagnostic test if not completed
