@@ -137,14 +137,14 @@ export function Navbar() {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="border-t border-border py-4 md:hidden animate-fade-in">
-            <div className="flex flex-col gap-2">
+          <div className="border-t border-border py-3 md:hidden animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="flex flex-col gap-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
                   onClick={() => setIsOpen(false)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`px-4 py-3 text-base font-medium rounded-lg transition-colors min-h-[44px] flex items-center ${
                     isActive(link.href)
                       ? 'bg-accent/10 text-accent'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'

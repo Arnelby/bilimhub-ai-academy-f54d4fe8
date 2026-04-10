@@ -300,39 +300,30 @@ export default function TestTaking() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setShowExitDialog(true)}>
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Выйти
+        <div className="container mx-auto flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <Button variant="ghost" size="sm" onClick={() => setShowExitDialog(true)} className="shrink-0 min-h-[44px] min-w-[44px] px-2 sm:px-3">
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Выйти</span>
             </Button>
-            <h1 className="font-semibold">{test?.title_ru || test?.title}</h1>
+            <h1 className="font-semibold text-sm sm:text-base truncate hidden sm:block">{test?.title_ru || test?.title}</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <Button
               variant={isPaused ? 'accent' : 'outline'}
               size="sm"
               onClick={togglePause}
-              className="gap-1"
+              className="gap-1 min-h-[44px] px-2 sm:px-3"
             >
-              {isPaused ? (
-                <>
-                  <Play className="h-4 w-4" />
-                  Продолжить
-                </>
-              ) : (
-                <>
-                  <Pause className="h-4 w-4" />
-                  Пауза
-                </>
-              )}
+              {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+              <span className="hidden sm:inline">{isPaused ? 'Продолжить' : 'Пауза'}</span>
             </Button>
-            <Badge variant={isTimeWarning ? 'destructive' : isPaused ? 'outline' : 'secondary'} className={`text-lg px-3 py-1 ${isPaused ? 'animate-pulse' : ''}`}>
-              <Clock className="mr-2 h-4 w-4" />
+            <Badge variant={isTimeWarning ? 'destructive' : isPaused ? 'outline' : 'secondary'} className={`text-base sm:text-lg px-2 sm:px-3 py-1 ${isPaused ? 'animate-pulse' : ''}`}>
+              <Clock className="mr-1 sm:mr-2 h-4 w-4" />
               {formatTime(timeLeft)}
             </Badge>
-            <Badge variant="ghost">
+            <Badge variant="ghost" className="text-sm px-1.5 sm:px-2">
               {answeredCount}/{questions.length}
             </Badge>
           </div>
@@ -340,7 +331,7 @@ export default function TestTaking() {
         <Progress value={(answeredCount / questions.length) * 100} className="h-1" />
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mx-auto max-w-3xl">
           {/* Pause Overlay */}
           {isPaused && (
@@ -398,13 +389,13 @@ export default function TestTaking() {
                   <button
                     key={index}
                     onClick={() => handleAnswerSelect(index)}
-                    className={`w-full rounded-lg border p-4 text-left transition-all ${
+                    className={`w-full rounded-lg border p-3 sm:p-4 text-left transition-all min-h-[48px] text-sm sm:text-base ${
                       answers[currentIndex] === index
                         ? 'border-accent bg-accent/10 ring-2 ring-accent'
                         : 'border-border hover:border-accent/50 hover:bg-muted/50'
                     }`}
                   >
-                    <span className="mr-3 inline-flex h-6 w-6 items-center justify-center rounded-full border text-sm font-medium">
+                    <span className="mr-3 inline-flex h-7 w-7 items-center justify-center rounded-full border text-sm font-medium shrink-0">
                       {String.fromCharCode(65 + index)}
                     </span>
                     {option}
@@ -417,22 +408,15 @@ export default function TestTaking() {
 
           {/* Navigation */}
           {!isPaused && (
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
-              disabled={currentIndex === 0}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Назад
-            </Button>
-
-            <div className="flex flex-wrap justify-center gap-2">
+          <>
+          {/* Question number grid - scrollable on mobile */}
+          <div className="mb-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-w-0">
               {questions.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => navigateToQuestion(index)}
-                  className={`h-8 w-8 rounded text-sm font-medium transition-colors ${
+                  className={`h-9 w-9 sm:h-8 sm:w-8 rounded text-sm font-medium transition-colors shrink-0 ${
                     index === currentIndex
                       ? 'bg-accent text-accent-foreground'
                       : answers[index] !== null
@@ -444,9 +428,21 @@ export default function TestTaking() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigateToQuestion(Math.max(0, currentIndex - 1))}
+              disabled={currentIndex === 0}
+              className="min-h-[44px] px-3 sm:px-4"
+            >
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Назад</span>
+            </Button>
 
             {currentIndex === questions.length - 1 ? (
-              <Button variant="accent" onClick={() => setShowExitDialog(true)} disabled={submitting}>
+              <Button variant="accent" onClick={() => setShowExitDialog(true)} disabled={submitting} className="min-h-[44px]">
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Завершить
               </Button>
@@ -454,12 +450,14 @@ export default function TestTaking() {
               <Button
                 variant="default"
                 onClick={() => navigateToQuestion(Math.min(questions.length - 1, currentIndex + 1))}
+                className="min-h-[44px] px-3 sm:px-4"
               >
-                Далее
-                <ChevronRight className="ml-1 h-4 w-4" />
+                <span className="hidden sm:inline">Далее</span>
+                <ChevronRight className="h-4 w-4 sm:ml-1" />
               </Button>
             )}
           </div>
+          </>
           )}
         </div>
       </main>

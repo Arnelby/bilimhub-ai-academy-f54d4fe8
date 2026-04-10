@@ -146,7 +146,7 @@ function AuthenticatedHome() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       Привет, {userName}!
                     </h1>
                     <span className="text-3xl animate-bounce">👋</span>
@@ -171,7 +171,7 @@ function AuthenticatedHome() {
             </div>
 
             {/* Stats Row */}
-            <div className="mb-8 flex flex-wrap items-center justify-center gap-8 md:gap-12 animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <div className="mb-8 flex flex-wrap items-center justify-center gap-4 sm:gap-8 md:gap-12 animate-fade-in" style={{ animationDelay: '100ms' }}>
               <StatCircle value={userPoints} label="Баллы" icon={Star} color="from-yellow-400 to-orange-500" delay={100} />
               <StatCircle value={userStreak} label="Серия" icon={Flame} color="from-orange-500 to-red-500" delay={200} />
               <StatCircle value={userLevel} label="Уровень" icon={Award} color="from-green-400 to-emerald-500" delay={300} />
@@ -187,13 +187,13 @@ function AuthenticatedHome() {
                   <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-2xl -translate-x-1/2 translate-y-1/2" />
                 </div>
                 
-                <CardContent className="relative flex flex-col md:flex-row items-center justify-between gap-6 p-8">
+                <CardContent className="relative flex flex-col items-center justify-between gap-4 sm:gap-6 p-5 sm:p-8 md:flex-row">
                   <div className="flex items-center gap-5 text-center md:text-left">
                     <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
                       <Play className="h-8 w-8 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
                         {hasProgress ? 'Продолжить путь к успеху!' : 'Начни свой путь к ОРТ!'}
                       </h2>
                       <p className="text-white/80">
