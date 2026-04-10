@@ -57,6 +57,9 @@ export default function TestTaking() {
   const [testAttemptId, setTestAttemptId] = useState<string | null>(null);
   const [startTime] = useState(new Date());
   const [isPaused, setIsPaused] = useState(false);
+  // Per-question time tracking
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
+  const [questionTimes, setQuestionTimes] = useState<Record<number, number>>({});
 
   // Fetch test and questions
   useEffect(() => {
