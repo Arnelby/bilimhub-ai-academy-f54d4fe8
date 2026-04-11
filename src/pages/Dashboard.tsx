@@ -96,6 +96,8 @@ const EMPTY_ANALYTICS: AnalyticsData = {
   totalSessions: 0,
   lastActivityAt: null,
   daysActive: 0,
+  testsCompleted: 0,
+  streakDays: 0,
 };
 
 export default function Dashboard() {
