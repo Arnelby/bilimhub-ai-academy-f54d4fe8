@@ -531,6 +531,29 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* User-facing retention messages */}
+                    {analytics.streakDays > 0 && (
+                      <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-center">
+                        <p className="text-sm font-medium text-accent">
+                          🔥 Вы учитесь {analytics.streakDays} {analytics.streakDays === 1 ? 'день' : analytics.streakDays < 5 ? 'дня' : 'дней'} подряд!
+                        </p>
+                      </div>
+                    )}
+                    {analytics.testsCompleted > 0 && (
+                      <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
+                        <p className="text-sm font-medium text-success">
+                          ✅ Вы прошли {analytics.testsCompleted} {analytics.testsCompleted === 1 ? 'тест' : analytics.testsCompleted < 5 ? 'теста' : 'тестов'}
+                        </p>
+                      </div>
+                    )}
+                    {analytics.improvement !== null && analytics.improvement > 0 && (
+                      <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
+                        <p className="text-sm font-medium text-primary">
+                          📈 Вы улучшились на +{analytics.improvement}%
+                        </p>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Учебных сессий</span>
                       <span className="font-semibold">{analytics.totalSessions}</span>
@@ -538,6 +561,10 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Дней активности</span>
                       <span className="font-semibold">{analytics.daysActive}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Серия дней</span>
+                      <span className="font-semibold">{analytics.streakDays}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Последняя активность</span>
