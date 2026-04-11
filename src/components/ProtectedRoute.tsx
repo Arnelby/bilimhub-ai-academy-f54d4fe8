@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FullNameModal } from '@/components/onboarding/FullNameModal';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,6 +18,9 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
   const [diagnosticCompleted, setDiagnosticCompleted] = useState(true);
   const [needsFullName, setNeedsFullName] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
+
+  // Track session automatically
+  useSessionTracking(user?.id);
 
   useEffect(() => {
     async function checkProfile() {

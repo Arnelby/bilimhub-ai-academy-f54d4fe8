@@ -1,0 +1,105 @@
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+/**
+ * Tracks user sessions in user_sessions table.
+ * Creates a session on mount, updates duration on unmount / visibility change.
+ */
+export function useSessionTracking(userId: string | undefined) {
+  const sessionIdRef = useRef<string | null>(null);
+  const startRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let mounted = true;
+
+    async function startSession() {
+      try {
+        const { data, error } = await supabase
+          .from('user_sessions')
+          .insert({
+            user_id: userId,
+            session_start: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          console.error('[SESSION] Failed to create session:', error.message);
+          return;
+        }
+        if (mounted && data) {
+          sessionIdRef.current = data.id;
+          startRef.current = Date.now();
+          console.log('[SESSION] Started:', data.id);
+        }
+      } catch (err) {
+        console.error('[SESSION] Error:', err);
+      }
+    }
+
+    async function endSession() {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+
+      const duration = Math.round((Date.now() - startRef.current) / 1000);
+      try {
+        await supabase
+          .from('user_sessions')
+          .update({
+            session_end: new Date().toISOString(),
+            duration_seconds: duration,
+          })
+          .eq('id', sid);
+        console.log('[SESSION] Ended:', sid, `${duration}s`);
+      } catch (err) {
+        console.error('[SESSION] End error:', err);
+      }
+      sessionIdRef.current = null;
+    }
+
+    // Update last_activity_date on profile
+    async function updateActivity() {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ last_activity_date: new Date().toISOString().split('T')[0] })
+          .eq('id', userId);
+      } catch {}
+    }
+
+    startSession();
+    updateActivity();
+
+    // End session on tab close / hide
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        endSession();
+      } else if (document.visibilityState === 'visible' && !sessionIdRef.current) {
+        startSession();
+        startRef.current = Date.now();
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      const duration = Math.round((Date.now() - startRef.current) / 1000);
+      // Use sendBeacon for reliability on page close
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_sessions?id=eq.${sid}`;
+      const body = JSON.stringify({ session_end: new Date().toISOString(), duration_seconds: duration });
+      navigator.sendBeacon?.(url, new Blob([body], { type: 'application/json' }));
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      mounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      endSession();
+    };
+  }, [userId]);
+}

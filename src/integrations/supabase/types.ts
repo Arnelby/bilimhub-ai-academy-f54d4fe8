@@ -322,6 +322,7 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string
+          group_type: Database["public"]["Enums"]["experiment_group"]
           id: string
           invite_code: string
           is_active: boolean | null
@@ -331,6 +332,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           email: string
+          group_type?: Database["public"]["Enums"]["experiment_group"]
           id?: string
           invite_code: string
           is_active?: boolean | null
@@ -340,6 +342,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           email?: string
+          group_type?: Database["public"]["Enums"]["experiment_group"]
           id?: string
           invite_code?: string
           is_active?: boolean | null
@@ -548,7 +551,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string | null
-          group_type: string | null
+          group_type: Database["public"]["Enums"]["experiment_group"] | null
           id: string
           language_preference: string | null
           last_activity_date: string | null
@@ -565,7 +568,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
-          group_type?: string | null
+          group_type?: Database["public"]["Enums"]["experiment_group"] | null
           id: string
           language_preference?: string | null
           last_activity_date?: string | null
@@ -582,7 +585,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
-          group_type?: string | null
+          group_type?: Database["public"]["Enums"]["experiment_group"] | null
           id?: string
           language_preference?: string | null
           last_activity_date?: string | null
@@ -1249,6 +1252,7 @@ export type Database = {
           accuracy_pct: number | null
           attempts: number | null
           correct: number | null
+          group_type: string | null
           topic: string | null
           user_id: string | null
           user_name: string | null
@@ -1260,11 +1264,13 @@ export type Database = {
           accuracy_pct: number | null
           ai_usage_count: number | null
           avg_time_per_question: number | null
+          group_type: string | null
           improvement: number | null
           post_score_pct: number | null
           practice_attempts: number | null
           pre_score_pct: number | null
           total_questions_answered: number | null
+          total_sessions: number | null
           total_tests: number | null
           total_time_seconds: number | null
           user_id: string | null
@@ -1317,6 +1323,7 @@ export type Database = {
         | "early_bird"
         | "night_owl"
       app_role: "admin" | "moderator" | "user"
+      experiment_group: "ai" | "control" | "showcase"
       mastery_level: "not_attempted" | "weak" | "in_progress" | "mastered"
       subject_type:
         | "mathematics"
@@ -1467,6 +1474,7 @@ export const Constants = {
         "night_owl",
       ],
       app_role: ["admin", "moderator", "user"],
+      experiment_group: ["ai", "control", "showcase"],
       mastery_level: ["not_attempted", "weak", "in_progress", "mastered"],
       subject_type: [
         "mathematics",
