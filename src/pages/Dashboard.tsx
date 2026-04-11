@@ -119,7 +119,7 @@ export default function Dashboard() {
     try {
       // Parallel fetches
       const [profileRes, testsRes, answersRes, attemptsRes, sessionsRes] = await Promise.all([
-        supabase.from('profiles').select('name').eq('id', user.id).maybeSingle(),
+        supabase.from('profiles').select('name, full_name').eq('id', user.id).maybeSingle(),
         supabase.from('user_tests').select('id, test_id, score, total_questions, completed_at, created_at, time_taken_seconds')
            .eq('user_id', user.id).not('completed_at', 'is', null).order('completed_at', { ascending: true }),
         supabase.from('user_answers').select('question_id, topic, is_correct, answered_at').eq('user_id', user.id),
@@ -128,7 +128,7 @@ export default function Dashboard() {
         supabase.from('user_sessions').select('id, session_start, duration_seconds').eq('user_id', user.id),
       ]);
 
-      setProfileName(profileRes.data?.name || null);
+      setProfileName(profileRes.data?.full_name || profileRes.data?.name || null);
 
       const tests: TestAttempt[] = testsRes.data || [];
       setRawTests(tests);
@@ -201,9 +201,28 @@ export default function Dashboard() {
       // --- Retention ---
       const totalStudySeconds = sessions.reduce((s, se) => s + (se.duration_seconds || 0), 0);
       const uniqueDays = new Set(sessions.map(s => new Date(s.session_start).toDateString()));
+      // Also count test days as activity
+      tests.forEach(t => { if (t.completed_at) uniqueDays.add(new Date(t.completed_at).toDateString()); });
       const lastSession = sessions.length > 0
         ? sessions.sort((a, b) => new Date(b.session_start).getTime() - new Date(a.session_start).getTime())[0]
         : null;
+
+      // Streak calculation: consecutive days ending today or yesterday
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const sortedDays = Array.from(uniqueDays).map(d => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
+      let streakDays = 0;
+      if (sortedDays.length > 0) {
+        const diffFromToday = Math.floor((today.getTime() - sortedDays[0].getTime()) / 86400000);
+        if (diffFromToday <= 1) {
+          streakDays = 1;
+          for (let i = 1; i < sortedDays.length; i++) {
+            const diff = Math.floor((sortedDays[i - 1].getTime() - sortedDays[i].getTime()) / 86400000);
+            if (diff === 1) streakDays++;
+            else break;
+          }
+        }
+      }
 
       setAnalytics({
         firstTestScore: firstScore,
@@ -221,6 +240,8 @@ export default function Dashboard() {
         totalSessions: sessions.length,
         lastActivityAt: lastSession?.session_start || latestTest?.completed_at || null,
         daysActive: uniqueDays.size,
+        testsCompleted: tests.length,
+        streakDays,
       });
     } catch (err) {
       console.error('Error fetching analytics:', err);
