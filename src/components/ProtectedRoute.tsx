@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FullNameModal } from '@/components/onboarding/FullNameModal';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
