@@ -76,6 +76,8 @@ interface AnalyticsData {
   totalSessions: number;
   lastActivityAt: string | null;
   daysActive: number;
+  testsCompleted: number;
+  streakDays: number;
 }
 
 const EMPTY_ANALYTICS: AnalyticsData = {
