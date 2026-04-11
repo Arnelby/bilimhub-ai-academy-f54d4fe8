@@ -19,6 +19,9 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
   const [needsFullName, setNeedsFullName] = useState(false);
   const [profileChecked, setProfileChecked] = useState(false);
 
+  // Track session automatically
+  useSessionTracking(user?.id);
+
   useEffect(() => {
     async function checkProfile() {
       if (!user) {
