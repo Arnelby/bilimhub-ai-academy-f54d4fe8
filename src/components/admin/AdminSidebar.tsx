@@ -27,14 +27,12 @@ import { Link } from 'react-router-dom';
 
 const mainMenuItems = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-  { title: 'Topics Manager', url: '/admin/topics', icon: BookOpen },
 ];
 
 const futureMenuItems = [
-  { title: 'AI Training Datasets', url: '/admin/datasets', icon: Database },
+  { title: 'Analytics Dashboard', url: '/admin/analytics', icon: BarChart3 },
   { title: 'Adaptive Test Builder', url: '/admin/test-builder', icon: FlaskConical },
   { title: 'Learning Plan Constructor', url: '/admin/learning-plans', icon: Route },
-  { title: 'Analytics Dashboard', url: '/admin/analytics', icon: BarChart3 },
 ];
 
 const settingsMenuItems = [

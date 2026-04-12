@@ -50,19 +50,12 @@ interface TopicProgress {
   progress?: number;
 }
 
-interface SavedTerm {
-  id: string;
-  term: string;
-  definition: string | null;
-}
-
 export default function Profile() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topics, setTopics] = useState<TopicProgress[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
-  const [savedTerms, setSavedTerms] = useState<SavedTerm[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editFullName, setEditFullName] = useState('');
@@ -195,14 +188,7 @@ export default function Profile() {
         progress: a.id.includes('streak') ? Math.min(100, ((profile?.streak || 0) / parseInt(a.id.split('_')[1] || '7')) * 100) : undefined,
       })));
 
-      // Fetch saved terms
-      const { data: termsData } = await supabase
-        .from('saved_terms')
-        .select('*')
-        .eq('user_id', user.id)
-        .limit(5);
-
-      setSavedTerms(termsData || []);
+      // Saved terms removed (table deleted)
 
     } catch (error) {
       console.error('Error fetching profile data:', error);
@@ -407,37 +393,6 @@ export default function Profile() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Saved Terms */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-accent" />
-                  {t.profile.savedVocabulary}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {savedTerms.length > 0 ? (
-                  savedTerms.map((term) => (
-                    <div
-                      key={term.id}
-                      className="rounded-lg border border-border p-3"
-                    >
-                      <p className="font-medium">{term.term}</p>
-                      <p className="text-sm text-muted-foreground">{term.definition}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-center py-4 text-sm">
-                    Сохраненных терминов пока нет
-                  </p>
-                )}
-                {savedTerms.length > 0 && (
-                  <Button variant="ghost" className="w-full">
-                    Показать все термины
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Leaderboard */}
             {profile?.leaderboard_visible && (

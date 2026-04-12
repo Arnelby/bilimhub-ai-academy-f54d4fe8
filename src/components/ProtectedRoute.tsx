@@ -5,14 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FullNameModal } from '@/components/onboarding/FullNameModal';
 import { useSessionTracking } from '@/hooks/useSessionTracking';
+import { useUserGroup } from '@/hooks/useUserGroup';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   skipDiagnosticCheck?: boolean;
+  requireAI?: boolean;
 }
 
-export function ProtectedRoute({ children, skipDiagnosticCheck = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, skipDiagnosticCheck = false, requireAI = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const { group, loading: groupLoading, canAccessAI } = useUserGroup();
   const location = useLocation();
   const [diagnosticChecked, setDiagnosticChecked] = useState(false);
   const [diagnosticCompleted, setDiagnosticCompleted] = useState(true);
@@ -76,7 +79,7 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
     }
   }, [user, skipDiagnosticCheck]);
 
-  if (loading || !diagnosticChecked || !profileChecked) {
+  if (loading || !diagnosticChecked || !profileChecked || groupLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
@@ -86,6 +89,11 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false }: Protec
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Enforce experiment group restrictions
+  if (requireAI && !canAccessAI) {
+    return <Navigate to="/tests" replace />;
   }
 
   // Show full name modal if missing

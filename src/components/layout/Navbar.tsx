@@ -4,6 +4,7 @@ import { Menu, X, Globe, Moon, Sun, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { Language } from '@/lib/i18n';
 import logo from '@/assets/bilimhub-logo.png';
 import {
@@ -24,6 +25,7 @@ export function Navbar() {
   const [isDark, setIsDark] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const { user, signOut } = useAuth();
+  const { canAccessAI, canAccessLessons, canAccessDashboard, canAccessTests, canAccessProfile } = useUserGroup();
   const location = useLocation();
 
   const toggleTheme = () => {
@@ -31,24 +33,19 @@ export function Navbar() {
     document.documentElement.classList.toggle('dark');
   };
 
-  // Public links - visible to everyone
-  const publicLinks = [
-    { href: '/', label: t.nav.home },
-  ];
-
-  // Protected links - only visible to authenticated users
-  const protectedLinks = [
-    { href: '/lessons', label: t.nav.lessons },
-    { href: '/tests', label: t.nav.tests },
-    
-    { href: '/dashboard', label: t.nav.dashboard },
-    { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor' },
-    { href: '/learning-plan', label: t.nav.myPlan || 'My Plan' },
-    { href: '/practice', label: t.nav.practice || 'Практика' },
-    { href: '/profile', label: t.nav.profile },
-  ];
-
-  const navLinks = user ? [...publicLinks, ...protectedLinks] : publicLinks;
+  // Build nav links based on experiment group
+  const navLinks = [
+    { href: '/', label: t.nav.home, show: true },
+    ...(user ? [
+      { href: '/lessons', label: t.nav.lessons, show: canAccessLessons },
+      { href: '/tests', label: t.nav.tests, show: canAccessTests },
+      { href: '/dashboard', label: t.nav.dashboard, show: canAccessDashboard },
+      { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor', show: canAccessAI },
+      { href: '/learning-plan', label: t.nav.myPlan || 'My Plan', show: canAccessAI },
+      { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessAI },
+      { href: '/profile', label: t.nav.profile, show: canAccessProfile },
+    ] : []),
+  ].filter(link => link.show);
 
   const isActive = (path: string) => location.pathname === path;
 

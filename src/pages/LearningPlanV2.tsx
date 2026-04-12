@@ -232,7 +232,29 @@ export default function LearningPlanV2() {
 
   const generateAiPlan = async () => {
     if (!user || !session || !analysis) return;
+    
+    // Anti-spam: check cooldown (60 seconds)
+    const lastGenKey = 'lastAiPlanGenerated';
+    const lastGen = localStorage.getItem(lastGenKey);
+    if (lastGen) {
+      const elapsed = Date.now() - parseInt(lastGen, 10);
+      if (elapsed < 60000) {
+        const remaining = Math.ceil((60000 - elapsed) / 1000);
+        toast({ title: "Подождите", description: `Повторная генерация через ${remaining} сек.`, variant: "destructive" });
+        return;
+      }
+    }
+    
     setGenerating(true);
+    const startTime = Date.now();
+    
+    // Log AI request start
+    await supabase.from('ai_request_logs').insert({
+      user_id: user.id,
+      function_name: 'ai-learning-plan-v2',
+      status: 'pending',
+    });
+    
     try {
       const diagnosticAnswers = [
         ...analysis.weakTopics.map(t => ({ topic: t.topic, isCorrect: false })),
@@ -266,9 +288,28 @@ export default function LearningPlanV2() {
         setAiRecommendations(planResult.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
       }
 
+      // Log success
+      localStorage.setItem(lastGenKey, Date.now().toString());
+      await supabase.from('ai_request_logs').insert({
+        user_id: user.id,
+        function_name: 'ai-learning-plan-v2',
+        status: 'success',
+        response_time_ms: Date.now() - startTime,
+      });
+
       toast({ title: "Рекомендации обновлены!" });
     } catch (e) {
       console.error('Error generating plan:', e);
+      
+      // Log failure
+      await supabase.from('ai_request_logs').insert({
+        user_id: user.id,
+        function_name: 'ai-learning-plan-v2',
+        status: 'error',
+        response_time_ms: Date.now() - startTime,
+        error_message: e instanceof Error ? e.message : 'Unknown error',
+      });
+      
       toast({ title: "Ошибка", description: "Не удалось создать рекомендации", variant: "destructive" });
     } finally {
       setGenerating(false);

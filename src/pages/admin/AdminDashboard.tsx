@@ -1,41 +1,41 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Users, Database, TrendingUp } from 'lucide-react';
+import { BookOpen, Users, Database, TrendingUp, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 interface Stats {
-  totalTopics: number;
-  publishedTopics: number;
   totalUsers: number;
-  totalDatasets: number;
+  totalTests: number;
+  totalSessions: number;
+  totalAiRequests: number;
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
-    totalTopics: 0,
-    publishedTopics: 0,
     totalUsers: 0,
-    totalDatasets: 0,
+    totalTests: 0,
+    totalSessions: 0,
+    totalAiRequests: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [topicsRes, publishedRes, profilesRes, datasetsRes] = await Promise.all([
-          supabase.from('admin_topics').select('id', { count: 'exact', head: true }),
-          supabase.from('admin_topics').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        const [profilesRes, testsRes, sessionsRes, aiLogsRes] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('admin_training_datasets').select('id', { count: 'exact', head: true }),
+          supabase.from('user_tests').select('id', { count: 'exact', head: true }),
+          supabase.from('user_sessions').select('id', { count: 'exact', head: true }),
+          supabase.from('ai_request_logs').select('id', { count: 'exact', head: true }),
         ]);
 
         setStats({
-          totalTopics: topicsRes.count || 0,
-          publishedTopics: publishedRes.count || 0,
           totalUsers: profilesRes.count || 0,
-          totalDatasets: datasetsRes.count || 0,
+          totalTests: testsRes.count || 0,
+          totalSessions: sessionsRes.count || 0,
+          totalAiRequests: aiLogsRes.count || 0,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -49,34 +49,34 @@ export default function AdminDashboard() {
 
   const statCards = [
     {
-      title: 'Total Topics',
-      value: stats.totalTopics,
-      description: 'Content items in database',
-      icon: BookOpen,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      title: 'Published',
-      value: stats.publishedTopics,
-      description: 'Live topics for students',
-      icon: TrendingUp,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/20',
-    },
-    {
-      title: 'Total Users',
+      title: 'Пользователи',
       value: stats.totalUsers,
-      description: 'Registered students',
+      description: 'Зарегистрированных студентов',
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
-      title: 'AI Datasets',
-      value: stats.totalDatasets,
-      description: 'Training datasets',
-      icon: Database,
+      title: 'Тесты пройдены',
+      value: stats.totalTests,
+      description: 'Всего попыток тестов',
+      icon: BookOpen,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      title: 'Сессии',
+      value: stats.totalSessions,
+      description: 'Учебных сессий',
+      icon: Activity,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100 dark:bg-green-900/20',
+    },
+    {
+      title: 'AI Запросы',
+      value: stats.totalAiRequests,
+      description: 'Обращений к AI',
+      icon: TrendingUp,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20',
     },
@@ -85,8 +85,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Dashboard Overview</h2>
-        <p className="text-muted-foreground">Welcome to the BilimHub Admin Panel</p>
+        <h2 className="text-2xl font-bold text-foreground">Панель управления</h2>
+        <p className="text-muted-foreground">Обзор платформы BilimHub</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -113,20 +113,20 @@ export default function AdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common admin tasks</CardDescription>
+            <CardTitle>Быстрые действия</CardTitle>
+            <CardDescription>Основные задачи</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button asChild className="w-full justify-start">
-              <Link to="/admin/topics">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Manage Topics
+              <Link to="/admin/analytics">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Аналитика
               </Link>
             </Button>
             <Button variant="outline" asChild className="w-full justify-start">
-              <Link to="/admin/datasets">
+              <Link to="/admin/settings">
                 <Database className="h-4 w-4 mr-2" />
-                AI Training Datasets
+                Настройки
               </Link>
             </Button>
           </CardContent>
@@ -134,22 +134,22 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>Current platform health</CardDescription>
+            <CardTitle>Статус системы</CardTitle>
+            <CardDescription>Текущее состояние</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Database</span>
-                <span className="text-sm font-medium text-green-600">Connected</span>
+                <span className="text-sm text-muted-foreground">База данных</span>
+                <span className="text-sm font-medium text-green-600">Подключена</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">AI Gateway</span>
-                <span className="text-sm font-medium text-green-600">Active</span>
+                <span className="text-sm font-medium text-green-600">Активен</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Authentication</span>
-                <span className="text-sm font-medium text-green-600">Enabled</span>
+                <span className="text-sm text-muted-foreground">Аутентификация</span>
+                <span className="text-sm font-medium text-green-600">Включена</span>
               </div>
             </div>
           </CardContent>
