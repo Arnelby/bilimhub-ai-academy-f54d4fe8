@@ -9,11 +9,6 @@ interface UserGroupState {
   loading: boolean;
 }
 
-/**
- * Fetches the user's experiment group from beta_whitelist (source of truth).
- * Falls back to profiles.group_type if not in whitelist.
- * Default: 'ai' if nothing found.
- */
 export function useUserGroup() {
   const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<UserGroupState>({ group: null, loading: true });
@@ -27,7 +22,6 @@ export function useUserGroup() {
 
     async function fetchGroup() {
       try {
-        // 1. Check beta_whitelist first (source of truth)
         const { data: whitelistEntry } = await supabase
           .from('beta_whitelist')
           .select('group_type')
@@ -40,7 +34,6 @@ export function useUserGroup() {
           return;
         }
 
-        // 2. Fallback to profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('group_type')
@@ -60,15 +53,17 @@ export function useUserGroup() {
     fetchGroup();
   }, [user, authLoading]);
 
-  // Convenience booleans
   const isAI = state.group === 'ai';
   const isControl = state.group === 'control';
   const isShowcase = state.group === 'showcase';
 
-  // Route access helpers
-  const canAccessAI = isAI; // AI tutor, practice, learning plan
-  const canAccessLessons = isAI; // full lessons
-  const canAccessDashboard = isAI; // analytics dashboard
+  // UPDATED access rules per experiment spec:
+  // ai = full access
+  // control = tests + lessons + basic dashboard + profile (NO AI, NO plan, NO practice, NO personalization)
+  // showcase = tests + profile + home only
+  const canAccessAI = isAI;
+  const canAccessLessons = isAI || isControl; // control gets lessons
+  const canAccessDashboard = isAI || isControl; // control gets basic dashboard
   const canAccessTests = isAI || isControl || isShowcase;
   const canAccessProfile = isAI || isControl || isShowcase;
 

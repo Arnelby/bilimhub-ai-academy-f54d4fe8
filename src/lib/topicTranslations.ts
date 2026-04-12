@@ -31,6 +31,57 @@ export const TOPIC_RU: Record<string, string> = {
   'Limits': 'Пределы',
   'Derivatives': 'Производные',
   'Integrals': 'Интегралы',
+  // Lowercase / DB variants
+  'proportions': 'Пропорции',
+  'logical': 'Логика',
+  'decimals': 'Десятичные дроби',
+  'number line': 'Числовая прямая',
+  'inequalities': 'Неравенства',
+  'arithmetic': 'Арифметика',
+  'fractions': 'Дроби',
+  'word problems': 'Текстовые задачи',
+  'roots': 'Корни',
+  'geometry': 'Геометрия',
+  'exponents': 'Степени',
+  'algebra': 'Алгебра',
+  'coordinate geometry': 'Координатная геометрия',
+  'functions': 'Функции',
+  'factorials': 'Факториалы',
+  'logarithms': 'Логарифмы',
+  'trigonometry': 'Тригонометрия',
+  'operations': 'Арифметические операции',
+  'percentages': 'Проценты',
+  'ratios': 'Пропорции',
+  'probability': 'Вероятность',
+  'statistics': 'Статистика',
+  'sequences': 'Последовательности',
+  'sets': 'Множества',
+  'equations': 'Уравнения',
+  'matrices': 'Матрицы',
+  'vectors': 'Векторы',
+  'combinatorics': 'Комбинаторика',
+  'number theory': 'Теория чисел',
+  'limits': 'Пределы',
+  'derivatives': 'Производные',
+  'integrals': 'Интегралы',
+  // Additional DB topics found in math_questions
+  'comparison': 'Сравнение',
+  'expressions': 'Выражения',
+  'absolute value': 'Модуль числа',
+  'percent': 'Проценты',
+  'ratio': 'Пропорции',
+  'area': 'Площадь',
+  'perimeter': 'Периметр',
+  'angles': 'Углы',
+  'circles': 'Окружности',
+  'powers': 'Степени',
+  'linear equations': 'Линейные уравнения',
+  'quadratic equations': 'Квадратные уравнения',
+  'systems of equations': 'Системы уравнений',
+  'data analysis': 'Анализ данных',
+  'mean': 'Среднее',
+  'median': 'Медиана',
+  'Без темы': 'Без темы',
 };
 
 export const TOPIC_KG: Record<string, string> = {
@@ -63,7 +114,7 @@ export const TOPIC_KG: Record<string, string> = {
  * Falls back to the original string if no translation exists.
  */
 export function translateTopic(topic: string, language: 'en' | 'ru' | 'kg'): string {
-  if (language === 'ru') return TOPIC_RU[topic] || topic;
+  if (language === 'ru') return TOPIC_RU[topic] || TOPIC_RU[topic.toLowerCase()] || topic;
   if (language === 'kg') return TOPIC_KG[topic] || topic;
   return topic;
 }
@@ -77,7 +128,6 @@ export function parseQuestionId(questionId: string): { variant: number; question
   if (!match) return null;
   const variant = parseInt(match[1], 10);
   let questionNumber = parseInt(match[2], 10);
-  // Handle legacy data: variant 2 stored question_numbers 31-60, normalize to 1-30
   if (variant === 2 && questionNumber >= 31) {
     questionNumber = questionNumber - 30;
   }

@@ -29,6 +29,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AchievementsPanel } from '@/components/gamification/AchievementsPanel';
+import { useUserGroup } from '@/hooks/useUserGroup';
+import { translateTopic } from '@/lib/topicTranslations';
 
 interface TestAttempt {
   id: string;
@@ -104,6 +106,7 @@ export default function Dashboard() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isAI, isControl } = useUserGroup();
 
   const [profileName, setProfileName] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData>(EMPTY_ANALYTICS);
@@ -302,8 +305,8 @@ export default function Dashboard() {
             <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <QuickAction icon={<Play className="h-6 w-6" />} title="Уроки" sub="Продолжить обучение" to="/lessons" color="accent" />
               <QuickAction icon={<Target className="h-6 w-6" />} title="Тесты" sub="Пройти тест" to="/tests" color="success" />
-              <QuickAction icon={<Brain className="h-6 w-6" />} title="AI Tutor" sub="Задать вопрос" to="/ai-tutor" color="primary" />
-              <QuickAction icon={<Calendar className="h-6 w-6" />} title="Мой план" sub="AI план обучения" to="/learning-plan" color="warning" />
+              {isAI && <QuickAction icon={<Brain className="h-6 w-6" />} title="AI Tutor" sub="Задать вопрос" to="/ai-tutor" color="primary" />}
+              {isAI && <QuickAction icon={<Calendar className="h-6 w-6" />} title="Мой план" sub="AI план обучения" to="/learning-plan" color="warning" />}
             </div>
 
             <div className="grid gap-8 lg:grid-cols-3">
@@ -424,7 +427,7 @@ export default function Dashboard() {
                           <div key={i} className="flex items-center gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium truncate">{t.topic}</span>
+                                <span className="text-sm font-medium truncate">{translateTopic(t.topic, language as 'en' | 'ru' | 'kg')}</span>
                                 <span className="text-sm text-muted-foreground ml-2 shrink-0">
                                   {t.correct}/{t.total} ({t.accuracy}%)
                                 </span>
@@ -465,13 +468,13 @@ export default function Dashboard() {
                         highlight={analytics.totalIncorrect > 0 ? 'negative' : 'positive'}
                       />
                     </div>
-                    {analytics.weakTopics.length > 0 && (
+                {analytics.weakTopics.length > 0 && isAI && (
                       <div>
                         <p className="text-sm font-medium mb-3">Слабые темы (точность &lt; 60%)</p>
                         <div className="space-y-2">
                           {analytics.weakTopics.map((t, i) => (
                             <div key={i} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                              <span className="text-sm font-medium">{t.topic}</span>
+                              <span className="text-sm font-medium">{translateTopic(t.topic, language as 'en' | 'ru' | 'kg')}</span>
                               <Badge variant="destructive">{t.accuracy}%</Badge>
                             </div>
                           ))}
@@ -589,18 +592,22 @@ export default function Dashboard() {
                         Пройти новый тест
                       </Link>
                     </Button>
-                    <Button variant="outline" className="w-full justify-start" asChild>
-                      <Link to="/practice">
-                        <Dumbbell className="mr-2 h-4 w-4" />
-                        Практика
-                      </Link>
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start" asChild>
-                      <Link to="/learning-plan">
-                        <Brain className="mr-2 h-4 w-4" />
-                        AI План обучения
-                      </Link>
-                    </Button>
+                    {isAI && (
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/practice">
+                          <Dumbbell className="mr-2 h-4 w-4" />
+                          Практика
+                        </Link>
+                      </Button>
+                    )}
+                    {isAI && (
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/learning-plan">
+                          <Brain className="mr-2 h-4 w-4" />
+                          AI План обучения
+                        </Link>
+                      </Button>
+                    )}
                     <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/profile">
                         <BookOpen className="mr-2 h-4 w-4" />
