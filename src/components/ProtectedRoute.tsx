@@ -93,7 +93,9 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false, requireA
 
   // Enforce experiment group restrictions
   if (requireAI && !canAccessAI) {
-    return <Navigate to="/tests" replace />;
+    // Redirect control users to dashboard (they have access), showcase to tests
+    const fallback = group === 'showcase' ? '/tests' : '/dashboard';
+    return <Navigate to={fallback} replace />;
   }
 
   // Show full name modal if missing
