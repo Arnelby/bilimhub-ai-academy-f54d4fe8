@@ -188,14 +188,7 @@ export default function Profile() {
         progress: a.id.includes('streak') ? Math.min(100, ((profile?.streak || 0) / parseInt(a.id.split('_')[1] || '7')) * 100) : undefined,
       })));
 
-      // Fetch saved terms
-      const { data: termsData } = await supabase
-        .from('saved_terms')
-        .select('*')
-        .eq('user_id', user.id)
-        .limit(5);
-
-      setSavedTerms(termsData || []);
+      // Saved terms removed (table deleted)
 
     } catch (error) {
       console.error('Error fetching profile data:', error);
