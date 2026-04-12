@@ -393,37 +393,6 @@ export default function Profile() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Saved Terms */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-accent" />
-                  {t.profile.savedVocabulary}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {savedTerms.length > 0 ? (
-                  savedTerms.map((term) => (
-                    <div
-                      key={term.id}
-                      className="rounded-lg border border-border p-3"
-                    >
-                      <p className="font-medium">{term.term}</p>
-                      <p className="text-sm text-muted-foreground">{term.definition}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-center py-4 text-sm">
-                    Сохраненных терминов пока нет
-                  </p>
-                )}
-                {savedTerms.length > 0 && (
-                  <Button variant="ghost" className="w-full">
-                    Показать все термины
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
 
             {/* Leaderboard */}
             {profile?.leaderboard_visible && (
