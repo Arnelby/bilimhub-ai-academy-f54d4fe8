@@ -50,19 +50,12 @@ interface TopicProgress {
   progress?: number;
 }
 
-interface SavedTerm {
-  id: string;
-  term: string;
-  definition: string | null;
-}
-
 export default function Profile() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topics, setTopics] = useState<TopicProgress[]>([]);
   const [achievements, setAchievements] = useState<any[]>([]);
-  const [savedTerms, setSavedTerms] = useState<SavedTerm[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editFullName, setEditFullName] = useState('');
