@@ -157,8 +157,10 @@ export default function Tests() {
             {TEST_VARIANTS.map((variant) => {
               const testAttempts = getAttemptsForTest(variant.uuid);
               const qCount = questionCounts[variant.mathTestId] || 0;
+              // Only variant 1 is unlocked by default; others require completing the previous
+              const isLocked = variant.mathTestId > 1 && !getAttemptsForTest(TEST_VARIANTS[variant.mathTestId - 2]?.uuid || '').length;
               return (
-                <Card key={variant.mathTestId} variant="interactive">
+                <Card key={variant.mathTestId} variant="interactive" className={isLocked ? 'opacity-60' : ''}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <Badge variant="accent">Вариант {variant.mathTestId}</Badge>
@@ -184,10 +186,16 @@ export default function Tests() {
                         </span>
                       </div>
                     )}
-                    <Button variant="accent" className="w-full" onClick={() => handleStartTest(variant.mathTestId)}>
-                      <Play className="mr-2 h-4 w-4" />
-                      {testAttempts.length > 0 ? 'Пройти снова' : 'Начать тест'}
-                    </Button>
+                    {isLocked ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        🔒 Сначала пройдите вариант {variant.mathTestId - 1}
+                      </Button>
+                    ) : (
+                      <Button variant="accent" className="w-full" onClick={() => handleStartTest(variant.mathTestId)}>
+                        <Play className="mr-2 h-4 w-4" />
+                        {testAttempts.length > 0 ? 'Пройти снова' : 'Начать тест'}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
