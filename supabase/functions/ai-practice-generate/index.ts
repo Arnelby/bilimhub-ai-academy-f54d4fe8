@@ -6,16 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function flattenCachedQuestion(row: any): any {
+  const qd = row.question_data || {};
+  return {
+    type: row.question_type || qd.type || 'comparison',
+    topic: row.topic || qd.topic || '',
+    instruction: qd.instruction || null,
+    column_a: qd.column_a || null,
+    column_b: qd.column_b || null,
+    options: qd.options || null,
+    correct_answer: row.correct_answer || qd.correct_answer || 'A',
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTs = Date.now();
-  console.log("[PRACTICE] PRACTICE_REQUEST_RECEIVED");
+  console.log("[PRACTICE] REQUEST_RECEIVED");
 
   try {
-    // Auth
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -60,8 +72,9 @@ serve(async (req) => {
       .limit(questionCount);
 
     if (cached && cached.length >= 3) {
-      console.log(`[PRACTICE] PRACTICE_CACHE_FOUND: ${cached.length} questions`);
-      return new Response(JSON.stringify({ questions: cached, source: 'cache' }), {
+      console.log(`[PRACTICE] CACHE_HIT: ${cached.length} questions`);
+      const flattened = cached.map(flattenCachedQuestion);
+      return new Response(JSON.stringify({ questions: flattened, source: 'cache' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -70,7 +83,6 @@ serve(async (req) => {
     console.log("[PRACTICE] AI_GENERATION_STARTED");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("[PRACTICE] LOVABLE_API_KEY not configured");
       return new Response(JSON.stringify({ error: 'AI service not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -101,8 +113,6 @@ JSON формат (строго):
 - Разная сложность
 - Ответь ТОЛЬКО JSON, без пояснений`;
 
-    const aiStartTs = Date.now();
-
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -119,50 +129,36 @@ JSON формат (строго):
       }),
     });
 
-    const aiLatency = Date.now() - aiStartTs;
-    console.log(`[PRACTICE] AI response status: ${aiResponse.status}, latency: ${aiLatency}ms`);
+    console.log(`[PRACTICE] AI status: ${aiResponse.status}`);
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error(`[PRACTICE] GEMINI_RESPONSE_ERROR: ${aiResponse.status} ${errText}`);
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded, try again later' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted' }), {
-          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      return new Response(JSON.stringify({ error: 'AI generation failed' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      console.error(`[PRACTICE] AI_ERROR: ${aiResponse.status} ${errText}`);
+      return new Response(JSON.stringify({ error: aiResponse.status === 429 ? 'Rate limit exceeded' : 'AI generation failed' }), {
+        status: aiResponse.status === 429 ? 429 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    console.log("[PRACTICE] GEMINI_RESPONSE_SUCCESS");
 
     const aiData = await aiResponse.json();
     let content = aiData.choices?.[0]?.message?.content || '';
 
-    // Sanitize and parse JSON
-    content = content.replace(/[\x00-\x1F\x7F]/g, (ch: string) => 
+    content = content.replace(/[\x00-\x1F\x7F]/g, (ch: string) =>
       ch === '\n' || ch === '\r' || ch === '\t' ? ch : ' '
     );
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("[PRACTICE] GEMINI_RESPONSE_ERROR: No JSON found in response");
+      console.error("[PRACTICE] No JSON in AI response");
       return new Response(JSON.stringify({ error: 'AI returned invalid format' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    let jsonStr = jsonMatch[0].replace(/,\s*([}\]])/g, '$1');
     let parsed;
     try {
-      parsed = JSON.parse(jsonStr);
+      parsed = JSON.parse(jsonMatch[0].replace(/,\s*([}\]])/g, '$1'));
     } catch (e) {
-      console.error("[PRACTICE] GEMINI_RESPONSE_ERROR: JSON parse failed", e);
+      console.error("[PRACTICE] JSON parse failed", e);
       return new Response(JSON.stringify({ error: 'AI returned malformed JSON' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -170,13 +166,12 @@ JSON формат (строго):
 
     const questions = parsed.questions || [];
     if (questions.length === 0) {
-      console.error("[PRACTICE] GEMINI_RESPONSE_ERROR: No questions in parsed JSON");
       return new Response(JSON.stringify({ error: 'AI generated 0 questions' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[PRACTICE] GENERATED_QUESTIONS_RETURNED: ${questions.length}`);
+    console.log(`[PRACTICE] Generated ${questions.length} questions`);
 
     // Save to practice_questions table
     const toInsert = questions.map((q: any) => ({
@@ -188,26 +183,20 @@ JSON формат (строго):
       source: 'ai',
     }));
 
-    const { error: insertError } = await supabase
-      .from('practice_questions')
-      .insert(toInsert);
-
+    const { error: insertError } = await supabase.from('practice_questions').insert(toInsert);
     if (insertError) {
       console.error("[PRACTICE] DB insert error:", insertError);
-      // Still return questions even if save fails
-    } else {
-      console.log(`[PRACTICE] Saved ${toInsert.length} questions to practice_questions`);
     }
 
     const totalLatency = Date.now() - startTs;
-    console.log(`[PRACTICE] Total latency: ${totalLatency}ms`);
+    console.log(`[PRACTICE] Done in ${totalLatency}ms`);
 
     return new Response(JSON.stringify({ questions, source: 'ai' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error("[PRACTICE] FATAL_ERROR:", error);
+    console.error("[PRACTICE] FATAL:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
