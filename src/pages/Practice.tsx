@@ -315,63 +315,7 @@ export default function Practice() {
     }
   };
 
-  const currentQ = questions[currentIndex];
-  const answeredCount = Object.keys(answers).length;
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex h-[60vh] items-center justify-center flex-col gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
-          <p className="text-sm text-muted-foreground">Генерация практических заданий...</p>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (generationError) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-16 text-center">
-          <AlertTriangle className="mx-auto h-16 w-16 text-warning mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Ошибка генерации</h2>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">{generationError}</p>
-          <div className="flex gap-3 justify-center">
-            <Button onClick={loadPractice} variant="accent">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Попробовать снова
-            </Button>
-            <Button onClick={() => navigate('/tests')} variant="outline">
-              <Target className="mr-2 h-4 w-4" />
-              К тестам
-            </Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (questions.length === 0) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-16 text-center">
-          <Target className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Нет заданий для практики</h2>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {weakTopics.length === 0
-              ? 'Сначала пройдите тест, чтобы система определила слабые темы.'
-              : 'Не найдено вопросов по вашим слабым темам.'}
-          </p>
-          <Button onClick={() => navigate('/tests')}>
-            <Target className="mr-2 h-4 w-4" />
-            Перейти к тестам
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Save practice results to DB
+  // Save practice results to DB (before early returns for hooks rules)
   const savePracticeResults = useCallback(async () => {
     if (!user) return;
     try {
