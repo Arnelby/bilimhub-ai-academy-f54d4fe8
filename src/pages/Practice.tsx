@@ -621,7 +621,7 @@ export default function Practice() {
                         }`}>
                           {toCyrillicKey(key)}
                         </span>
-                        <MathRenderer content={value} inline />
+                        <MathRenderer content={String(value)} inline />
                       </button>
                     );
                   })}
