@@ -32,7 +32,6 @@ export function useSessionTracking(userId: string | undefined) {
         if (mounted && data) {
           sessionIdRef.current = data.id;
           startRef.current = Date.now();
-          console.log('[SESSION] Started:', data.id);
         }
       } catch (err) {
         console.error('[SESSION] Error:', err);
@@ -52,7 +51,6 @@ export function useSessionTracking(userId: string | undefined) {
             duration_seconds: duration,
           })
           .eq('id', sid);
-        console.log('[SESSION] Ended:', sid, `${duration}s`);
       } catch (err) {
         console.error('[SESSION] End error:', err);
       }
@@ -72,6 +70,22 @@ export function useSessionTracking(userId: string | undefined) {
     startSession();
     updateActivity();
 
+    // Periodic heartbeat to keep duration updated (every 30s)
+    const heartbeat = setInterval(async () => {
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      const duration = Math.round((Date.now() - startRef.current) / 1000);
+      try {
+        await supabase
+          .from('user_sessions')
+          .update({
+            session_end: new Date().toISOString(),
+            duration_seconds: duration,
+          })
+          .eq('id', sid);
+      } catch {}
+    }, 30000);
+
     // End session on tab close / hide
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
@@ -82,23 +96,12 @@ export function useSessionTracking(userId: string | undefined) {
       }
     };
 
-    const handleBeforeUnload = () => {
-      const sid = sessionIdRef.current;
-      if (!sid) return;
-      const duration = Math.round((Date.now() - startRef.current) / 1000);
-      // Use sendBeacon for reliability on page close
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/user_sessions?id=eq.${sid}`;
-      const body = JSON.stringify({ session_end: new Date().toISOString(), duration_seconds: duration });
-      navigator.sendBeacon?.(url, new Blob([body], { type: 'application/json' }));
-    };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       mounted = false;
+      clearInterval(heartbeat);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       endSession();
     };
   }, [userId]);
