@@ -178,8 +178,12 @@ export default function Practice() {
       const data = await response.json();
       console.log(`[PRACTICE_FRONTEND] Received ${data.questions?.length || 0} questions from ${data.source}`);
 
-      const aiQuestions: PracticeQuestion[] = (data.questions || []).map((q: any, idx: number) => {
-        if (q.type === 'mcq' || formatType === 'mcq') {
+      const aiQuestions: PracticeQuestion[] = (data.questions || []).map((raw: any, idx: number) => {
+        // Normalize: handle both direct AI response and flattened cache format
+        const q = raw.question_data ? { ...raw.question_data, type: raw.question_type, topic: raw.topic, correct_answer: raw.correct_answer } : raw;
+        const qType = q.type || formatType;
+        
+        if (qType === 'mcq') {
           return {
             type: 'mcq' as const,
             id: 90000 + idx,
