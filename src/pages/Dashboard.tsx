@@ -411,8 +411,8 @@ export default function Dashboard() {
                   </Card>
                 )}
 
-                {/* ===== TOPIC PERFORMANCE ===== */}
-                {analytics.topicAccuracy.length > 0 && (
+                {/* ===== TOPIC PERFORMANCE (AI only) ===== */}
+                {analytics.topicAccuracy.length > 0 && isAI && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
