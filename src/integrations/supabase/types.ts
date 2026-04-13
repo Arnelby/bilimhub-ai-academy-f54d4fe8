@@ -217,6 +217,7 @@ export type Database = {
           invite_code: string
           is_active: boolean | null
           notes: string | null
+          participant_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -227,6 +228,7 @@ export type Database = {
           invite_code: string
           is_active?: boolean | null
           notes?: string | null
+          participant_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -237,6 +239,7 @@ export type Database = {
           invite_code?: string
           is_active?: boolean | null
           notes?: string | null
+          participant_id?: string | null
           used_at?: string | null
         }
         Relationships: []
