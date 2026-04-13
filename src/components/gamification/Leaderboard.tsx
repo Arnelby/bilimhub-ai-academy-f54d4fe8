@@ -42,10 +42,10 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       // Fetch visible profiles
       const { data: allTimeData } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, points, level, streak')
+        .select('id, name, full_name, avatar_url, points, level, streak')
         .eq('leaderboard_visible', true)
         .order('points', { ascending: false })
-        .limit(limit);
+        .limit(50); // fetch more, we'll re-sort by accuracy
 
       // Fetch test stats for these users
       const userIds = (allTimeData || []).map(u => u.id);
@@ -57,25 +57,34 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
             .not('completed_at', 'is', null)
         : { data: [] };
 
-      // Calculate per-user stats
+      // Calculate per-user accuracy
       const userStats = new Map<string, { count: number; totalPct: number }>();
       for (const t of (testsData || [])) {
         const s = userStats.get(t.user_id) || { count: 0, totalPct: 0 };
         s.count++;
-        const pct = t.total_questions ? Math.round(((t.score || 0) / t.total_questions) * 100) : 0;
-        s.totalPct += pct;
+        const total = t.total_questions || 30;
+        const score = t.score || 0;
+        const pct = score > total ? score : Math.round((score / total) * 100);
+        s.totalPct += Math.min(100, pct);
         userStats.set(t.user_id, s);
       }
 
-      const allTimeLeaders: LeaderboardEntry[] = (allTimeData || []).map((entry, index) => {
+      // Sort by accuracy (not XP)
+      const allTimeLeaders: LeaderboardEntry[] = (allTimeData || []).map((entry) => {
         const st = userStats.get(entry.id);
         return {
           ...entry,
-          rank: index + 1,
+          name: (entry as any).full_name || entry.name,
+          rank: 0,
           testsCompleted: st?.count || 0,
           averageScore: st ? Math.round(st.totalPct / st.count) : 0,
         };
-      });
+      })
+        .filter(e => e.testsCompleted > 0) // only users who took tests
+        .sort((a, b) => b.averageScore - a.averageScore)
+        .slice(0, limit)
+        .map((e, i) => ({ ...e, rank: i + 1 }));
+
       setLeaders(allTimeLeaders);
 
       // Find user's rank
@@ -176,8 +185,8 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
               </p>
             </div>
             <div className="text-right">
-              <p className="font-bold text-accent">{entry.points.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">XP</p>
+              <p className="font-bold text-accent">{entry.averageScore}%</p>
+              <p className="text-xs text-muted-foreground">точность</p>
             </div>
           </div>
         );

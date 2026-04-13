@@ -315,6 +315,30 @@ export default function Practice() {
     }
   };
 
+  // Save practice results to DB (before early returns for hooks rules)
+  const savePracticeResults = useCallback(async () => {
+    if (!user) return;
+    try {
+      // Save each generated question to practice_questions if not already saved
+      for (const q of questions) {
+        const userAns = answers[qKey(q)];
+        if (!userAns) continue;
+        await supabase.from('practice_questions').insert({
+          user_id: user.id,
+          topic: q.topic,
+          question_type: q.type,
+          question_data: q.type === 'comparison'
+            ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
+            : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
+          correct_answer: q.correct_answer,
+          source: 'ai',
+        });
+      }
+    } catch (err) {
+      console.error('[PRACTICE] Failed to save results:', err);
+    }
+  }, [user, questions, answers]);
+
   const currentQ = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
 
@@ -597,7 +621,7 @@ export default function Practice() {
                         }`}>
                           {toCyrillicKey(key)}
                         </span>
-                        <MathRenderer content={value} inline />
+                        <MathRenderer content={String(value)} inline />
                       </button>
                     );
                   })}
@@ -620,7 +644,7 @@ export default function Practice() {
           {currentIndex === questions.length - 1 ? (
             <Button
               variant="accent"
-              onClick={() => setShowResults(true)}
+              onClick={() => { savePracticeResults(); setShowResults(true); }}
               disabled={answeredCount === 0}
             >
               <CheckCircle className="mr-2 h-4 w-4" />

@@ -114,7 +114,12 @@ export default function Profile() {
 
       const scores = testsData?.map(t => t.score || 0) || [];
       const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
-      const totalSeconds = lessonsData?.reduce((acc, l) => acc + (l.time_spent_seconds || 0), 0) || 0;
+      // Use session time for total study time
+      const { data: sessionsData } = await supabase
+        .from('user_sessions')
+        .select('duration_seconds')
+        .eq('user_id', user.id);
+      const totalSeconds = (sessionsData || []).reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
 
