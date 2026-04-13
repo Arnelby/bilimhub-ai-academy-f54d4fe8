@@ -451,6 +451,7 @@ export type Database = {
           leaderboard_visible: boolean | null
           level: number | null
           name: string | null
+          participant_id: string | null
           points: number | null
           streak: number | null
           theme_preference: string | null
@@ -468,6 +469,7 @@ export type Database = {
           leaderboard_visible?: boolean | null
           level?: number | null
           name?: string | null
+          participant_id?: string | null
           points?: number | null
           streak?: number | null
           theme_preference?: string | null
@@ -485,6 +487,7 @@ export type Database = {
           leaderboard_visible?: boolean | null
           level?: number | null
           name?: string | null
+          participant_id?: string | null
           points?: number | null
           streak?: number | null
           theme_preference?: string | null
