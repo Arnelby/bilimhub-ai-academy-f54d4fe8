@@ -109,16 +109,42 @@ export default function LessonVariant() {
   const markVideoWatched = async (videoId: string, questionNumber: number) => {
     if (!user || !variantId) return;
     const lessonId = `video_${variantId}_${questionNumber}`;
-    const { error } = await supabase.from('user_lesson_progress').upsert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      progress_percentage: 100,
-    }, { onConflict: 'user_id,lesson_id' });
+    setSavingVideo(lessonId);
+    try {
+      // Check if record exists first
+      const { data: existing } = await supabase
+        .from('user_lesson_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
 
-    if (!error) {
-      setWatchedVideos(prev => new Set(prev).add(lessonId));
+      let error;
+      if (existing) {
+        ({ error } = await supabase.from('user_lesson_progress').update({
+          completed: true,
+          completed_at: new Date().toISOString(),
+          progress_percentage: 100,
+        }).eq('id', existing.id));
+      } else {
+        ({ error } = await supabase.from('user_lesson_progress').insert({
+          user_id: user.id,
+          lesson_id: lessonId,
+          completed: true,
+          completed_at: new Date().toISOString(),
+          progress_percentage: 100,
+        }));
+      }
+
+      if (!error) {
+        setWatchedVideos(prev => new Set(prev).add(lessonId));
+      } else {
+        console.error('Failed to save video progress:', error);
+      }
+    } catch (err) {
+      console.error('Error marking video watched:', err);
+    } finally {
+      setSavingVideo(null);
     }
   };
 
