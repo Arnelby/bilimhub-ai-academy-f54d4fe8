@@ -927,15 +927,7 @@ export type Database = {
           time_spent_seconds?: number | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_lesson_progress_lesson_id_fkey"
-            columns: ["lesson_id"]
-            isOneToOne: false
-            referencedRelation: "lessons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {

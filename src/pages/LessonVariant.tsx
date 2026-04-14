@@ -7,6 +7,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { VideoEmbed } from '@/components/lessons/storage/VideoEmbed';
 import { TEST_CONFIG } from '@/lib/mathTestConfig';
 import {
@@ -37,12 +38,14 @@ export default function LessonVariant() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { isAI, loading: groupLoading } = useUserGroup();
 
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<VideoSolution[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [userResults, setUserResults] = useState<Record<number, boolean>>({});
   const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
+  const [savingVideo, setSavingVideo] = useState<string | null>(null);
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const scrollQuestion = searchParams.get('question');
@@ -106,16 +109,42 @@ export default function LessonVariant() {
   const markVideoWatched = async (videoId: string, questionNumber: number) => {
     if (!user || !variantId) return;
     const lessonId = `video_${variantId}_${questionNumber}`;
-    const { error } = await supabase.from('user_lesson_progress').upsert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      progress_percentage: 100,
-    }, { onConflict: 'user_id,lesson_id' });
+    setSavingVideo(lessonId);
+    try {
+      // Check if record exists first
+      const { data: existing } = await supabase
+        .from('user_lesson_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
 
-    if (!error) {
-      setWatchedVideos(prev => new Set(prev).add(lessonId));
+      let error;
+      if (existing) {
+        ({ error } = await supabase.from('user_lesson_progress').update({
+          completed: true,
+          completed_at: new Date().toISOString(),
+          progress_percentage: 100,
+        }).eq('id', existing.id));
+      } else {
+        ({ error } = await supabase.from('user_lesson_progress').insert({
+          user_id: user.id,
+          lesson_id: lessonId,
+          completed: true,
+          completed_at: new Date().toISOString(),
+          progress_percentage: 100,
+        }));
+      }
+
+      if (!error) {
+        setWatchedVideos(prev => new Set(prev).add(lessonId));
+      } else {
+        console.error('Failed to save video progress:', error);
+      }
+    } catch (err) {
+      console.error('Error marking video watched:', err);
+    } finally {
+      setSavingVideo(null);
     }
   };
 
@@ -180,10 +209,11 @@ export default function LessonVariant() {
             className="space-y-3"
           >
             {videos.map((video) => {
-              const hasResult = video.question_number in userResults;
+              const hasResult = isAI && video.question_number in userResults;
               const isCorrect = userResults[video.question_number];
               const lessonId = `video_${variantId}_${video.question_number}`;
               const isWatched = watchedVideos.has(lessonId);
+              const isSaving = savingVideo === lessonId;
               return (
                 <AccordionItem
                   key={video.id}
@@ -224,10 +254,15 @@ export default function LessonVariant() {
                         size="sm"
                         variant="outline"
                         className="mt-3"
+                        disabled={isSaving}
                         onClick={() => markVideoWatched(video.id, video.question_number)}
                       >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Отметить просмотренным
+                        {isSaving ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                        )}
+                        {isSaving ? 'Сохраняю...' : 'Отметить просмотренным'}
                       </Button>
                     )}
                   </AccordionContent>
