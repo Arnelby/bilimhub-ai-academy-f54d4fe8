@@ -38,6 +38,7 @@ export default function LessonVariant() {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { user } = useAuth();
+  const { isAI, loading: groupLoading } = useUserGroup();
 
   const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<VideoSolution[]>([]);
