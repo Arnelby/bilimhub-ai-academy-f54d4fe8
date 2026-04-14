@@ -209,10 +209,11 @@ export default function LessonVariant() {
             className="space-y-3"
           >
             {videos.map((video) => {
-              const hasResult = video.question_number in userResults;
+              const hasResult = isAI && video.question_number in userResults;
               const isCorrect = userResults[video.question_number];
               const lessonId = `video_${variantId}_${video.question_number}`;
               const isWatched = watchedVideos.has(lessonId);
+              const isSaving = savingVideo === lessonId;
               return (
                 <AccordionItem
                   key={video.id}
@@ -253,10 +254,15 @@ export default function LessonVariant() {
                         size="sm"
                         variant="outline"
                         className="mt-3"
+                        disabled={isSaving}
                         onClick={() => markVideoWatched(video.id, video.question_number)}
                       >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Отметить просмотренным
+                        {isSaving ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                        )}
+                        {isSaving ? 'Сохраняю...' : 'Отметить просмотренным'}
                       </Button>
                     )}
                   </AccordionContent>
