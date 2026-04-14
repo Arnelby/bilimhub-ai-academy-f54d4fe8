@@ -45,6 +45,7 @@ export default function LessonVariant() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [userResults, setUserResults] = useState<Record<number, boolean>>({});
   const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
+  const [savingVideo, setSavingVideo] = useState<string | null>(null);
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const scrollQuestion = searchParams.get('question');
