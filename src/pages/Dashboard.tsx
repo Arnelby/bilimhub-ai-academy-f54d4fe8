@@ -444,7 +444,8 @@ export default function Dashboard() {
                   </Card>
                 )}
 
-                {/* ===== ERROR ANALYSIS ===== */}
+                {/* ===== ERROR ANALYSIS (AI only) ===== */}
+                {isAI && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -468,7 +469,7 @@ export default function Dashboard() {
                         highlight={analytics.totalIncorrect > 0 ? 'negative' : 'positive'}
                       />
                     </div>
-                {analytics.weakTopics.length > 0 && isAI && (
+                {analytics.weakTopics.length > 0 && (
                       <div>
                         <p className="text-sm font-medium mb-3">Слабые темы (точность &lt; 60%)</p>
                         <div className="space-y-2">
@@ -489,6 +490,7 @@ export default function Dashboard() {
                     )}
                   </CardContent>
                 </Card>
+                )}
               </div>
 
               {/* Sidebar */}
