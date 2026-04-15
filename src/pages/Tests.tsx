@@ -41,6 +41,7 @@ export default function Tests() {
   const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState<UserTestRecord[]>([]);
   const [questionCounts, setQuestionCounts] = useState<Record<number, number>>({});
+  const [accessMap, setAccessMap] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     async function fetchData() {
