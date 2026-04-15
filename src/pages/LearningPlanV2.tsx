@@ -558,9 +558,7 @@ export default function LearningPlanV2() {
             <CardContent>
               <div className="space-y-3">
                 {(showAllQuestions ? answerDetails : answerDetails.slice(0, 10)).map((a, idx) => {
-                  const variantEntry = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === analysis?.testName);
-                  const variantNum = variantEntry ? variantEntry[0] : '';
-                  const variantKey = variantNum ? `variant${variantNum}` : '';
+                  const variantKey = latestVariantNum ? `variant${latestVariantNum}` : '';
                   return (
                     <div
                       key={idx}
