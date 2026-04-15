@@ -104,6 +104,10 @@ export default function TestTaking() {
         const attemptNumber = (prevAttempts || 0) + 1;
         const testType = attemptNumber === 1 ? 'pre' : 'post';
 
+        // Resolve participant_id for initial insert
+        const { getParticipantInfo } = await import('@/lib/getParticipantInfo');
+        const { participantId: pid, groupType: gt } = await getParticipantInfo(user.id);
+
         // Create test attempt (started_at = now() via DB default)
         const { data: attemptData, error: attemptError } = await supabase
           .from('user_tests')
@@ -113,6 +117,8 @@ export default function TestTaking() {
             total_questions: formattedQuestions.length,
             attempt_number: attemptNumber,
             test_type: testType,
+            participant_id: pid,
+            group_type: gt,
           } as any)
           .select()
           .single();
@@ -216,6 +222,10 @@ export default function TestTaking() {
       recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
+      // Resolve participant_id
+      const { getParticipantInfo } = await import('@/lib/getParticipantInfo');
+      const { participantId, groupType } = await getParticipantInfo(user.id);
+
       // Call AI analysis
       const { data: analysisData, error: analysisError } = await supabase.functions.invoke('ai-analyze-test', {
         body: {
@@ -243,7 +253,9 @@ export default function TestTaking() {
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
           ai_analysis: analysisData.analysis,
-        })
+          participant_id: participantId,
+          group_type: groupType,
+        } as any)
         .eq('id', testAttemptId);
 
       // Save per-question attempts for research tracking
@@ -253,9 +265,12 @@ export default function TestTaking() {
         question_id: q.id,
         topic: null,
         is_correct: answers[idx] === q.correct_option,
+        user_answer: answers[idx] !== null && answers[idx] !== undefined ? String(answers[idx]) : null,
+        correct_answer: String(q.correct_option),
+        participant_id: participantId,
         time_spent_seconds: questionTimes[idx] || 0,
       }));
-      await supabase.from('question_attempts').insert(questionAttemptsToInsert);
+      await supabase.from('question_attempts').insert(questionAttemptsToInsert as any);
 
       // Update gamification (points, streak, achievements)
       const pointsEarned = Math.round(analysisData.score * 0.5) + 25; // Base 25 points + score bonus

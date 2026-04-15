@@ -16,11 +16,23 @@ export function useSessionTracking(userId: string | undefined) {
 
     async function startSession() {
       try {
+        // Resolve participant_id for research tracking
+        let participantId: string | null = null;
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('participant_id')
+            .eq('id', userId)
+            .maybeSingle();
+          participantId = profile?.participant_id || null;
+        } catch {}
+
         const { data, error } = await supabase
           .from('user_sessions')
           .insert({
             user_id: userId,
             session_start: new Date().toISOString(),
+            participant_id: participantId,
           })
           .select('id')
           .single();
