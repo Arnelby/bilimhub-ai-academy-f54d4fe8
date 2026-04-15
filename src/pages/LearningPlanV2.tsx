@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserGroup } from "@/hooks/useUserGroup";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,10 @@ import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
   BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play
 } from "lucide-react";
-import { TEST_CONFIG } from "@/lib/mathTestConfig";
+import { TEST_CONFIG, toCyrillicKey } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
+import { MathRenderer } from "@/components/math/MathRenderer";
 
 interface RecommendedLesson {
   id: string;
@@ -50,10 +52,24 @@ interface TestAnalysis {
   weakTopics: TopicStat[];
 }
 
+interface AnswerDetail {
+  questionNumber: number;
+  answer: string | null;
+  correctAnswer: string;
+  isCorrect: boolean;
+  topic: string;
+  type: 'comparison' | 'mcq';
+  instruction?: string;
+  column_a?: string;
+  column_b?: string;
+  options?: Record<string, string>;
+}
+
 export default function LearningPlanV2() {
   const navigate = useNavigate();
   const { user, session } = useAuth();
   const { language } = useLanguage();
+  const { isAI } = useUserGroup();
 
   const [analysis, setAnalysis] = useState<TestAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +77,9 @@ export default function LearningPlanV2() {
   const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
   const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
+  const [answerDetails, setAnswerDetails] = useState<AnswerDetail[]>([]);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [latestVariantNum, setLatestVariantNum] = useState<string>('');
 
   useEffect(() => {
     if (user) loadAnalysis();
@@ -74,7 +93,7 @@ export default function LearningPlanV2() {
       // 1. Find latest completed test
       const { data: latestAttempt } = await supabase
         .from('user_tests')
-        .select('id, test_id, score, total_questions, time_taken_seconds, completed_at')
+        .select('id, test_id, score, total_questions, time_taken_seconds, completed_at, answers')
         .eq('user_id', user.id)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
@@ -89,6 +108,8 @@ export default function LearningPlanV2() {
       // Determine test name from config
       const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
       const testName = matchedConfig ? matchedConfig[1].name : 'Тест';
+      const varNum = matchedConfig ? matchedConfig[0] : '';
+      setLatestVariantNum(varNum);
 
       // 2. Get topic-level data from question_attempts
       const { data: attempts } = await supabase
@@ -190,6 +211,26 @@ export default function LearningPlanV2() {
             testId: a.test_id,
           })));
         }
+      }
+
+      // Parse rich answer details from user_tests.answers
+      const rawAnswers = (latestAttempt as any).answers;
+      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+        const parsed: AnswerDetail[] = rawAnswers
+          .filter((a: any) => a.correctAnswer !== undefined)
+          .map((a: any) => ({
+            questionNumber: a.questionNumber || 0,
+            answer: a.answer || null,
+            correctAnswer: a.correctAnswer || '',
+            isCorrect: !!a.isCorrect,
+            topic: a.topic || '',
+            type: a.type || 'comparison',
+            instruction: a.instruction,
+            column_a: a.column_a,
+            column_b: a.column_b,
+            options: a.options,
+          }));
+        setAnswerDetails(parsed);
       }
 
       // Load recommended lessons for weak topics
@@ -500,6 +541,115 @@ export default function LearningPlanV2() {
                   </Badge>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Per-Question Breakdown — AI group only */}
+        {isAI && answerDetails.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-accent" />
+                Разбор по вопросам
+              </CardTitle>
+              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(showAllQuestions ? answerDetails : answerDetails.slice(0, 10)).map((a, idx) => {
+                  const variantKey = latestVariantNum ? `variant${latestVariantNum}` : '';
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-start gap-3 rounded-lg border p-3 ${
+                        a.isCorrect
+                          ? 'border-success/30 bg-success/5'
+                          : 'border-destructive/30 bg-destructive/5'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {a.isCorrect ? (
+                          <CheckCircle className="h-5 w-5 text-success" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">
+                            Вопрос {a.questionNumber}
+                          </span>
+                          {a.topic && (
+                            <Badge variant="outline" className="text-xs">
+                              {translateTopic(a.topic, "ru")}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Question content */}
+                        {a.type === 'comparison' && a.column_a && a.column_b && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            {a.instruction && (
+                              <div className="mb-1"><MathRenderer content={a.instruction} /></div>
+                            )}
+                            <span>Столбец А: </span>
+                            <MathRenderer content={a.column_a} inline />
+                            <span className="mx-2">vs</span>
+                            <span>Столбец Б: </span>
+                            <MathRenderer content={a.column_b} inline />
+                          </div>
+                        )}
+                        {a.type === 'mcq' && a.instruction && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            <MathRenderer content={a.instruction} />
+                          </div>
+                        )}
+
+                        {/* Answer details */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                          <span>
+                            Ваш ответ:{' '}
+                            <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
+                              {a.answer ? toCyrillicKey(a.answer) : '—'}
+                            </span>
+                          </span>
+                          {!a.isCorrect && (
+                            <span>
+                              Правильный:{' '}
+                              <span className="font-medium text-success">
+                                {toCyrillicKey(a.correctAnswer)}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Link to video solution for wrong answers */}
+                        {!a.isCorrect && (
+                          <div className="mt-2">
+                            <Button size="sm" variant="outline" asChild>
+                              <Link to={`/lessons/video/${variantKey}?question=${a.questionNumber}`}>
+                                <Video className="mr-1 h-3 w-3" />
+                                Видеоразбор
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {answerDetails.length > 10 && !showAllQuestions && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => setShowAllQuestions(true)}
+                >
+                  Показать все {answerDetails.length} вопросов
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
