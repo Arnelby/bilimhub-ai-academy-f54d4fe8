@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ChevronLeft, ChevronRight, CheckCircle, Target, AlertTriangle, Dumbbell, Lightbulb, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { MathRenderer } from '@/components/math/MathRenderer';
-import { QuestionImage } from '@/components/math/QuestionImage';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 
@@ -49,6 +49,7 @@ interface MistakeExplanation {
 export default function Practice() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -60,9 +61,12 @@ export default function Practice() {
   const [mistakeExplanations, setMistakeExplanations] = useState<Record<string, MistakeExplanation>>({});
   const [expandedMistake, setExpandedMistake] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [participantId, setParticipantId] = useState<string | null>(null);
+  const sessionStartRef = useRef<number>(Date.now());
 
   const loadPractice = useCallback(async () => {
-    if (!user) return;
+    if (!user || groupLoading) return;
     setLoading(true);
     setAnswers({});
     setCurrentIndex(0);
@@ -70,85 +74,130 @@ export default function Practice() {
     setMistakeExplanations({});
     setExpandedMistake(null);
     setGenerationError(null);
+    sessionStartRef.current = Date.now();
     
     try {
-      console.log("[PRACTICE_FRONTEND] Loading practice for user:", user.id);
+      console.log(`[PRACTICE_FRONTEND] Loading practice for user: ${user.id}, group: ${group}`);
 
-      // 1. Find latest completed test
-      const { data: latestAttempt } = await supabase
-        .from('user_tests')
-        .select('id, test_id')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: false })
-        .limit(1)
+      // Fetch participant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('participant_id, group_type')
+        .eq('id', user.id)
         .maybeSingle();
+      
+      const pid = profile?.participant_id || null;
+      setParticipantId(pid);
 
-      if (!latestAttempt) {
-        console.log("[PRACTICE_FRONTEND] No completed tests found");
-        setLoading(false);
-        return;
-      }
+      let formatType: 'comparison' | 'mcq' = 'comparison';
+      let mathTestId = 1;
+      let weak: string[] = [];
 
-      const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
-      const configEntry = matchedConfig ? matchedConfig[1] : null;
-      const mathTestId = matchedConfig ? parseInt(matchedConfig[0]) : 1;
-      setLatestTestName(configEntry ? configEntry.name : 'Тест');
-      setLatestTestType(configEntry?.questionType || 'comparison');
+      if (isAI) {
+        // AI GROUP: personalized practice based on weak topics
+        const { data: latestAttempt } = await supabase
+          .from('user_tests')
+          .select('id, test_id')
+          .eq('user_id', user.id)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      // 2. Get question attempts for weak topics
-      const { data: attempts } = await supabase
-        .from('question_attempts')
-        .select('topic, is_correct')
-        .eq('user_id', user.id)
-        .eq('test_attempt_id', latestAttempt.id);
+        if (!latestAttempt) {
+          setLoading(false);
+          return;
+        }
 
-      if (!attempts || attempts.length === 0) {
-        console.log("[PRACTICE_FRONTEND] No question attempts found");
-        setLoading(false);
-        return;
-      }
+        const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
+        const configEntry = matchedConfig ? matchedConfig[1] : null;
+        mathTestId = matchedConfig ? parseInt(matchedConfig[0]) : 1;
+        setLatestTestName(configEntry ? configEntry.name : 'Тест');
+        formatType = configEntry?.questionType || 'comparison';
+        setLatestTestType(formatType);
 
-      // 3. Calculate topic accuracy
-      const topicMap = new Map<string, { correct: number; total: number }>();
-      for (const a of attempts) {
-        const t = a.topic || 'Unknown';
-        const entry = topicMap.get(t) || { correct: 0, total: 0 };
-        entry.total++;
-        if (a.is_correct) entry.correct++;
-        topicMap.set(t, entry);
-      }
+        const { data: attempts } = await supabase
+          .from('question_attempts')
+          .select('topic, is_correct')
+          .eq('user_id', user.id)
+          .eq('test_attempt_id', latestAttempt.id);
 
-      const weak: string[] = [];
-      topicMap.forEach((data, topic) => {
-        const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
-        if (accuracy < 50) weak.push(topic);
-      });
+        if (!attempts || attempts.length === 0) {
+          setLoading(false);
+          return;
+        }
 
-      if (weak.length < 3) {
+        const topicMap = new Map<string, { correct: number; total: number }>();
+        for (const a of attempts) {
+          const t = a.topic || 'Unknown';
+          const entry = topicMap.get(t) || { correct: 0, total: 0 };
+          entry.total++;
+          if (a.is_correct) entry.correct++;
+          topicMap.set(t, entry);
+        }
+
         topicMap.forEach((data, topic) => {
           const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
-          if (accuracy >= 50 && accuracy < 80 && !weak.includes(topic)) {
-            weak.push(topic);
-          }
+          if (accuracy < 50) weak.push(topic);
         });
+
+        if (weak.length < 3) {
+          topicMap.forEach((data, topic) => {
+            const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+            if (accuracy >= 50 && accuracy < 80 && !weak.includes(topic)) {
+              weak.push(topic);
+            }
+          });
+        }
+
+        setWeakTopics(weak);
+
+        if (weak.length === 0) {
+          setLoading(false);
+          return;
+        }
+      } else {
+        // CONTROL GROUP: non-personalized practice
+        setLatestTestName('Общая практика ОРТ');
+        // Determine format from latest test if available
+        const { data: latestAttempt } = await supabase
+          .from('user_tests')
+          .select('test_id')
+          .eq('user_id', user.id)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestAttempt) {
+          const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
+          if (matchedConfig) {
+            formatType = matchedConfig[1]?.questionType || 'comparison';
+            mathTestId = parseInt(matchedConfig[0]);
+          }
+        }
+        setLatestTestType(formatType);
       }
 
-      setWeakTopics(weak);
+      // Create practice session in DB
+      const { data: sessionData } = await supabase
+        .from('practice_sessions' as any)
+        .insert({
+          user_id: user.id,
+          participant_id: pid,
+          group_type: group,
+          practice_type: isAI ? 'personalized' : 'general',
+          weak_topics: isAI ? weak : [],
+        })
+        .select('id')
+        .single();
 
-      if (weak.length === 0) {
-        console.log("[PRACTICE_FRONTEND] No weak topics found");
-        setLoading(false);
-        return;
+      if (sessionData) {
+        setSessionId((sessionData as any).id);
       }
 
-      console.log("[PRACTICE_FRONTEND] Weak topics:", weak);
-      console.log("[PRACTICE_FRONTEND] Calling ai-practice-generate edge function");
-
-      // 4. Call dedicated practice generation edge function
-      const formatType = configEntry?.questionType || 'comparison';
-      const questionCount = Math.min(10, Math.max(5, weak.length * 3));
-
+      // Call edge function
+      const questionCount = isControl ? 25 : Math.min(10, Math.max(5, weak.length * 3));
       const session = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-practice-generate`,
@@ -160,9 +209,10 @@ export default function Practice() {
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            weakTopics: weak,
+            weakTopics: isAI ? weak : [],
             questionCount,
             formatType,
+            groupType: group || 'ai',
           }),
         }
       );
@@ -179,7 +229,6 @@ export default function Practice() {
       console.log(`[PRACTICE_FRONTEND] Received ${data.questions?.length || 0} questions from ${data.source}`);
 
       const aiQuestions: PracticeQuestion[] = (data.questions || []).map((raw: any, idx: number) => {
-        // Normalize: handle both direct AI response and flattened cache format
         const q = raw.question_data ? { ...raw.question_data, type: raw.question_type, topic: raw.topic, correct_answer: raw.correct_answer } : raw;
         const qType = q.type || formatType;
         
@@ -188,7 +237,7 @@ export default function Practice() {
             type: 'mcq' as const,
             id: 90000 + idx,
             question_number: idx + 1,
-            topic: q.topic || weak[0] || '',
+            topic: q.topic || '',
             instruction: q.instruction || '',
             options: q.options || {},
             correct_answer: q.correct_answer || 'A',
@@ -199,7 +248,7 @@ export default function Practice() {
           type: 'comparison' as const,
           id: 90000 + idx,
           question_number: idx + 1,
-          topic: q.topic || weak[0] || '',
+          topic: q.topic || '',
           instruction: q.instruction || null,
           column_a: q.column_a || '',
           column_b: q.column_b || '',
@@ -221,11 +270,11 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, group, groupLoading, isAI, isControl]);
 
   useEffect(() => {
-    if (user) loadPractice();
-  }, [user, loadPractice]);
+    if (user && !groupLoading) loadPractice();
+  }, [user, groupLoading, loadPractice]);
 
   const qKey = (q: PracticeQuestion) => `${q.type}_${q.id}`;
 
@@ -236,6 +285,9 @@ export default function Practice() {
   };
 
   const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string) => {
+    // AI-only feature
+    if (!isAI) return;
+    
     const key = qKey(q);
     if (mistakeExplanations[key]?.explanation) {
       setExpandedMistake(expandedMistake === key ? null : key);
@@ -278,9 +330,7 @@ export default function Practice() {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -319,34 +369,63 @@ export default function Practice() {
     }
   };
 
-  // Save practice results to DB (before early returns for hooks rules)
+  // Save practice results to DB
   const savePracticeResults = useCallback(async () => {
     if (!user) return;
     try {
-      // Save each generated question to practice_questions if not already saved
-      for (const q of questions) {
-        const userAns = answers[qKey(q)];
-        if (!userAns) continue;
-        await supabase.from('practice_questions').insert({
+      let correctCount = 0;
+      const responses: any[] = [];
+
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const userAns = answers[qKey(q)] || null;
+        const isCorrect = userAns === q.correct_answer;
+        if (isCorrect) correctCount++;
+
+        responses.push({
+          session_id: sessionId,
           user_id: user.id,
+          participant_id: participantId,
+          question_index: i,
           topic: q.topic,
-          question_type: q.type,
+          difficulty: null,
           question_data: q.type === 'comparison'
             ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
+          user_answer: userAns,
           correct_answer: q.correct_answer,
-          source: 'ai',
+          is_correct: isCorrect,
         });
+      }
+
+      // Save practice_responses
+      if (sessionId && responses.length > 0) {
+        const { error: respError } = await supabase
+          .from('practice_responses' as any)
+          .insert(responses);
+        if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
+
+        // Update practice session summary
+        const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
+        await supabase
+          .from('practice_sessions' as any)
+          .update({
+            ended_at: new Date().toISOString(),
+            total_time_seconds: totalTime,
+            num_tasks: questions.length,
+            num_correct: correctCount,
+          })
+          .eq('id', sessionId);
       }
     } catch (err) {
       console.error('[PRACTICE] Failed to save results:', err);
     }
-  }, [user, questions, answers]);
+  }, [user, questions, answers, sessionId, participantId]);
 
   const currentQ = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
 
-  if (loading) {
+  if (loading || groupLoading) {
     return (
       <Layout>
         <div className="flex h-[60vh] items-center justify-center flex-col gap-3">
@@ -386,8 +465,10 @@ export default function Practice() {
           <Target className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
           <h2 className="text-2xl font-bold mb-2">Нет заданий для практики</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            {weakTopics.length === 0
+            {isAI && weakTopics.length === 0
               ? 'Сначала пройдите тест, чтобы система определила слабые темы.'
+              : isControl
+              ? 'Сначала пройдите хотя бы один тест.'
               : 'Не найдено вопросов по вашим слабым темам.'}
           </p>
           <Button onClick={() => navigate('/tests')}>
@@ -402,17 +483,16 @@ export default function Practice() {
   // Results screen
   if (showResults) {
     let correctCount = 0;
-    const mistakes: { q: PracticeQuestion; userAnswer: string }[] = [];
+    const allResults: { q: PracticeQuestion; userAnswer: string | null; isCorrect: boolean }[] = [];
 
     for (const q of questions) {
-      const userAns = answers[qKey(q)];
-      if (userAns === q.correct_answer) {
-        correctCount++;
-      } else if (userAns) {
-        mistakes.push({ q, userAnswer: userAns });
-      }
+      const userAns = answers[qKey(q)] || null;
+      const correct = userAns === q.correct_answer;
+      if (correct) correctCount++;
+      allResults.push({ q, userAnswer: userAns, isCorrect: correct });
     }
 
+    const mistakes = allResults.filter(r => !r.isCorrect && r.userAnswer);
     const percentage = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
 
     return (
@@ -422,7 +502,7 @@ export default function Practice() {
             <CardHeader className="text-center">
               <CheckCircle className={`mx-auto h-12 w-12 mb-2 ${percentage >= 80 ? 'text-success' : percentage >= 50 ? 'text-warning' : 'text-destructive'}`} />
               <CardTitle className="text-2xl">Результаты практики</CardTitle>
-              <CardDescription>{latestTestName} • Слабые темы</CardDescription>
+              <CardDescription>{latestTestName}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center mb-6">
@@ -431,91 +511,104 @@ export default function Practice() {
                 <Progress value={percentage} className="mt-4 h-3" />
               </div>
 
-              {weakTopics.length > 0 && (
-                <div className="flex flex-wrap gap-2 justify-center mb-6">
-                  {weakTopics.map(t => (
-                    <Badge key={t} variant="outline">{translateTopic(t, 'ru')}</Badge>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex gap-3 justify-center">
+              {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
+              <div className="flex gap-3 justify-center mb-6">
                 <Button onClick={loadPractice} variant="accent">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Новая практика
                 </Button>
-                <Button onClick={() => navigate('/learning-plan')} variant="outline">
-                  Мой план
+                {isAI && (
+                  <Button onClick={() => navigate('/learning-plan')} variant="outline">
+                    Мой план
+                  </Button>
+                )}
+                <Button onClick={() => navigate('/tests')} variant="outline">
+                  К тестам
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {mistakes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-warning" />
-                  Разбор ошибок ({mistakes.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mistakes.map(({ q, userAnswer }, idx) => {
-                  const key = qKey(q);
-                  const explanation = mistakeExplanations[key];
-                  return (
-                    <div key={key} className="rounded-lg border border-border p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <Badge variant="outline">{translateTopic(q.topic, 'ru')}</Badge>
-                        <span className="text-sm text-muted-foreground">#{idx + 1}</span>
-                      </div>
-
-                      {q.type === 'comparison' ? (
-                        <div className="text-sm mb-2">
-                          {q.instruction && <p className="mb-1"><MathRenderer content={q.instruction} /></p>}
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="rounded bg-muted/50 p-2 text-center">
-                              <span className="text-xs text-muted-foreground">A:</span> <MathRenderer content={q.column_a} inline />
-                            </div>
-                            <div className="rounded bg-muted/50 p-2 text-center">
-                              <span className="text-xs text-muted-foreground">B:</span> <MathRenderer content={q.column_b} inline />
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm mb-2"><MathRenderer content={q.instruction} /></p>
-                      )}
-
-                      <div className="flex gap-4 text-sm">
-                        <span className="text-destructive">Ваш: {toCyrillicKey(userAnswer)}</span>
-                        <span className="text-success">Верный: {toCyrillicKey(q.correct_answer)}</span>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => loadMistakeExplanation(q, userAnswer)}
-                      >
-                        {explanation?.loading ? (
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          {/* Show all questions with correct/incorrect for both groups */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                Все задания ({questions.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {allResults.map(({ q, userAnswer, isCorrect }, idx) => {
+                const key = qKey(q);
+                const explanation = mistakeExplanations[key];
+                return (
+                  <div key={key} className="rounded-lg border border-border p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">#{idx + 1}</span>
+                        {isCorrect ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Правильно</Badge>
                         ) : (
-                          <Lightbulb className="mr-1 h-3 w-3" />
+                          <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Неправильно</Badge>
                         )}
-                        {expandedMistake === key ? 'Скрыть' : 'Объяснение'}
-                      </Button>
-
-                      {expandedMistake === key && explanation?.explanation && (
-                        <div className="mt-2 rounded bg-muted/50 p-3 text-sm whitespace-pre-line">
-                          <MathRenderer content={explanation.explanation} />
-                        </div>
+                      </div>
+                      {/* Control: NO topic display to avoid personalization hints */}
+                      {isAI && (
+                        <Badge variant="outline">{translateTopic(q.topic, 'ru')}</Badge>
                       )}
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          )}
+
+                    {q.type === 'comparison' ? (
+                      <div className="text-sm mb-2">
+                        {q.instruction && <p className="mb-1"><MathRenderer content={q.instruction} /></p>}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded bg-muted/50 p-2 text-center">
+                            <span className="text-xs text-muted-foreground">A:</span> <MathRenderer content={q.column_a} inline />
+                          </div>
+                          <div className="rounded bg-muted/50 p-2 text-center">
+                            <span className="text-xs text-muted-foreground">B:</span> <MathRenderer content={q.column_b} inline />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm mb-2"><MathRenderer content={q.instruction} /></p>
+                    )}
+
+                    <div className="flex gap-4 text-sm">
+                      <span className={isCorrect ? 'text-success' : 'text-destructive'}>
+                        Ваш ответ: {userAnswer ? toCyrillicKey(userAnswer) : '—'}
+                      </span>
+                      <span className="text-success">Верный: {toCyrillicKey(q.correct_answer)}</span>
+                    </div>
+
+                    {/* AI group only: mistake explanation via AI */}
+                    {isAI && !isCorrect && userAnswer && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => loadMistakeExplanation(q, userAnswer)}
+                        >
+                          {explanation?.loading ? (
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                          ) : (
+                            <Lightbulb className="mr-1 h-3 w-3" />
+                          )}
+                          {expandedMistake === key ? 'Скрыть' : 'Объяснение ошибки'}
+                        </Button>
+
+                        {expandedMistake === key && explanation?.explanation && (
+                          <div className="mt-2 rounded bg-muted/50 p-3 text-sm whitespace-pre-line">
+                            <MathRenderer content={explanation.explanation} />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -532,7 +625,7 @@ export default function Practice() {
               Практика
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              AI-задания по слабым темам • {latestTestName}
+              {isAI ? `AI-задания по слабым темам • ${latestTestName}` : `Общие задания ОРТ`}
             </p>
           </div>
           <Badge variant="accent">{answeredCount}/{questions.length}</Badge>
@@ -544,7 +637,10 @@ export default function Practice() {
           <CardContent className="p-6">
             <div className="mb-4 flex items-center justify-between">
               <Badge variant="outline">Вопрос {currentIndex + 1} из {questions.length}</Badge>
-              <Badge variant="secondary">{translateTopic(currentQ?.topic || '', 'ru')}</Badge>
+              {/* Control: don't show topic to avoid revealing weak areas */}
+              {isAI && currentQ && (
+                <Badge variant="secondary">{translateTopic(currentQ.topic, 'ru')}</Badge>
+              )}
             </div>
 
             {currentQ?.type === 'comparison' ? (
