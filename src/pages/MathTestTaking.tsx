@@ -300,6 +300,9 @@ export default function MathTestTaking() {
       const attemptNumber = (prevAttempts || 0) + 1;
       const testType = attemptNumber === 1 ? 'pre' : 'post';
 
+      // Determine data reliability
+      const isReliable = !!(participantId && correct >= 0);
+
       const { data: attemptData, error: attemptError } = await supabase
         .from('user_tests')
         .insert({
@@ -314,6 +317,8 @@ export default function MathTestTaking() {
           answers: richAnswers,
           participant_id: participantId,
           group_type: groupType,
+          data_version: 'v2',
+          is_reliable: isReliable,
           ai_analysis: {
             correct_count: correct,
             total,
@@ -327,17 +332,25 @@ export default function MathTestTaking() {
       if (attemptError) throw attemptError;
 
       if (attemptData?.id) {
-        const attemptsToInsert = questionAttempts.map(qa => ({
-          user_id: user.id,
-          test_attempt_id: attemptData.id,
-          question_id: qa.question_id,
-          topic: qa.topic,
-          is_correct: qa.is_correct,
-          user_answer: qa.user_answer,
-          correct_answer: qa.correct_answer,
-          participant_id: participantId,
-          time_spent_seconds: questionTimes[questions.find(q => `mq_${mathTestId}_${getDisplayNumber(q.question_number)}` === qa.question_id)?.question_number || 0] || 0,
-        }));
+        const attemptsToInsert = questionAttempts.map(qa => {
+          const qaReliable = !!(participantId && qa.user_answer);
+          if (!qaReliable) {
+            console.warn('[DATA_INTEGRITY] Unreliable question_attempt:', { question_id: qa.question_id, participant_id: participantId, user_answer: qa.user_answer });
+          }
+          return {
+            user_id: user.id,
+            test_attempt_id: attemptData.id,
+            question_id: qa.question_id,
+            topic: qa.topic,
+            is_correct: qa.is_correct,
+            user_answer: qa.user_answer,
+            correct_answer: qa.correct_answer,
+            participant_id: participantId,
+            data_version: 'v2',
+            is_reliable: qaReliable,
+            time_spent_seconds: questionTimes[questions.find(q => `mq_${mathTestId}_${getDisplayNumber(q.question_number)}` === qa.question_id)?.question_number || 0] || 0,
+          };
+        });
         await supabase.from('question_attempts').insert(attemptsToInsert as any);
       }
 

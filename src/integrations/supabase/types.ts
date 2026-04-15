@@ -445,9 +445,11 @@ export type Database = {
         Row: {
           correct_answer: string
           created_at: string
+          data_version: string
           difficulty: string | null
           id: string
           is_correct: boolean
+          is_reliable: boolean
           participant_id: string | null
           question_data: Json | null
           question_index: number
@@ -460,9 +462,11 @@ export type Database = {
         Insert: {
           correct_answer: string
           created_at?: string
+          data_version?: string
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           participant_id?: string | null
           question_data?: Json | null
           question_index: number
@@ -475,9 +479,11 @@ export type Database = {
         Update: {
           correct_answer?: string
           created_at?: string
+          data_version?: string
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           participant_id?: string | null
           question_data?: Json | null
           question_index?: number
@@ -495,14 +501,23 @@ export type Database = {
             referencedRelation: "practice_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "practice_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "research_clean_sessions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       practice_sessions: {
         Row: {
           created_at: string
+          data_version: string
           ended_at: string | null
           group_type: string | null
           id: string
+          is_reliable: boolean
           num_correct: number | null
           num_tasks: number | null
           participant_id: string | null
@@ -514,9 +529,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_version?: string
           ended_at?: string | null
           group_type?: string | null
           id?: string
+          is_reliable?: boolean
           num_correct?: number | null
           num_tasks?: number | null
           participant_id?: string | null
@@ -528,9 +545,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_version?: string
           ended_at?: string | null
           group_type?: string | null
           id?: string
+          is_reliable?: boolean
           num_correct?: number | null
           num_tasks?: number | null
           participant_id?: string | null
@@ -603,9 +622,11 @@ export type Database = {
         Row: {
           correct_answer: string | null
           created_at: string
+          data_version: string
           difficulty: string | null
           id: string
           is_correct: boolean
+          is_reliable: boolean
           participant_id: string | null
           question_id: string
           test_attempt_id: string
@@ -617,9 +638,11 @@ export type Database = {
         Insert: {
           correct_answer?: string | null
           created_at?: string
+          data_version?: string
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           participant_id?: string | null
           question_id: string
           test_attempt_id: string
@@ -631,9 +654,11 @@ export type Database = {
         Update: {
           correct_answer?: string | null
           created_at?: string
+          data_version?: string
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           participant_id?: string | null
           question_id?: string
           test_attempt_id?: string
@@ -643,6 +668,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "question_attempts_test_attempt_id_fkey"
+            columns: ["test_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "research_clean_tests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "question_attempts_test_attempt_id_fkey"
             columns: ["test_attempt_id"]
@@ -866,8 +898,10 @@ export type Database = {
         Row: {
           answered_at: string
           correct_option: number
+          data_version: string
           id: string
           is_correct: boolean
+          is_reliable: boolean
           question_id: string
           selected_option: number
           test_id: string
@@ -878,8 +912,10 @@ export type Database = {
         Insert: {
           answered_at?: string
           correct_option: number
+          data_version?: string
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           question_id: string
           selected_option: number
           test_id: string
@@ -890,8 +926,10 @@ export type Database = {
         Update: {
           answered_at?: string
           correct_option?: number
+          data_version?: string
           id?: string
           is_correct?: boolean
+          is_reliable?: boolean
           question_id?: string
           selected_option?: number
           test_id?: string
@@ -1100,8 +1138,10 @@ export type Database = {
           attempt_number: number | null
           completed_at: string | null
           created_at: string | null
+          data_version: string
           group_type: string | null
           id: string
+          is_reliable: boolean
           participant_id: string | null
           score: number | null
           started_at: string | null
@@ -1117,8 +1157,10 @@ export type Database = {
           attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
+          data_version?: string
           group_type?: string | null
           id?: string
+          is_reliable?: boolean
           participant_id?: string | null
           score?: number | null
           started_at?: string | null
@@ -1134,8 +1176,10 @@ export type Database = {
           attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
+          data_version?: string
           group_type?: string | null
           id?: string
+          is_reliable?: boolean
           participant_id?: string | null
           score?: number | null
           started_at?: string | null
@@ -1222,6 +1266,260 @@ export type Database = {
       }
     }
     Views: {
+      research_clean_attempts: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          data_version: string | null
+          difficulty: string | null
+          id: string | null
+          is_correct: boolean | null
+          is_reliable: boolean | null
+          participant_id: string | null
+          question_id: string | null
+          test_attempt_id: string | null
+          time_spent_seconds: number | null
+          topic: string | null
+          user_answer: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_id?: string | null
+          test_attempt_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_id?: string | null
+          test_attempt_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_attempts_test_attempt_id_fkey"
+            columns: ["test_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "research_clean_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_test_attempt_id_fkey"
+            columns: ["test_attempt_id"]
+            isOneToOne: false
+            referencedRelation: "user_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_clean_practice: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          data_version: string | null
+          difficulty: string | null
+          id: string | null
+          is_correct: boolean | null
+          is_reliable: boolean | null
+          participant_id: string | null
+          question_data: Json | null
+          question_index: number | null
+          session_id: string | null
+          time_spent_seconds: number | null
+          topic: string | null
+          user_answer: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_data?: Json | null
+          question_index?: number | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_data?: Json | null
+          question_index?: number | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "research_clean_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_clean_sessions: {
+        Row: {
+          created_at: string | null
+          data_version: string | null
+          ended_at: string | null
+          group_type: string | null
+          id: string | null
+          is_reliable: boolean | null
+          num_correct: number | null
+          num_tasks: number | null
+          participant_id: string | null
+          practice_type: string | null
+          started_at: string | null
+          total_time_seconds: number | null
+          user_id: string | null
+          weak_topics: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_version?: string | null
+          ended_at?: string | null
+          group_type?: string | null
+          id?: string | null
+          is_reliable?: boolean | null
+          num_correct?: number | null
+          num_tasks?: number | null
+          participant_id?: string | null
+          practice_type?: string | null
+          started_at?: string | null
+          total_time_seconds?: number | null
+          user_id?: string | null
+          weak_topics?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          data_version?: string | null
+          ended_at?: string | null
+          group_type?: string | null
+          id?: string | null
+          is_reliable?: boolean | null
+          num_correct?: number | null
+          num_tasks?: number | null
+          participant_id?: string | null
+          practice_type?: string | null
+          started_at?: string | null
+          total_time_seconds?: number | null
+          user_id?: string | null
+          weak_topics?: Json | null
+        }
+        Relationships: []
+      }
+      research_clean_tests: {
+        Row: {
+          ai_analysis: Json | null
+          answers: Json | null
+          attempt_number: number | null
+          completed_at: string | null
+          created_at: string | null
+          data_version: string | null
+          group_type: string | null
+          id: string | null
+          is_reliable: boolean | null
+          participant_id: string | null
+          score: number | null
+          started_at: string | null
+          test_id: string | null
+          test_type: string | null
+          time_taken_seconds: number | null
+          total_questions: number | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          answers?: Json | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          group_type?: string | null
+          id?: string | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          score?: number | null
+          started_at?: string | null
+          test_id?: string | null
+          test_type?: string | null
+          time_taken_seconds?: number | null
+          total_questions?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          answers?: Json | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          group_type?: string | null
+          id?: string | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          score?: number | null
+          started_at?: string | null
+          test_id?: string | null
+          test_type?: string | null
+          time_taken_seconds?: number | null
+          total_questions?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tests_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       research_topic_metrics: {
         Row: {
           accuracy_pct: number | null
