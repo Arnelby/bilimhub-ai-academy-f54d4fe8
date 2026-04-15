@@ -85,6 +85,26 @@ export default function MathTestTaking() {
     async function fetchQuestions() {
       if (!user) return;
       try {
+        // BACKEND ENFORCEMENT: check sequential test access
+        if (mathTestId > 1) {
+          const prevVariantUuid = TEST_CONFIG[mathTestId - 1]?.uuid;
+          if (prevVariantUuid) {
+            const { data: prevAttempts } = await supabase
+              .from('user_tests')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('test_id', prevVariantUuid)
+              .not('completed_at', 'is', null)
+              .limit(1);
+            if (!prevAttempts || prevAttempts.length === 0) {
+              console.warn('[ACCESS_CONTROL] Test variant locked:', mathTestId, '- previous variant not completed');
+              toast({ title: 'Тест заблокирован', description: `Сначала пройдите вариант ${mathTestId - 1}`, variant: 'destructive' });
+              navigate('/tests');
+              return;
+            }
+          }
+        }
+
         if (config.table === 'math_test_questions') {
           const { data, error } = await supabase
             .from('math_test_questions')
@@ -308,7 +328,7 @@ export default function MathTestTaking() {
         .insert({
           user_id: user.id,
           test_id: config.uuid,
-          score: correct,
+          score: percentage,
           total_questions: total,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
