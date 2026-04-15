@@ -77,7 +77,7 @@ const App = () => (
                   
                   <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
                   <Route path="/tests/math-test/:testId" element={<ProtectedRoute skipDiagnosticCheck><MathTestTaking /></ProtectedRoute>} />
-                  <Route path="/practice" element={<ProtectedRoute requireAI><Practice /></ProtectedRoute>} />
+                  <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
                   <Route path="/math-lessons" element={<ProtectedRoute requireAI><MathLessons /></ProtectedRoute>} />
                   <Route path="/lessons/fractions" element={<ProtectedRoute requireAI><FractionsLesson /></ProtectedRoute>} />
                   <Route path="/lessons/topic/:topicId" element={<ProtectedRoute requireAI><DynamicLessonViewer /></ProtectedRoute>} />
