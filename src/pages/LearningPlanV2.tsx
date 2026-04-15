@@ -92,7 +92,7 @@ export default function LearningPlanV2() {
       // 1. Find latest completed test
       const { data: latestAttempt } = await supabase
         .from('user_tests')
-        .select('id, test_id, score, total_questions, time_taken_seconds, completed_at')
+        .select('id, test_id, score, total_questions, time_taken_seconds, completed_at, answers')
         .eq('user_id', user.id)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
