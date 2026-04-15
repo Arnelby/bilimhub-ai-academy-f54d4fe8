@@ -243,9 +243,10 @@ export default function MathTestTaking() {
 
       let correct = 0;
       const questionAttempts: { question_id: string; topic: string; is_correct: boolean }[] = [];
+      const richAnswers: any[] = [];
 
       for (const q of questions) {
-        const userAnswer = answers[q.question_number];
+        const userAnswer = answers[q.question_number] || null;
         const isCorrect = userAnswer === q.correct_answer;
         if (isCorrect) correct++;
         const displayNum = getDisplayNumber(q.question_number);
@@ -253,6 +254,19 @@ export default function MathTestTaking() {
           question_id: `mq_${mathTestId}_${displayNum}`,
           topic: q.topic,
           is_correct: isCorrect,
+        });
+        richAnswers.push({
+          questionNumber: displayNum,
+          dbQuestionNumber: q.question_number,
+          answer: userAnswer,
+          correctAnswer: q.correct_answer,
+          isCorrect,
+          topic: q.topic,
+          type: q.type,
+          instruction: q.type === 'mcq' ? (q as any).instruction : (q as any).instruction,
+          column_a: q.type === 'comparison' ? (q as any).column_a : undefined,
+          column_b: q.type === 'comparison' ? (q as any).column_b : undefined,
+          options: q.type === 'mcq' ? (q as any).options : undefined,
         });
       }
 
@@ -279,10 +293,7 @@ export default function MathTestTaking() {
           completed_at: new Date().toISOString(),
           attempt_number: attemptNumber,
           test_type: testType,
-          answers: Object.entries(answers).map(([qNum, ans]) => ({
-            questionNumber: parseInt(qNum),
-            answer: ans,
-          })),
+          answers: richAnswers,
           ai_analysis: {
             correct_count: correct,
             total,
@@ -328,7 +339,7 @@ export default function MathTestTaking() {
           }, { onConflict: 'user_id' });
       }
 
-      navigate('/learning-plan');
+      navigate(`/test-results/${config.uuid}/${attemptData?.id}`);
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
