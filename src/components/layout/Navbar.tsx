@@ -25,13 +25,10 @@ export function Navbar() {
   const [isDark, setIsDark] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const { user, signOut } = useAuth();
-  const { canAccessAI, canAccessLessons, canAccessDashboard, canAccessTests, canAccessProfile } = useUserGroup();
+  const { canAccessAI, canAccessLessons, canAccessDashboard, canAccessTests, canAccessProfile, canAccessPractice } = useUserGroup();
   const location = useLocation();
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Build nav links based on experiment group
   const navLinks = [
@@ -42,7 +39,7 @@ export function Navbar() {
       { href: '/dashboard', label: t.nav.dashboard, show: canAccessDashboard },
       { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor', show: canAccessAI },
       { href: '/learning-plan', label: t.nav.myPlan || 'My Plan', show: canAccessAI },
-      { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessAI },
+      { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessPractice },
       { href: '/profile', label: t.nav.profile, show: canAccessProfile },
     ] : []),
   ].filter(link => link.show);

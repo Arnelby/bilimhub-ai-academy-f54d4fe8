@@ -58,14 +58,15 @@ export function useUserGroup() {
   const isShowcase = state.group === 'showcase';
 
   // UPDATED access rules per experiment spec:
-  // ai = full access
-  // control = tests + lessons + basic dashboard + profile (NO AI, NO plan, NO practice, NO personalization)
+  // ai = full access (personalized practice, AI tutor, plan)
+  // control = tests + lessons + dashboard (limited) + practice (non-personalized) + profile
   // showcase = tests + profile + home only
   const canAccessAI = isAI;
-  const canAccessLessons = isAI || isControl; // control gets lessons
-  const canAccessDashboard = isAI || isControl; // control gets basic dashboard
+  const canAccessLessons = isAI || isControl;
+  const canAccessDashboard = isAI || isControl;
   const canAccessTests = isAI || isControl || isShowcase;
   const canAccessProfile = isAI || isControl || isShowcase;
+  const canAccessPractice = isAI || isControl; // control gets non-personalized practice
 
   return {
     ...state,
@@ -77,5 +78,6 @@ export function useUserGroup() {
     canAccessDashboard,
     canAccessTests,
     canAccessProfile,
+    canAccessPractice,
   };
 }
