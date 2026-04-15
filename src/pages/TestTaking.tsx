@@ -119,6 +119,8 @@ export default function TestTaking() {
             test_type: testType,
             participant_id: pid,
             group_type: gt,
+            data_version: 'v2',
+            is_reliable: !!pid,
           } as any)
           .select()
           .single();
@@ -255,6 +257,8 @@ export default function TestTaking() {
           ai_analysis: analysisData.analysis,
           participant_id: participantId,
           group_type: groupType,
+          data_version: 'v2',
+          is_reliable: !!participantId,
         } as any)
         .eq('id', testAttemptId);
 
@@ -282,6 +286,11 @@ export default function TestTaking() {
           console.warn("INVALID USER_ANSWER DETECTED", { question_id: q.id, user_answer: userAnswerLetter });
         }
         
+        const qaReliable = !!(participantId && userAnswerLetter);
+        if (!qaReliable) {
+          console.warn('[DATA_INTEGRITY] Unreliable question_attempt:', { question_id: q.id, participantId, userAnswerLetter });
+        }
+        
         return {
           user_id: user.id,
           test_attempt_id: testAttemptId,
@@ -291,6 +300,8 @@ export default function TestTaking() {
           user_answer: userAnswerLetter,
           correct_answer: correctAnswerLetter,
           participant_id: participantId,
+          data_version: 'v2',
+          is_reliable: qaReliable,
           time_spent_seconds: questionTimes[idx] || 0,
         };
       });

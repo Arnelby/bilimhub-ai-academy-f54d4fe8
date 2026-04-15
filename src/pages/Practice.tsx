@@ -188,6 +188,8 @@ export default function Practice() {
           group_type: group,
           practice_type: isAI ? 'personalized' : 'general',
           weak_topics: isAI ? weak : [],
+          data_version: 'v2',
+          is_reliable: !!pid,
         })
         .select('id')
         .single();
@@ -390,6 +392,11 @@ export default function Practice() {
           final_user_answer: safeUserAns,
         });
 
+        const respReliable = !!(participantId && safeUserAns);
+        if (!respReliable) {
+          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: safeUserAns });
+        }
+
         responses.push({
           session_id: sessionId,
           user_id: user.id,
@@ -403,6 +410,8 @@ export default function Practice() {
           user_answer: safeUserAns,
           correct_answer: q.correct_answer,
           is_correct: isCorrect,
+          data_version: 'v2',
+          is_reliable: respReliable,
         });
       }
 
