@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserGroup } from "@/hooks/useUserGroup";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,10 @@ import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
   BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play
 } from "lucide-react";
-import { TEST_CONFIG } from "@/lib/mathTestConfig";
+import { TEST_CONFIG, toCyrillicKey } from "@/lib/mathTestConfig";
 import { Link } from "react-router-dom";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
+import { MathRenderer } from "@/components/math/MathRenderer";
 
 interface RecommendedLesson {
   id: string;
