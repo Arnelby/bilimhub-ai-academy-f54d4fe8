@@ -239,10 +239,11 @@ export default function TestTaking() {
 
       if (analysisError) throw analysisError;
 
-      // Score must be percentage (0-100) for research consistency
+      // Score = raw correct count (NOT percentage)
       const rawScore = typeof analysisData.correct === 'number' ? analysisData.correct : analysisData.score;
       const totalQ = analysisData.total || questions.length;
-      const safeScore = rawScore > totalQ ? rawScore : (totalQ > 0 ? Math.round((rawScore / totalQ) * 100) : 0);
+      // If rawScore > totalQ, it's already a percentage from AI — convert back to count
+      const safeScore = rawScore > totalQ ? Math.round((rawScore / 100) * totalQ) : rawScore;
 
       // Update test attempt with results
       await supabase

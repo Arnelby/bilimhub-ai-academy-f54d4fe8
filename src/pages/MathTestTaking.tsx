@@ -328,7 +328,7 @@ export default function MathTestTaking() {
         .insert({
           user_id: user.id,
           test_id: config.uuid,
-          score: percentage,
+          score: correct,
           total_questions: total,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
