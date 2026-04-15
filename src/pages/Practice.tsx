@@ -378,9 +378,17 @@ export default function Practice() {
 
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
-        const userAns = answers[qKey(q)] || null;
-        const isCorrect = userAns === q.correct_answer;
+        // Use ?? to preserve falsy-but-valid answers; || would drop "0"
+        const userAns = answers[qKey(q)] ?? null;
+        const safeUserAns = (userAns && userAns !== '0') ? userAns : (userAns === '0' ? null : userAns);
+        const isCorrect = safeUserAns === q.correct_answer;
         if (isCorrect) correctCount++;
+        
+        console.log("[ANSWER DEBUG]", {
+          question_id: `practice_${i}`,
+          raw_ui_answer: answers[qKey(q)],
+          final_user_answer: safeUserAns,
+        });
 
         responses.push({
           session_id: sessionId,

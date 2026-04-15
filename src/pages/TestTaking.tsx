@@ -259,17 +259,41 @@ export default function TestTaking() {
         .eq('id', testAttemptId);
 
       // Save per-question attempts for research tracking
-      const questionAttemptsToInsert = questions.map((q, idx) => ({
-        user_id: user.id,
-        test_attempt_id: testAttemptId,
-        question_id: q.id,
-        topic: null,
-        is_correct: answers[idx] === q.correct_option,
-        user_answer: answers[idx] !== null && answers[idx] !== undefined ? String(answers[idx]) : null,
-        correct_answer: String(q.correct_option),
-        participant_id: participantId,
-        time_spent_seconds: questionTimes[idx] || 0,
-      }));
+      // answers[] stores 0-based option index; convert to Latin letter for research
+      const indexToLetter = (idx: number | null | undefined): string | null => {
+        if (idx === null || idx === undefined) return null;
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        return letters[idx] || null;
+      };
+      const questionAttemptsToInsert = questions.map((q, idx) => {
+        const rawAnswer = answers[idx];
+        const userAnswerLetter = indexToLetter(rawAnswer);
+        const correctAnswerLetter = indexToLetter(q.correct_option);
+        
+        console.log("[ANSWER DEBUG]", {
+          question_id: q.id,
+          raw_ui_answer: rawAnswer,
+          final_user_answer: userAnswerLetter,
+          correct_answer: correctAnswerLetter,
+        });
+        
+        // Validate: user_answer should never be "0"
+        if (userAnswerLetter === '0') {
+          console.warn("INVALID USER_ANSWER DETECTED", { question_id: q.id, user_answer: userAnswerLetter });
+        }
+        
+        return {
+          user_id: user.id,
+          test_attempt_id: testAttemptId,
+          question_id: q.id,
+          topic: null,
+          is_correct: rawAnswer === q.correct_option,
+          user_answer: userAnswerLetter,
+          correct_answer: correctAnswerLetter,
+          participant_id: participantId,
+          time_spent_seconds: questionTimes[idx] || 0,
+        };
+      });
       await supabase.from('question_attempts').insert(questionAttemptsToInsert as any);
 
       // Update gamification (points, streak, achievements)

@@ -252,15 +252,25 @@ export default function MathTestTaking() {
       const richAnswers: any[] = [];
 
       for (const q of questions) {
-        const userAnswer = answers[q.question_number] || null;
-        const isCorrect = userAnswer === q.correct_answer;
+        // answers[] stores Latin letters (A,B,C,D) keyed by question_number
+        const userAnswer = answers[q.question_number] ?? null;
+        // Guard: never allow "0" or empty string as answer
+        const safeUserAnswer = (userAnswer && userAnswer !== '0' && userAnswer !== '') ? userAnswer : (userAnswer === '0' ? null : userAnswer);
+        const isCorrect = safeUserAnswer === q.correct_answer;
         if (isCorrect) correct++;
         const displayNum = getDisplayNumber(q.question_number);
+        
+        console.log("[ANSWER DEBUG]", {
+          question_id: `mq_${mathTestId}_${displayNum}`,
+          raw_ui_answer: answers[q.question_number],
+          final_user_answer: safeUserAnswer,
+        });
+        
         questionAttempts.push({
           question_id: `mq_${mathTestId}_${displayNum}`,
           topic: q.topic,
           is_correct: isCorrect,
-          user_answer: userAnswer,
+          user_answer: safeUserAnswer,
           correct_answer: q.correct_answer,
         });
         richAnswers.push({
