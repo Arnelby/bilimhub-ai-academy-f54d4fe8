@@ -217,7 +217,7 @@ export default function Tests() {
                     )}
                     {isLocked ? (
                       <Button variant="outline" className="w-full" disabled>
-                        🔒 Сначала пройдите вариант {variant.mathTestId - 1}
+                        🔒 Тест заблокирован
                       </Button>
                     ) : (
                       <Button variant="accent" className="w-full" onClick={() => handleStartTest(variant.mathTestId)}>
