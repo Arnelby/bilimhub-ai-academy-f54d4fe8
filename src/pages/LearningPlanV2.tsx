@@ -210,6 +210,26 @@ export default function LearningPlanV2() {
         }
       }
 
+      // Parse rich answer details from user_tests.answers
+      const rawAnswers = (latestAttempt as any).answers;
+      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+        const parsed: AnswerDetail[] = rawAnswers
+          .filter((a: any) => a.correctAnswer !== undefined)
+          .map((a: any) => ({
+            questionNumber: a.questionNumber || 0,
+            answer: a.answer || null,
+            correctAnswer: a.correctAnswer || '',
+            isCorrect: !!a.isCorrect,
+            topic: a.topic || '',
+            type: a.type || 'comparison',
+            instruction: a.instruction,
+            column_a: a.column_a,
+            column_b: a.column_b,
+            options: a.options,
+          }));
+        setAnswerDetails(parsed);
+      }
+
       // Load recommended lessons for weak topics
       if (weak.length > 0) {
         const weakTopicNames = weak.map(w => w.topic);
