@@ -339,7 +339,7 @@ export default function MathTestTaking() {
           }, { onConflict: 'user_id' });
       }
 
-      navigate('/learning-plan');
+      navigate(`/test-results/${config.uuid}/${attemptData?.id}`);
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
