@@ -47,7 +47,16 @@ export default function Tests() {
     async function fetchData() {
       if (!user) return;
       try {
-        const [attemptsRes, q1Res, q2Res, q3Res, q4Res] = await Promise.all([
+        // Get participant_id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('participant_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const participantId = profile?.participant_id;
+
+        const [attemptsRes, q1Res, q2Res, q3Res, q4Res, accessRes] = await Promise.all([
           supabase
             .from('user_tests')
             .select('id, score, total_questions, completed_at, test_id')
@@ -58,6 +67,9 @@ export default function Tests() {
           supabase.from('math_questions').select('id').eq('test_id', 2),
           supabase.from('math_questions').select('id').eq('test_id', 3),
           supabase.from('math_test_questions').select('id').eq('test_id', 4),
+          participantId
+            ? supabase.from('test_access').select('test_id, is_allowed').eq('participant_id', participantId)
+            : Promise.resolve({ data: [] as TestAccessRecord[] }),
         ]);
 
         setAttempts(attemptsRes.data || []);
@@ -67,6 +79,14 @@ export default function Tests() {
           3: new Set((q3Res.data || []).map(q => q.id)).size,
           4: new Set((q4Res.data || []).map(q => q.id)).size,
         });
+
+        // Build access map from test_access table
+        const aMap: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
+        const accessData = (accessRes as any).data as TestAccessRecord[] || [];
+        for (const row of accessData) {
+          aMap[row.test_id] = row.is_allowed;
+        }
+        setAccessMap(aMap);
       } catch (err) {
         console.error('Error:', err);
       } finally {
