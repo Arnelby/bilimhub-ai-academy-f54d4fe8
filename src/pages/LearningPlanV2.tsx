@@ -69,6 +69,7 @@ export default function LearningPlanV2() {
   const navigate = useNavigate();
   const { user, session } = useAuth();
   const { language } = useLanguage();
+  const { isAI } = useUserGroup();
 
   const [analysis, setAnalysis] = useState<TestAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +77,8 @@ export default function LearningPlanV2() {
   const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
   const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
+  const [answerDetails, setAnswerDetails] = useState<AnswerDetail[]>([]);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
 
   useEffect(() => {
     if (user) loadAnalysis();
