@@ -400,7 +400,7 @@ export default function Practice() {
           question_data: q.type === 'comparison'
             ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
-          user_answer: userAns,
+          user_answer: safeUserAns,
           correct_answer: q.correct_answer,
           is_correct: isCorrect,
         });
