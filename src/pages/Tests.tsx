@@ -186,8 +186,8 @@ export default function Tests() {
             {TEST_VARIANTS.map((variant) => {
               const testAttempts = getAttemptsForTest(variant.uuid);
               const qCount = questionCounts[variant.mathTestId] || 0;
-              // Only variant 1 is unlocked by default; others require completing the previous
-              const isLocked = variant.mathTestId > 1 && !getAttemptsForTest(TEST_VARIANTS[variant.mathTestId - 2]?.uuid || '').length;
+              // Access controlled by test_access table (backend source of truth)
+              const isLocked = !accessMap[variant.mathTestId];
               return (
                 <Card key={variant.mathTestId} variant="interactive" className={isLocked ? 'opacity-60' : ''}>
                   <CardHeader>
