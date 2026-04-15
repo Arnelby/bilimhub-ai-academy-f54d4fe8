@@ -243,8 +243,12 @@ export default function MathTestTaking() {
       recordQuestionTime();
       const timeTaken = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
+      // Resolve participant_id from beta_whitelist
+      const { getParticipantInfo } = await import('@/lib/getParticipantInfo');
+      const { participantId, groupType } = await getParticipantInfo(user.id);
+
       let correct = 0;
-      const questionAttempts: { question_id: string; topic: string; is_correct: boolean }[] = [];
+      const questionAttempts: { question_id: string; topic: string; is_correct: boolean; user_answer: string | null; correct_answer: string }[] = [];
       const richAnswers: any[] = [];
 
       for (const q of questions) {
@@ -256,6 +260,8 @@ export default function MathTestTaking() {
           question_id: `mq_${mathTestId}_${displayNum}`,
           topic: q.topic,
           is_correct: isCorrect,
+          user_answer: userAnswer,
+          correct_answer: q.correct_answer,
         });
         richAnswers.push({
           questionNumber: displayNum,
@@ -296,6 +302,8 @@ export default function MathTestTaking() {
           attempt_number: attemptNumber,
           test_type: testType,
           answers: richAnswers,
+          participant_id: participantId,
+          group_type: groupType,
           ai_analysis: {
             correct_count: correct,
             total,
@@ -315,9 +323,12 @@ export default function MathTestTaking() {
           question_id: qa.question_id,
           topic: qa.topic,
           is_correct: qa.is_correct,
+          user_answer: qa.user_answer,
+          correct_answer: qa.correct_answer,
+          participant_id: participantId,
           time_spent_seconds: questionTimes[questions.find(q => `mq_${mathTestId}_${getDisplayNumber(q.question_number)}` === qa.question_id)?.question_number || 0] || 0,
         }));
-        await supabase.from('question_attempts').insert(attemptsToInsert);
+        await supabase.from('question_attempts').insert(attemptsToInsert as any);
       }
 
       // Mark diagnostic as completed if this is the user's first test
