@@ -51,6 +51,7 @@ export type Database = {
           mastery_goals: Json | null
           mini_tests: Json | null
           ort_score_projection: Json | null
+          participant_id: string | null
           plan_data: Json
           predicted_timeline: Json | null
           schedule: Json | null
@@ -67,6 +68,7 @@ export type Database = {
           mastery_goals?: Json | null
           mini_tests?: Json | null
           ort_score_projection?: Json | null
+          participant_id?: string | null
           plan_data: Json
           predicted_timeline?: Json | null
           schedule?: Json | null
@@ -83,6 +85,7 @@ export type Database = {
           mastery_goals?: Json | null
           mini_tests?: Json | null
           ort_score_projection?: Json | null
+          participant_id?: string | null
           plan_data?: Json
           predicted_timeline?: Json | null
           schedule?: Json | null
@@ -438,6 +441,107 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_responses: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          difficulty: string | null
+          id: string
+          is_correct: boolean
+          participant_id: string | null
+          question_data: Json | null
+          question_index: number
+          session_id: string
+          time_spent_seconds: number | null
+          topic: string | null
+          user_answer: string | null
+          user_id: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          is_correct?: boolean
+          participant_id?: string | null
+          question_data?: Json | null
+          question_index: number
+          session_id: string
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          is_correct?: boolean
+          participant_id?: string | null
+          question_data?: Json | null
+          question_index?: number
+          session_id?: string
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          group_type: string | null
+          id: string
+          num_correct: number | null
+          num_tasks: number | null
+          participant_id: string | null
+          practice_type: string | null
+          started_at: string
+          total_time_seconds: number | null
+          user_id: string
+          weak_topics: Json | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          group_type?: string | null
+          id?: string
+          num_correct?: number | null
+          num_tasks?: number | null
+          participant_id?: string | null
+          practice_type?: string | null
+          started_at?: string
+          total_time_seconds?: number | null
+          user_id: string
+          weak_topics?: Json | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          group_type?: string | null
+          id?: string
+          num_correct?: number | null
+          num_tasks?: number | null
+          participant_id?: string | null
+          practice_type?: string | null
+          started_at?: string
+          total_time_seconds?: number | null
+          user_id?: string
+          weak_topics?: Json | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -501,6 +605,7 @@ export type Database = {
           difficulty: string | null
           id: string
           is_correct: boolean
+          participant_id: string | null
           question_id: string
           test_attempt_id: string
           time_spent_seconds: number | null
@@ -512,6 +617,7 @@ export type Database = {
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          participant_id?: string | null
           question_id: string
           test_attempt_id: string
           time_spent_seconds?: number | null
@@ -523,6 +629,7 @@ export type Database = {
           difficulty?: string | null
           id?: string
           is_correct?: boolean
+          participant_id?: string | null
           question_id?: string
           test_attempt_id?: string
           time_spent_seconds?: number | null
@@ -955,6 +1062,7 @@ export type Database = {
           created_at: string
           duration_seconds: number | null
           id: string
+          participant_id: string | null
           session_end: string | null
           session_start: string
           user_id: string
@@ -963,6 +1071,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           id?: string
+          participant_id?: string | null
           session_end?: string | null
           session_start?: string
           user_id: string
@@ -971,6 +1080,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           id?: string
+          participant_id?: string | null
           session_end?: string | null
           session_start?: string
           user_id?: string
@@ -985,6 +1095,7 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           id: string
+          participant_id: string | null
           score: number | null
           started_at: string | null
           test_id: string
@@ -1000,6 +1111,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          participant_id?: string | null
           score?: number | null
           started_at?: string | null
           test_id: string
@@ -1015,6 +1127,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           id?: string
+          participant_id?: string | null
           score?: number | null
           started_at?: string | null
           test_id?: string
