@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { useGamificationEvents } from '@/hooks/useGamificationEvents';
 import { Confetti } from '@/components/gamification/Confetti';
 
@@ -45,6 +46,7 @@ interface TestResult {
 export default function TestResults() {
   const { testId, attemptId } = useParams();
   const { user } = useAuth();
+  const { isAI, isControl } = useUserGroup();
   const { triggerEvent, triggerConfetti } = useGamificationEvents();
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -218,8 +220,8 @@ export default function TestResults() {
           </Card>
         </div>
 
-        {/* AI Analysis */}
-        {analysis && (
+        {/* AI Analysis — AI group only */}
+        {isAI && analysis && (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Assessment */}
             <Card variant="accent" className="lg:col-span-2">
