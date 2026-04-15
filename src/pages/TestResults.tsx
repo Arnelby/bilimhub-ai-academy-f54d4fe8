@@ -435,11 +435,13 @@ export default function TestResults() {
               Все тесты
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/learning-plan">
-              Мой план
-            </Link>
-          </Button>
+          {isAI && (
+            <Button variant="outline" asChild>
+              <Link to="/learning-plan">
+                Мой план
+              </Link>
+            </Button>
+          )}
           <Button variant="accent" asChild>
             <Link to="/lessons">
               Уроки

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Pause, Play } from 'lucide-react';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +53,7 @@ export default function MathTestTaking() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAI } = useUserGroup();
   const { testId: testIdParam } = useParams<{ testId: string }>();
 
   const mathTestId = parseInt(testIdParam || '1', 10);
@@ -339,7 +341,11 @@ export default function MathTestTaking() {
           }, { onConflict: 'user_id' });
       }
 
-      navigate(`/test-results/${config.uuid}/${attemptData?.id}`);
+      if (isAI) {
+        navigate(`/learning-plan`);
+      } else {
+        navigate(`/tests/${config.uuid}/results/${attemptData?.id}`);
+      }
     } catch (err) {
       console.error('Error submitting:', err);
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
