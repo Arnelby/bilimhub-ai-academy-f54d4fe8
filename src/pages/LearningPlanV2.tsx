@@ -52,6 +52,19 @@ interface TestAnalysis {
   weakTopics: TopicStat[];
 }
 
+interface AnswerDetail {
+  questionNumber: number;
+  answer: string | null;
+  correctAnswer: string;
+  isCorrect: boolean;
+  topic: string;
+  type: 'comparison' | 'mcq';
+  instruction?: string;
+  column_a?: string;
+  column_b?: string;
+  options?: Record<string, string>;
+}
+
 export default function LearningPlanV2() {
   const navigate = useNavigate();
   const { user, session } = useAuth();
