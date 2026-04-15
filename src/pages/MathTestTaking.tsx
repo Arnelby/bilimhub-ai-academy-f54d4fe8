@@ -293,10 +293,7 @@ export default function MathTestTaking() {
           completed_at: new Date().toISOString(),
           attempt_number: attemptNumber,
           test_type: testType,
-          answers: Object.entries(answers).map(([qNum, ans]) => ({
-            questionNumber: parseInt(qNum),
-            answer: ans,
-          })),
+          answers: richAnswers,
           ai_analysis: {
             correct_count: correct,
             total,
