@@ -79,6 +79,7 @@ export default function LearningPlanV2() {
   const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
   const [answerDetails, setAnswerDetails] = useState<AnswerDetail[]>([]);
   const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [latestVariantNum, setLatestVariantNum] = useState<string>('');
 
   useEffect(() => {
     if (user) loadAnalysis();
