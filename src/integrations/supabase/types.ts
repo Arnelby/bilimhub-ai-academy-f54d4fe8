@@ -601,6 +601,7 @@ export type Database = {
       }
       question_attempts: {
         Row: {
+          correct_answer: string | null
           created_at: string
           difficulty: string | null
           id: string
@@ -610,9 +611,11 @@ export type Database = {
           test_attempt_id: string
           time_spent_seconds: number | null
           topic: string | null
+          user_answer: string | null
           user_id: string
         }
         Insert: {
+          correct_answer?: string | null
           created_at?: string
           difficulty?: string | null
           id?: string
@@ -622,9 +625,11 @@ export type Database = {
           test_attempt_id: string
           time_spent_seconds?: number | null
           topic?: string | null
+          user_answer?: string | null
           user_id: string
         }
         Update: {
+          correct_answer?: string | null
           created_at?: string
           difficulty?: string | null
           id?: string
@@ -634,6 +639,7 @@ export type Database = {
           test_attempt_id?: string
           time_spent_seconds?: number | null
           topic?: string | null
+          user_answer?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1094,6 +1100,7 @@ export type Database = {
           attempt_number: number | null
           completed_at: string | null
           created_at: string | null
+          group_type: string | null
           id: string
           participant_id: string | null
           score: number | null
@@ -1110,6 +1117,7 @@ export type Database = {
           attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
+          group_type?: string | null
           id?: string
           participant_id?: string | null
           score?: number | null
@@ -1126,6 +1134,7 @@ export type Database = {
           attempt_number?: number | null
           completed_at?: string | null
           created_at?: string | null
+          group_type?: string | null
           id?: string
           participant_id?: string | null
           score?: number | null
