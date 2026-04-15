@@ -282,7 +282,7 @@ export default function TestResults() {
                         </span>
                         {a.topic && (
                           <Badge variant="outline" className="text-xs">
-                            {translateTopic(a.topic)}
+                            {translateTopic(a.topic, "ru")}
                           </Badge>
                         )}
                       </div>
@@ -291,18 +291,18 @@ export default function TestResults() {
                       {a.type === 'comparison' && a.column_a && a.column_b && (
                         <div className="text-sm text-muted-foreground mb-1">
                           {a.instruction && (
-                            <div className="mb-1"><MathRenderer text={a.instruction} /></div>
+                            <div className="mb-1"><MathRenderer content={a.instruction} /></div>
                           )}
                           <span>Столбец А: </span>
-                          <MathRenderer text={a.column_a} />
+                          <MathRenderer content={a.column_a} />
                           <span className="mx-2">vs</span>
                           <span>Столбец Б: </span>
-                          <MathRenderer text={a.column_b} />
+                          <MathRenderer content={a.column_b} />
                         </div>
                       )}
                       {a.type === 'mcq' && a.instruction && (
                         <div className="text-sm text-muted-foreground mb-1">
-                          <MathRenderer text={a.instruction} />
+                          <MathRenderer content={a.instruction} />
                         </div>
                       )}
 
