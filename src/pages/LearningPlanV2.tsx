@@ -542,6 +542,117 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
+        {/* Per-Question Breakdown — AI group only */}
+        {isAI && answerDetails.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="w-5 h-5 text-accent" />
+                Разбор по вопросам
+              </CardTitle>
+              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(showAllQuestions ? answerDetails : answerDetails.slice(0, 10)).map((a, idx) => {
+                  const variantEntry = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === analysis?.testName);
+                  const variantNum = variantEntry ? variantEntry[0] : '';
+                  const variantKey = variantNum ? `variant${variantNum}` : '';
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-start gap-3 rounded-lg border p-3 ${
+                        a.isCorrect
+                          ? 'border-success/30 bg-success/5'
+                          : 'border-destructive/30 bg-destructive/5'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {a.isCorrect ? (
+                          <CheckCircle className="h-5 w-5 text-success" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">
+                            Вопрос {a.questionNumber}
+                          </span>
+                          {a.topic && (
+                            <Badge variant="outline" className="text-xs">
+                              {translateTopic(a.topic, "ru")}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Question content */}
+                        {a.type === 'comparison' && a.column_a && a.column_b && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            {a.instruction && (
+                              <div className="mb-1"><MathRenderer content={a.instruction} /></div>
+                            )}
+                            <span>Столбец А: </span>
+                            <MathRenderer content={a.column_a} inline />
+                            <span className="mx-2">vs</span>
+                            <span>Столбец Б: </span>
+                            <MathRenderer content={a.column_b} inline />
+                          </div>
+                        )}
+                        {a.type === 'mcq' && a.instruction && (
+                          <div className="text-sm text-muted-foreground mb-1">
+                            <MathRenderer content={a.instruction} />
+                          </div>
+                        )}
+
+                        {/* Answer details */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                          <span>
+                            Ваш ответ:{' '}
+                            <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
+                              {a.answer ? toCyrillicKey(a.answer) : '—'}
+                            </span>
+                          </span>
+                          {!a.isCorrect && (
+                            <span>
+                              Правильный:{' '}
+                              <span className="font-medium text-success">
+                                {toCyrillicKey(a.correctAnswer)}
+                              </span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Link to video solution for wrong answers */}
+                        {!a.isCorrect && (
+                          <div className="mt-2">
+                            <Button size="sm" variant="outline" asChild>
+                              <Link to={`/lessons/video/${variantKey}?question=${a.questionNumber}`}>
+                                <Video className="mr-1 h-3 w-3" />
+                                Видеоразбор
+                              </Link>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {answerDetails.length > 10 && !showAllQuestions && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => setShowAllQuestions(true)}
+                >
+                  Показать все {answerDetails.length} вопросов
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* AI Recommendations */}
         <Card className="mb-6">
           <CardHeader className="pb-3">
