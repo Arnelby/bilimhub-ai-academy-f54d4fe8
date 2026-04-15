@@ -65,7 +65,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         const total = t.total_questions || 30;
         const score = t.score || 0;
         const pct = score > total ? score : Math.round((score / total) * 100);
-        s.totalPct += Math.min(100, pct);
+        s.totalPct += Math.min(100, Math.max(0, pct));
         userStats.set(t.user_id, s);
       }
 

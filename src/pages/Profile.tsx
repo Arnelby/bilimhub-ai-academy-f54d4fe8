@@ -112,8 +112,12 @@ export default function Profile() {
         .eq('user_id', user.id)
         .eq('completed', true);
 
-      const scores = testsData?.map(t => t.score || 0) || [];
-      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      const scores = testsData?.map(t => {
+        const total = t.total_questions || 30;
+        const raw = t.score || 0;
+        return raw > total ? raw : (total > 0 ? Math.round((raw / total) * 100) : 0);
+      }) || [];
+      const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0;
       // Use session time for total study time
       const { data: sessionsData } = await supabase
         .from('user_sessions')

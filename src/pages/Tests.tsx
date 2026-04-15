@@ -11,6 +11,7 @@ import { Layout } from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TEST_CONFIG, formatDurationMinutes } from '@/lib/mathTestConfig';
+import { parseScore } from '@/lib/scoreUtils';
 
 const TEST_VARIANTS = Object.entries(TEST_CONFIG).map(([id, c]) => ({
   mathTestId: parseInt(id),
@@ -79,18 +80,20 @@ export default function Tests() {
   const getAttemptsForTest = (uuid: string) =>
     attempts.filter(a => a.test_id === uuid);
 
-  const getBestScore = (testAttempts: UserTestRecord[]) =>
-    testAttempts.length > 0 ? Math.max(...testAttempts.map(a => a.score || 0)) : 0;
+  const getScoreParsed = (a: UserTestRecord) => parseScore(a.score, a.total_questions);
 
-  const getAvgScore = (testAttempts: UserTestRecord[]) =>
+  const getBestPct = (testAttempts: UserTestRecord[]) =>
+    testAttempts.length > 0 ? Math.max(...testAttempts.map(a => getScoreParsed(a).percentage)) : 0;
+
+  const getAvgPct = (testAttempts: UserTestRecord[]) =>
     testAttempts.length > 0
-      ? Math.round(testAttempts.reduce((s, a) => s + (a.score || 0), 0) / testAttempts.length)
+      ? Math.round(testAttempts.reduce((s, a) => s + getScoreParsed(a).percentage, 0) / testAttempts.length)
       : 0;
 
   const totalAttempts = attempts.length;
-  const overallBest = attempts.length > 0 ? Math.max(...attempts.map(a => a.score || 0)) : 0;
+  const overallBest = attempts.length > 0 ? Math.max(...attempts.map(a => getScoreParsed(a).percentage)) : 0;
   const overallAvg = attempts.length > 0
-    ? Math.round(attempts.reduce((s, a) => s + (a.score || 0), 0) / attempts.length)
+    ? Math.round(attempts.reduce((s, a) => s + getScoreParsed(a).percentage, 0) / attempts.length)
     : 0;
 
   if (loading) {
@@ -179,10 +182,10 @@ export default function Tests() {
                           Попыток: <strong>{testAttempts.length}</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Лучший: <strong className="text-accent">{getBestScore(testAttempts)}%</strong>
+                          Лучший: <strong className="text-accent">{getBestPct(testAttempts)}%</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Средний: <strong>{getAvgScore(testAttempts)}%</strong>
+                          Средний: <strong>{getAvgPct(testAttempts)}%</strong>
                         </span>
                       </div>
                     )}
@@ -228,11 +231,16 @@ export default function Tests() {
                     <CardContent>
                       <div className="mb-4 flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Результат</span>
-                        <span className={`text-2xl font-bold ${
-                          (attempt.score || 0) >= 80 ? 'text-success' : (attempt.score || 0) >= 60 ? 'text-warning' : 'text-destructive'
-                        }`}>
-                          {attempt.score || 0}%
-                        </span>
+                        <div className="text-right">
+                          <span className={`text-2xl font-bold ${
+                            getScoreParsed(attempt).percentage >= 80 ? 'text-success' : getScoreParsed(attempt).percentage >= 60 ? 'text-warning' : 'text-destructive'
+                          }`}>
+                            {getScoreParsed(attempt).correct}/{getScoreParsed(attempt).total}
+                          </span>
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            ({getScoreParsed(attempt).percentage}%)
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" className="flex-1" onClick={() => navigate(`/tests/${attempt.test_id}/results/${attempt.id}`)}>
