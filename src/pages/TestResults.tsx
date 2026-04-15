@@ -22,20 +22,31 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { useGamificationEvents } from '@/hooks/useGamificationEvents';
 import { Confetti } from '@/components/gamification/Confetti';
+import { MathRenderer } from '@/components/math/MathRenderer';
+import { toCyrillicKey } from '@/lib/mathTestConfig';
+import { translateTopic } from '@/lib/topicTranslations';
+
+interface AnswerDetail {
+  questionNumber: number;
+  dbQuestionNumber?: number;
+  answer: string | null;
+  correctAnswer: string;
+  isCorrect: boolean;
+  topic: string;
+  type: 'comparison' | 'mcq';
+  instruction?: string;
+  column_a?: string;
+  column_b?: string;
+  options?: Record<string, string>;
+}
 
 interface TestResult {
   id: string;
   score: number;
   total_questions: number;
   time_taken_seconds: number;
-  ai_analysis: {
-    assessment: string;
-    strengths: string[];
-    weaknesses: string[];
-    recommendations: string[];
-    motivation: string;
-  };
-  answers: number[];
+  ai_analysis: any;
+  answers: AnswerDetail[] | any[];
   completed_at: string;
   test: {
     title: string;
@@ -47,10 +58,11 @@ export default function TestResults() {
   const { testId, attemptId } = useParams();
   const { user } = useAuth();
   const { isAI, isControl } = useUserGroup();
-  const { triggerEvent, triggerConfetti } = useGamificationEvents();
+  const { triggerEvent } = useGamificationEvents();
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
 
   useEffect(() => {
     async function fetchResults() {
@@ -69,13 +81,11 @@ export default function TestResults() {
         if (error) throw error;
         setResult(data as unknown as TestResult);
 
-        // Trigger gamification events
         const rawGamScore = data.score || 0;
         const total = data.total_questions || 1;
         const safeGamScore = rawGamScore > total ? Math.round((rawGamScore / 100) * total) : rawGamScore;
         const percentage = Math.max(0, Math.min(100, Math.round((safeGamScore / total) * 100)));
         
-        // Award points based on score
         const pointsEarned = Math.round(percentage / 2) + 25;
         
         setTimeout(() => {
@@ -86,7 +96,6 @@ export default function TestResults() {
           });
         }, 500);
 
-        // Perfect score celebration
         if (percentage === 100) {
           setTimeout(() => {
             triggerEvent({
@@ -135,11 +144,29 @@ export default function TestResults() {
 
   const rawScore = result.score || 0;
   const total = result.total_questions || 1;
-  // If score > total, it's likely already a percentage — use as-is but clamp
   const score = rawScore > total ? Math.round((rawScore / 100) * total) : rawScore;
   const percentage = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
   const timeTaken = result.time_taken_seconds || 0;
   const analysis = result.ai_analysis;
+
+  // Parse answers - support both rich format and legacy format
+  const answerDetails: AnswerDetail[] = (result.answers || []).map((a: any) => {
+    if (a.correctAnswer !== undefined) {
+      // Rich format from updated MathTestTaking
+      return a as AnswerDetail;
+    }
+    // Legacy format: {questionNumber, answer}
+    return {
+      questionNumber: a.questionNumber || a.question_number || 0,
+      answer: a.answer || null,
+      correctAnswer: '',
+      isCorrect: false,
+      topic: '',
+      type: 'comparison' as const,
+    };
+  });
+
+  const hasRichAnswers = answerDetails.length > 0 && answerDetails[0]?.correctAnswer;
 
   const getScoreColor = () => {
     if (percentage >= 80) return 'text-success';
@@ -155,10 +182,13 @@ export default function TestResults() {
   };
 
   const scoreBadge = getScoreBadge();
+  const displayedAnswers = showAllQuestions ? answerDetails : answerDetails.slice(0, 10);
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {showConfetti && <Confetti />}
+        
         {/* Header */}
         <div className="mb-8 text-center">
           <Badge variant={scoreBadge.variant} className="mb-4 text-lg px-4 py-2">
@@ -220,10 +250,100 @@ export default function TestResults() {
           </Card>
         </div>
 
+        {/* Per-Question Breakdown — BOTH groups */}
+        {hasRichAnswers && answerDetails.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Разбор по вопросам</CardTitle>
+              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {displayedAnswers.map((a, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 rounded-lg border p-3 ${
+                      a.isCorrect
+                        ? 'border-success/30 bg-success/5'
+                        : 'border-destructive/30 bg-destructive/5'
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {a.isCorrect ? (
+                        <CheckCircle className="h-5 w-5 text-success" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-destructive" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm">
+                          Вопрос {a.questionNumber}
+                        </span>
+                        {a.topic && (
+                          <Badge variant="outline" className="text-xs">
+                            {translateTopic(a.topic)}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Question content */}
+                      {a.type === 'comparison' && a.column_a && a.column_b && (
+                        <div className="text-sm text-muted-foreground mb-1">
+                          {a.instruction && (
+                            <div className="mb-1"><MathRenderer text={a.instruction} /></div>
+                          )}
+                          <span>Столбец А: </span>
+                          <MathRenderer text={a.column_a} />
+                          <span className="mx-2">vs</span>
+                          <span>Столбец Б: </span>
+                          <MathRenderer text={a.column_b} />
+                        </div>
+                      )}
+                      {a.type === 'mcq' && a.instruction && (
+                        <div className="text-sm text-muted-foreground mb-1">
+                          <MathRenderer text={a.instruction} />
+                        </div>
+                      )}
+
+                      {/* Answer details */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        <span>
+                          Ваш ответ:{' '}
+                          <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
+                            {a.answer ? toCyrillicKey(a.answer) : '—'}
+                          </span>
+                        </span>
+                        {!a.isCorrect && (
+                          <span>
+                            Правильный:{' '}
+                            <span className="font-medium text-success">
+                              {toCyrillicKey(a.correctAnswer)}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {answerDetails.length > 10 && !showAllQuestions && (
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={() => setShowAllQuestions(true)}
+                >
+                  Показать все {answerDetails.length} вопросов
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* AI Analysis — AI group only */}
-        {isAI && analysis && (
+        {isAI && analysis && analysis.assessment && (
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Assessment */}
             <Card variant="accent" className="lg:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -236,72 +356,75 @@ export default function TestResults() {
               </CardContent>
             </Card>
 
-            {/* Strengths */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-success">
-                  <TrendingUp className="h-5 w-5" />
-                  Сильные стороны
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {analysis.strengths?.map((strength, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 mt-1 text-success shrink-0" />
-                      <span>{strength}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            {analysis.strengths?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-success">
+                    <TrendingUp className="h-5 w-5" />
+                    Сильные стороны
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {analysis.strengths.map((s: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 mt-1 text-success shrink-0" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Weaknesses */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-warning">
-                  <TrendingDown className="h-5 w-5" />
-                  Области для улучшения
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {analysis.weaknesses?.map((weakness, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Target className="h-4 w-4 mt-1 text-warning shrink-0" />
-                      <span>{weakness}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            {analysis.weaknesses?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-warning">
+                    <TrendingDown className="h-5 w-5" />
+                    Области для улучшения
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {analysis.weaknesses.map((w: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <Target className="h-4 w-4 mt-1 text-warning shrink-0" />
+                        <span>{w}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Recommendations */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Рекомендации</CardTitle>
-                <CardDescription>Персональный план улучшения от AI</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {analysis.recommendations?.map((rec, index) => (
-                    <div key={index} className="rounded-lg border border-border p-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent font-bold mb-3">
-                        {index + 1}
+            {analysis.recommendations?.length > 0 && (
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Рекомендации</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {analysis.recommendations.map((rec: string, i: number) => (
+                      <div key={i} className="rounded-lg border border-border p-4">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent font-bold mb-3">
+                          {i + 1}
+                        </div>
+                        <p className="text-sm">{rec}</p>
                       </div>
-                      <p className="text-sm">{rec}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Motivation */}
-            <Card className="lg:col-span-2 bg-gradient-to-r from-accent/10 to-success/10 border-accent/20">
-              <CardContent className="p-6 text-center">
-                <p className="text-lg font-medium">{analysis.motivation}</p>
-              </CardContent>
-            </Card>
+            {analysis.motivation && (
+              <Card className="lg:col-span-2 bg-gradient-to-r from-accent/10 to-success/10 border-accent/20">
+                <CardContent className="p-6 text-center">
+                  <p className="text-lg font-medium">{analysis.motivation}</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -312,9 +435,14 @@ export default function TestResults() {
               Все тесты
             </Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link to="/learning-plan">
+              Мой план
+            </Link>
+          </Button>
           <Button variant="accent" asChild>
             <Link to="/lessons">
-              Изучить рекомендованные темы
+              Уроки
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
