@@ -769,6 +769,68 @@ export default function LearningPlanV2() {
         )}
 
 
+  const requestAiExplanation = async (detail: AnswerDetail) => {
+    if (!session) return;
+    setAiExplQuestion(detail);
+    setAiExplanation(null);
+    setAiExplLoading(true);
+
+    try {
+      const questionDesc = detail.type === 'comparison'
+        ? `Условие: ${detail.instruction || ''}\nСтолбец А: ${detail.column_a || ''}\nСтолбец Б: ${detail.column_b || ''}`
+        : `Условие: ${detail.instruction || ''}${detail.options ? '\nВарианты: ' + Object.entries(detail.options).map(([k, v]) => `${k}) ${v}`).join(', ') : ''}`;
+
+      const prompt = `Вопрос ${detail.questionNumber} (тема: ${detail.topic || 'неизвестна'}).
+${questionDesc}
+Ответ ученика: ${detail.answer ? toCyrillicKey(detail.answer) : 'не ответил'}
+Правильный ответ: ${toCyrillicKey(detail.correctAnswer)}
+
+Дай разбор СТРОГО по формату:
+
+❌ Твоя ошибка:
+(что именно сделал неправильно)
+
+✅ Правильная логика:
+(краткое правильное решение с вычислениями)
+
+📌 Ключевая идея:
+(правило / концепт)
+
+⚠️ Как не ошибаться:
+(конкретный совет)
+
+🔁 Мини-практика:
+(1 аналогичный вопрос для закрепления)`;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: prompt }],
+            context: { topic: detail.topic },
+            action: 'explain_mistake',
+            language: 'ru',
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error('AI error');
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || data.reply || data.message || 'Не удалось получить объяснение.';
+      setAiExplanation(content);
+    } catch (e) {
+      console.error('AI explanation error:', e);
+      setAiExplanation('Ошибка при получении объяснения. Попробуйте позже.');
+    } finally {
+      setAiExplLoading(false);
+    }
+  };
+
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-accent bg-accent/5">
             <CardContent className="flex items-center justify-between py-5">
