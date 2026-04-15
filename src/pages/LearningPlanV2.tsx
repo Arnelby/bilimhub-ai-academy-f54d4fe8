@@ -108,6 +108,8 @@ export default function LearningPlanV2() {
       // Determine test name from config
       const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
       const testName = matchedConfig ? matchedConfig[1].name : 'Тест';
+      const varNum = matchedConfig ? matchedConfig[0] : '';
+      setLatestVariantNum(varNum);
 
       // 2. Get topic-level data from question_attempts
       const { data: attempts } = await supabase
