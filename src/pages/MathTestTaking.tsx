@@ -351,7 +351,7 @@ export default function MathTestTaking() {
       toast({ title: 'Ошибка', description: 'Не удалось сохранить результаты', variant: 'destructive' });
       setSubmitting(false);
     }
-  }, [user, submitting, answers, questions, startTime, navigate, toast, config, mathTestId]);
+  }, [user, submitting, answers, questions, startTime, navigate, toast, config, mathTestId, isAI]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
