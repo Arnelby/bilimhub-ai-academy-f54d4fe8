@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import {
   RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play, BrainCircuit, X
+  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play, BrainCircuit
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TEST_CONFIG, toCyrillicKey } from "@/lib/mathTestConfig";
@@ -84,6 +84,7 @@ export default function LearningPlanV2() {
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [aiExplLoading, setAiExplLoading] = useState(false);
   const [aiExplQuestion, setAiExplQuestion] = useState<AnswerDetail | null>(null);
+
   useEffect(() => {
     if (user) loadAnalysis();
     else setLoading(false);
@@ -93,7 +94,6 @@ export default function LearningPlanV2() {
     if (!user) return;
     setLoading(true);
     try {
-      // 1. Find latest completed test
       const { data: latestAttempt } = await supabase
         .from('user_tests')
         .select('id, test_id, score, total_questions, time_taken_seconds, completed_at, answers')
@@ -108,20 +108,17 @@ export default function LearningPlanV2() {
         return;
       }
 
-      // Determine test name from config
       const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
       const testName = matchedConfig ? matchedConfig[1].name : 'Тест';
       const varNum = matchedConfig ? matchedConfig[0] : '';
       setLatestVariantNum(varNum);
 
-      // 2. Get topic-level data from question_attempts
       const { data: attempts } = await supabase
         .from('question_attempts')
         .select('topic, is_correct')
         .eq('user_id', user.id)
         .eq('test_attempt_id', latestAttempt.id);
 
-      // Fallback to user_answers if no question_attempts
       let topicData: { topic: string | null; is_correct: boolean }[] = attempts || [];
 
       if (topicData.length === 0) {
@@ -136,11 +133,10 @@ export default function LearningPlanV2() {
         }
       }
 
-      // 3. Calculate topic accuracy
       const topicMap = new Map<string, { correct: number; total: number }>();
       for (const a of topicData) {
         const t = a.topic;
-        if (!t) continue; // skip null topics
+        if (!t) continue;
         const entry = topicMap.get(t) || { correct: 0, total: 0 };
         entry.total++;
         if (a.is_correct) entry.correct++;
@@ -159,7 +155,6 @@ export default function LearningPlanV2() {
         else weak.push(stat);
       });
 
-      // Sort by accuracy
       weak.sort((a, b) => a.accuracy - b.accuracy);
       strong.sort((a, b) => b.accuracy - a.accuracy);
 
@@ -179,7 +174,6 @@ export default function LearningPlanV2() {
         weakTopics: weak,
       });
 
-      // Load saved AI recommendations if any
       const { data: savedPlan } = await supabase
         .from('ai_learning_plans_v2')
         .select('plan_data')
@@ -196,7 +190,6 @@ export default function LearningPlanV2() {
         }
       }
 
-      // Load incorrect answers for mistake review
       const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : '';
       if (latestTestId) {
         const { data: wrongAnswers } = await supabase
@@ -216,7 +209,6 @@ export default function LearningPlanV2() {
         }
       }
 
-      // Parse rich answer details from user_tests.answers
       const rawAnswers = (latestAttempt as any).answers;
       if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
         const parsed: AnswerDetail[] = rawAnswers
@@ -236,10 +228,8 @@ export default function LearningPlanV2() {
         setAnswerDetails(parsed);
       }
 
-      // Load recommended lessons for weak topics
       if (weak.length > 0) {
         const weakTopicNames = weak.map(w => w.topic);
-        // Find topics matching weak topic names
         const { data: matchingTopics } = await supabase
           .from('topics')
           .select('id, title, title_ru')
@@ -277,7 +267,6 @@ export default function LearningPlanV2() {
   const generateAiPlan = async () => {
     if (!user || !session || !analysis) return;
     
-    // Anti-spam: check cooldown (60 seconds)
     const lastGenKey = 'lastAiPlanGenerated';
     const lastGen = localStorage.getItem(lastGenKey);
     if (lastGen) {
@@ -292,7 +281,6 @@ export default function LearningPlanV2() {
     setGenerating(true);
     const startTime = Date.now();
     
-    // Log AI request start
     await supabase.from('ai_request_logs').insert({
       user_id: user.id,
       function_name: 'ai-learning-plan-v2',
@@ -332,7 +320,6 @@ export default function LearningPlanV2() {
         setAiRecommendations(planResult.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
       }
 
-      // Log success
       localStorage.setItem(lastGenKey, Date.now().toString());
       await supabase.from('ai_request_logs').insert({
         user_id: user.id,
@@ -345,7 +332,6 @@ export default function LearningPlanV2() {
     } catch (e) {
       console.error('Error generating plan:', e);
       
-      // Log failure
       await supabase.from('ai_request_logs').insert({
         user_id: user.id,
         function_name: 'ai-learning-plan-v2',
@@ -357,6 +343,68 @@ export default function LearningPlanV2() {
       toast({ title: "Ошибка", description: "Не удалось создать рекомендации", variant: "destructive" });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const requestAiExplanation = async (detail: AnswerDetail) => {
+    if (!session) return;
+    setAiExplQuestion(detail);
+    setAiExplanation(null);
+    setAiExplLoading(true);
+
+    try {
+      const questionDesc = detail.type === 'comparison'
+        ? `Условие: ${detail.instruction || ''}\nСтолбец А: ${detail.column_a || ''}\nСтолбец Б: ${detail.column_b || ''}`
+        : `Условие: ${detail.instruction || ''}${detail.options ? '\nВарианты: ' + Object.entries(detail.options).map(([k, v]) => `${k}) ${v}`).join(', ') : ''}`;
+
+      const prompt = `Вопрос ${detail.questionNumber} (тема: ${detail.topic || 'неизвестна'}).
+${questionDesc}
+Ответ ученика: ${detail.answer ? toCyrillicKey(detail.answer) : 'не ответил'}
+Правильный ответ: ${toCyrillicKey(detail.correctAnswer)}
+
+Дай разбор СТРОГО по формату:
+
+❌ Твоя ошибка:
+(что именно сделал неправильно)
+
+✅ Правильная логика:
+(краткое правильное решение с вычислениями)
+
+📌 Ключевая идея:
+(правило / концепт)
+
+⚠️ Как не ошибаться:
+(конкретный совет)
+
+🔁 Мини-практика:
+(1 аналогичный вопрос для закрепления)`;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: prompt }],
+            context: { topic: detail.topic },
+            action: 'explain_mistake',
+            language: 'ru',
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error('AI error');
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || data.reply || data.message || 'Не удалось получить объяснение.';
+      setAiExplanation(content);
+    } catch (e) {
+      console.error('AI explanation error:', e);
+      setAiExplanation('Ошибка при получении объяснения. Попробуйте позже.');
+    } finally {
+      setAiExplLoading(false);
     }
   };
 
@@ -627,14 +675,23 @@ export default function LearningPlanV2() {
                           )}
                         </div>
 
-                        {/* Link to video solution for wrong answers */}
+                        {/* Action buttons for wrong answers */}
                         {!a.isCorrect && (
-                          <div className="mt-2">
+                          <div className="mt-2 flex flex-wrap gap-2">
                             <Button size="sm" variant="outline" asChild>
                               <Link to={`/lessons/video/${variantKey}?question=${a.questionNumber}`}>
                                 <Video className="mr-1 h-3 w-3" />
                                 Видеоразбор
                               </Link>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-accent/50 text-accent hover:bg-accent/10"
+                              onClick={() => requestAiExplanation(a)}
+                            >
+                              <BrainCircuit className="mr-1 h-3 w-3" />
+                              Разбор с AI
                             </Button>
                           </div>
                         )}
@@ -656,6 +713,28 @@ export default function LearningPlanV2() {
             </CardContent>
           </Card>
         )}
+
+        {/* AI Explanation Dialog */}
+        <Dialog open={!!aiExplQuestion} onOpenChange={(open) => { if (!open) setAiExplQuestion(null); }}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5 text-accent" />
+                Разбор с AI — Вопрос {aiExplQuestion?.questionNumber}
+              </DialogTitle>
+            </DialogHeader>
+            {aiExplLoading ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                <p className="text-sm text-muted-foreground">AI анализирует вашу ошибку...</p>
+              </div>
+            ) : aiExplanation ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <MathRenderer content={aiExplanation} />
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         {/* AI Recommendations */}
         <Card className="mb-6">
@@ -767,69 +846,6 @@ export default function LearningPlanV2() {
             </CardContent>
           </Card>
         )}
-
-
-  const requestAiExplanation = async (detail: AnswerDetail) => {
-    if (!session) return;
-    setAiExplQuestion(detail);
-    setAiExplanation(null);
-    setAiExplLoading(true);
-
-    try {
-      const questionDesc = detail.type === 'comparison'
-        ? `Условие: ${detail.instruction || ''}\nСтолбец А: ${detail.column_a || ''}\nСтолбец Б: ${detail.column_b || ''}`
-        : `Условие: ${detail.instruction || ''}${detail.options ? '\nВарианты: ' + Object.entries(detail.options).map(([k, v]) => `${k}) ${v}`).join(', ') : ''}`;
-
-      const prompt = `Вопрос ${detail.questionNumber} (тема: ${detail.topic || 'неизвестна'}).
-${questionDesc}
-Ответ ученика: ${detail.answer ? toCyrillicKey(detail.answer) : 'не ответил'}
-Правильный ответ: ${toCyrillicKey(detail.correctAnswer)}
-
-Дай разбор СТРОГО по формату:
-
-❌ Твоя ошибка:
-(что именно сделал неправильно)
-
-✅ Правильная логика:
-(краткое правильное решение с вычислениями)
-
-📌 Ключевая идея:
-(правило / концепт)
-
-⚠️ Как не ошибаться:
-(конкретный совет)
-
-🔁 Мини-практика:
-(1 аналогичный вопрос для закрепления)`;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: prompt }],
-            context: { topic: detail.topic },
-            action: 'explain_mistake',
-            language: 'ru',
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error('AI error');
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.reply || data.message || 'Не удалось получить объяснение.';
-      setAiExplanation(content);
-    } catch (e) {
-      console.error('AI explanation error:', e);
-      setAiExplanation('Ошибка при получении объяснения. Попробуйте позже.');
-    } finally {
-      setAiExplLoading(false);
-    }
-  };
 
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-accent bg-accent/5">
