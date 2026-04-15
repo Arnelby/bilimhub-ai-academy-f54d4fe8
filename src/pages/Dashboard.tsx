@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AchievementsPanel } from '@/components/gamification/AchievementsPanel';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { translateTopic } from '@/lib/topicTranslations';
+import { parseScore } from '@/lib/scoreUtils';
 
 interface TestAttempt {
   id: string;
@@ -63,7 +64,7 @@ interface AnalyticsData {
   improvement: number | null;
   improvementPercent: number | null;
   // Score trend
-  testHistory: { date: string; score: number; total: number }[];
+  testHistory: { date: string; score: number; total: number; percentage: number }[];
   // Topic performance
   topicAccuracy: TopicAccuracy[];
   // Error analysis
@@ -139,14 +140,12 @@ export default function Dashboard() {
       const questionAttempts = attemptsRes.data || [];
       const sessions = sessionsRes.data || [];
 
-      // --- Improvement (convert raw scores to percentages) ---
+      // --- Improvement (using parseScore for consistent handling) ---
       const firstTest = tests.length > 0 ? tests[0] : null;
       const latestTest = tests.length > 0 ? tests[tests.length - 1] : null;
       const toPercent = (t: TestAttempt | null) => {
         if (!t || t.score === null || t.score === undefined) return null;
-        const total = t.total_questions || 1;
-        const raw = t.score > total ? t.score : Math.round((t.score / total) * 100);
-        return Math.max(0, Math.min(100, raw));
+        return parseScore(t.score, t.total_questions).percentage;
       };
       const firstScore = toPercent(firstTest);
       const latestScore = toPercent(latestTest);
@@ -159,14 +158,12 @@ export default function Dashboard() {
 
       // --- Score trend ---
       const testHistory = tests.map(t => {
-        const total = t.total_questions ?? 0;
-        const rawScore = t.score ?? 0;
-        // Normalize: if score > total, it's already a percentage
-        const safeScore = total > 0 && rawScore <= total ? rawScore : (total > 0 ? Math.round((rawScore / 100) * total) : rawScore);
+        const p = parseScore(t.score, t.total_questions);
         return {
           date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
-          score: safeScore,
-          total,
+          score: p.correct,
+          total: p.total,
+          percentage: p.percentage,
         };
       });
 
@@ -365,8 +362,8 @@ export default function Dashboard() {
                               <p className="text-sm text-muted-foreground">Нет попыток</p>
                             </div>
                           );
-                          const best = Math.max(...vTests.map((t: any) => t.score ?? 0));
-                          const avg = Math.round(vTests.reduce((s: number, t: any) => s + (t.score ?? 0), 0) / vTests.length);
+                          const best = Math.max(...vTests.map((t: any) => parseScore(t.score, t.total_questions).percentage));
+                          const avg = Math.round(vTests.reduce((s: number, t: any) => s + parseScore(t.score, t.total_questions).percentage, 0) / vTests.length);
                           return (
                             <div key={v.uuid} className="rounded-lg border border-border p-4">
                               <p className="font-medium mb-2">{v.name}</p>
@@ -399,10 +396,10 @@ export default function Dashboard() {
                           <div key={i} className="flex items-center gap-3">
                             <span className="text-sm text-muted-foreground w-16 shrink-0">{t.date}</span>
                             <div className="flex-1">
-                              <Progress value={t.total > 0 ? (t.score / t.total) * 100 : t.score} className="h-3" />
+                              <Progress value={t.percentage} className="h-3" />
                             </div>
-                            <span className="text-sm font-medium w-14 text-right">
-                              {t.total > 0 ? `${t.score}/${t.total}` : `${t.score}%`}
+                            <span className="text-sm font-medium w-20 text-right">
+                              {t.score}/{t.total} ({t.percentage}%)
                             </span>
                           </div>
                         ))}

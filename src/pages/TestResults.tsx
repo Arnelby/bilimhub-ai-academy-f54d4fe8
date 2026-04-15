@@ -25,6 +25,7 @@ import { Confetti } from '@/components/gamification/Confetti';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
+import { parseScore } from '@/lib/scoreUtils';
 
 interface AnswerDetail {
   questionNumber: number;
@@ -81,10 +82,8 @@ export default function TestResults() {
         if (error) throw error;
         setResult(data as unknown as TestResult);
 
-        const rawGamScore = data.score || 0;
-        const total = data.total_questions || 1;
-        const safeGamScore = rawGamScore > total ? Math.round((rawGamScore / 100) * total) : rawGamScore;
-        const percentage = Math.max(0, Math.min(100, Math.round((safeGamScore / total) * 100)));
+        const gamParsed = parseScore(data.score, data.total_questions);
+        const percentage = gamParsed.percentage;
         
         const pointsEarned = Math.round(percentage / 2) + 25;
         
@@ -142,10 +141,10 @@ export default function TestResults() {
     );
   }
 
-  const rawScore = result.score || 0;
-  const total = result.total_questions || 1;
-  const score = rawScore > total ? Math.round((rawScore / 100) * total) : rawScore;
-  const percentage = Math.max(0, Math.min(100, Math.round((score / total) * 100)));
+  const parsed = parseScore(result.score, result.total_questions);
+  const score = parsed.correct;
+  const total = parsed.total;
+  const percentage = parsed.percentage;
   const timeTaken = result.time_taken_seconds || 0;
   const analysis = result.ai_analysis;
 
@@ -208,9 +207,10 @@ export default function TestResults() {
           <Card variant="elevated" className="text-center">
             <CardContent className="p-6">
               <div className={`text-5xl font-bold ${getScoreColor()}`}>
-                {percentage}%
+                {score}/{total}
               </div>
-              <p className="text-muted-foreground mt-2">Общий результат</p>
+              <p className="text-lg font-semibold mt-1">{percentage}%</p>
+              <p className="text-muted-foreground mt-1">Общий результат</p>
               <Progress value={percentage} className="mt-4 h-2" />
             </CardContent>
           </Card>
