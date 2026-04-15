@@ -30,6 +30,11 @@ interface UserTestRecord {
   test_id: string;
 }
 
+interface TestAccessRecord {
+  test_id: number;
+  is_allowed: boolean;
+}
+
 export default function Tests() {
   const { user } = useAuth();
   const navigate = useNavigate();
