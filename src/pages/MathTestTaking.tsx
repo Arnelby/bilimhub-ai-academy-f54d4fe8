@@ -85,23 +85,35 @@ export default function MathTestTaking() {
     async function fetchQuestions() {
       if (!user) return;
       try {
-        // BACKEND ENFORCEMENT: check sequential test access
-        if (mathTestId > 1) {
-          const prevVariantUuid = TEST_CONFIG[mathTestId - 1]?.uuid;
-          if (prevVariantUuid) {
-            const { data: prevAttempts } = await supabase
-              .from('user_tests')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('test_id', prevVariantUuid)
-              .not('completed_at', 'is', null)
-              .limit(1);
-            if (!prevAttempts || prevAttempts.length === 0) {
-              console.warn('[ACCESS_CONTROL] Test variant locked:', mathTestId, '- previous variant not completed');
-              toast({ title: 'Тест заблокирован', description: `Сначала пройдите вариант ${mathTestId - 1}`, variant: 'destructive' });
-              navigate('/tests');
-              return;
-            }
+        // BACKEND ENFORCEMENT: check test_access table
+        {
+          // Get participant_id from profile
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('participant_id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const participantId = profile?.participant_id;
+          if (!participantId) {
+            console.warn('[ACCESS_CONTROL] No participant_id for user', user.id);
+            toast({ title: 'Доступ запрещён', description: 'Участник не найден в системе', variant: 'destructive' });
+            navigate('/tests');
+            return;
+          }
+
+          const { data: access } = await supabase
+            .from('test_access')
+            .select('is_allowed')
+            .eq('participant_id', participantId)
+            .eq('test_id', mathTestId)
+            .maybeSingle();
+
+          if (!access || !access.is_allowed) {
+            console.warn('[ACCESS_CONTROL] Test blocked via test_access:', mathTestId, 'participant:', participantId);
+            toast({ title: 'Тест заблокирован', description: 'Доступ к этому тесту не разрешён', variant: 'destructive' });
+            navigate('/tests');
+            return;
           }
         }
 
