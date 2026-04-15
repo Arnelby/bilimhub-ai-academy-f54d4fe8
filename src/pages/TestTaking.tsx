@@ -104,6 +104,10 @@ export default function TestTaking() {
         const attemptNumber = (prevAttempts || 0) + 1;
         const testType = attemptNumber === 1 ? 'pre' : 'post';
 
+        // Resolve participant_id for initial insert
+        const { getParticipantInfo } = await import('@/lib/getParticipantInfo');
+        const { participantId: pid, groupType: gt } = await getParticipantInfo(user.id);
+
         // Create test attempt (started_at = now() via DB default)
         const { data: attemptData, error: attemptError } = await supabase
           .from('user_tests')
@@ -113,6 +117,8 @@ export default function TestTaking() {
             total_questions: formattedQuestions.length,
             attempt_number: attemptNumber,
             test_type: testType,
+            participant_id: pid,
+            group_type: gt,
           } as any)
           .select()
           .single();
