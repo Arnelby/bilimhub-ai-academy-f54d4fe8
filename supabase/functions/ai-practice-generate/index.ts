@@ -19,6 +19,14 @@ function flattenCachedQuestion(row: any): any {
   };
 }
 
+// All ORT math topics for control group (non-personalized)
+const ALL_ORT_TOPICS = [
+  'Арифметика', 'Алгебра', 'Геометрия', 'Уравнения',
+  'Неравенства', 'Функции', 'Проценты', 'Дроби',
+  'Степени и корни', 'Текстовые задачи', 'Последовательности',
+  'Системы уравнений', 'Теория вероятностей', 'Комбинаторика',
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,33 +58,55 @@ serve(async (req) => {
 
     const userId = user.id;
     const body = await req.json();
-    const { weakTopics, questionCount = 8, formatType = 'comparison' } = body;
+    const {
+      weakTopics,
+      questionCount = 8,
+      formatType = 'comparison',
+      groupType = 'ai',
+    } = body;
 
-    if (!weakTopics || !Array.isArray(weakTopics) || weakTopics.length === 0) {
-      return new Response(JSON.stringify({ error: 'weakTopics required' }), {
+    const isControl = groupType === 'control';
+    const actualCount = isControl ? 25 : questionCount;
+
+    // For control: use ALL_ORT_TOPICS; for AI: use weak topics
+    const topics = isControl ? ALL_ORT_TOPICS : (weakTopics || []);
+
+    if (!isControl && (!topics || topics.length === 0)) {
+      return new Response(JSON.stringify({ error: 'weakTopics required for AI group' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[PRACTICE] User: ${userId}, Topics: ${weakTopics.join(', ')}, Format: ${formatType}, Count: ${questionCount}`);
+    console.log(`[PRACTICE] User: ${userId}, Group: ${groupType}, Topics: ${topics.join(', ')}, Format: ${formatType}, Count: ${actualCount}`);
 
-    // Check cache — questions generated in last 2 hours for same topics
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    const { data: cached } = await supabase
-      .from('practice_questions')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('created_at', twoHoursAgo)
-      .in('topic', weakTopics)
-      .order('created_at', { ascending: false })
-      .limit(questionCount);
+    // Fetch participant_id from profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('participant_id, group_type')
+      .eq('id', userId)
+      .maybeSingle();
 
-    if (cached && cached.length >= 3) {
-      console.log(`[PRACTICE] CACHE_HIT: ${cached.length} questions`);
-      const flattened = cached.map(flattenCachedQuestion);
-      return new Response(JSON.stringify({ questions: flattened, source: 'cache' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const participantId = profile?.participant_id || null;
+
+    // Check cache — questions generated in last 2 hours for same topics (AI only, control always generates fresh)
+    if (!isControl) {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const { data: cached } = await supabase
+        .from('practice_questions')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('created_at', twoHoursAgo)
+        .in('topic', topics)
+        .order('created_at', { ascending: false })
+        .limit(actualCount);
+
+      if (cached && cached.length >= 3) {
+        console.log(`[PRACTICE] CACHE_HIT: ${cached.length} questions`);
+        const flattened = cached.map(flattenCachedQuestion);
+        return new Response(JSON.stringify({ questions: flattened, source: 'cache' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // AI Generation
@@ -88,29 +118,42 @@ serve(async (req) => {
       });
     }
 
+    const topicList = topics.join(', ');
+    const controlNote = isControl
+      ? '\n- Задачи должны быть общими, без адаптации к уровню ученика\n- Равномерно распредели задачи по всем указанным темам'
+      : '\n- Фокусируйся на слабых темах ученика';
+
+    const validationNote = `\nВАЖНО: Для каждой задачи:
+1. Сначала реши задачу самостоятельно
+2. Убедись, что ответ математически корректен
+3. Не генерируй задачи, если не уверен в решении
+4. correct_answer должен быть проверенным и верным`;
+
     const prompt = formatType === 'mcq'
-      ? `Сгенерируй ${questionCount} НОВЫХ уникальных задач по математике в формате ОРТ (множественный выбор) для тем: ${weakTopics.join(', ')}.
+      ? `Сгенерируй ${actualCount} НОВЫХ уникальных задач по математике в формате ОРТ (множественный выбор) для тем: ${topicList}.
 
 JSON формат (строго):
 {"questions": [{"type":"mcq","topic":"тема","instruction":"текст задачи","options":{"A":"вариант1","B":"вариант2","C":"вариант3","D":"вариант4","E":"вариант5"},"correct_answer":"A"}]}
 
 Требования:
-- Каждая задача НОВАЯ и уникальная
+- Каждая задача НОВАЯ и уникальная (не копируй из учебников)
+- Меняй числа, формулировки и структуру
 - 5 вариантов ответа (A-E)
 - correct_answer: латинская буква A-E
 - Стиль ОРТ экзамена Кыргызстана
-- Разная сложность
+- Разная сложность${controlNote}${validationNote}
 - Ответь ТОЛЬКО JSON, без пояснений`
-      : `Сгенерируй ${questionCount} НОВЫХ уникальных задач по математике в формате ОРТ (сравнение величин) для тем: ${weakTopics.join(', ')}.
+      : `Сгенерируй ${actualCount} НОВЫХ уникальных задач по математике в формате ОРТ (сравнение величин) для тем: ${topicList}.
 
 JSON формат (строго):
 {"questions": [{"type":"comparison","topic":"тема","instruction":"условие или null","column_a":"выражение A","column_b":"выражение B","correct_answer":"A"}]}
 
 Требования:
-- Каждая задача НОВАЯ и уникальная
+- Каждая задача НОВАЯ и уникальная (не копируй из учебников)
+- Меняй числа, формулировки и структуру
 - correct_answer: A (столбец A больше), B (столбец B больше), C (равны), D (невозможно определить)
 - Стиль ОРТ экзамена Кыргызстана
-- Разная сложность
+- Разная сложность${controlNote}${validationNote}
 - Ответь ТОЛЬКО JSON, без пояснений`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -122,10 +165,10 @@ JSON формат (строго):
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Никаких пояснений." },
+          { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Никаких пояснений. Каждая задача должна быть математически корректной — проверь решение перед выдачей." },
           { role: "user", content: prompt },
         ],
-        temperature: 0.8,
+        temperature: isControl ? 0.6 : 0.8, // less randomness for control consistency
       }),
     });
 
@@ -176,11 +219,11 @@ JSON формат (строго):
     // Save to practice_questions table
     const toInsert = questions.map((q: any) => ({
       user_id: userId,
-      topic: q.topic || weakTopics[0],
+      topic: q.topic || topics[0],
       question_type: q.type || formatType,
       question_data: q,
       correct_answer: q.correct_answer || 'A',
-      source: 'ai',
+      source: isControl ? 'ai_control' : 'ai',
     }));
 
     const { error: insertError } = await supabase.from('practice_questions').insert(toInsert);
@@ -191,7 +234,12 @@ JSON формат (строго):
     const totalLatency = Date.now() - startTs;
     console.log(`[PRACTICE] Done in ${totalLatency}ms`);
 
-    return new Response(JSON.stringify({ questions, source: 'ai' }), {
+    return new Response(JSON.stringify({
+      questions,
+      source: 'ai',
+      participantId,
+      groupType: isControl ? 'control' : 'ai',
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

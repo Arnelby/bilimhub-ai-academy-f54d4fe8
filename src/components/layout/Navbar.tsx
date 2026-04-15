@@ -99,7 +99,10 @@ export function Navbar() {
             </DropdownMenu>
 
             {/* Theme Toggle */}
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+            <Button variant="ghost" size="icon" onClick={() => {
+              setIsDark(!isDark);
+              document.documentElement.classList.toggle('dark');
+            }}>
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
