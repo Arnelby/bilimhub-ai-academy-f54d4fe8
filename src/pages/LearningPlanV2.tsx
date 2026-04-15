@@ -81,7 +81,9 @@ export default function LearningPlanV2() {
   const [answerDetails, setAnswerDetails] = useState<AnswerDetail[]>([]);
   const [showAllQuestions, setShowAllQuestions] = useState(false);
   const [latestVariantNum, setLatestVariantNum] = useState<string>('');
-
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [aiExplLoading, setAiExplLoading] = useState(false);
+  const [aiExplQuestion, setAiExplQuestion] = useState<AnswerDetail | null>(null);
   useEffect(() => {
     if (user) loadAnalysis();
     else setLoading(false);
