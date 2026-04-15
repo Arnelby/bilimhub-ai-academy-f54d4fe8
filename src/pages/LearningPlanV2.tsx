@@ -397,9 +397,41 @@ ${questionDesc}
       );
 
       if (!response.ok) throw new Error('AI error');
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.reply || data.message || 'Не удалось получить объяснение.';
-      setAiExplanation(content);
+
+      // ai-chat-tutor returns SSE stream — parse it token by token
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              fullContent += delta;
+              setAiExplanation(fullContent);
+            }
+          } catch { /* partial JSON, skip */ }
+        }
+      }
+
+      if (!fullContent) {
+        setAiExplanation('Не удалось получить объяснение.');
+      }
     } catch (e) {
       console.error('AI explanation error:', e);
       setAiExplanation('Ошибка при получении объяснения. Попробуйте позже.');
