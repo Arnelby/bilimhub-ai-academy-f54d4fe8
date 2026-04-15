@@ -787,6 +787,33 @@ export type Database = {
         }
         Relationships: []
       }
+      test_access: {
+        Row: {
+          created_at: string
+          id: string
+          is_allowed: boolean
+          participant_id: string
+          test_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_allowed?: boolean
+          participant_id: string
+          test_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_allowed?: boolean
+          participant_id?: string
+          test_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tests: {
         Row: {
           created_at: string | null
