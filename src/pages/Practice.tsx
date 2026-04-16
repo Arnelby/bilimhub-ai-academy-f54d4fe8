@@ -398,9 +398,9 @@ export default function Practice() {
           match: normUser === normCorrect,
         });
 
-        const respReliable = !!(participantId && safeUserAns);
+        const respReliable = !!(participantId && normUser);
         if (!respReliable) {
-          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: safeUserAns });
+          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: normUser });
         }
 
         responses.push({
