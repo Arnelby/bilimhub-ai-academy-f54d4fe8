@@ -231,7 +231,12 @@ JSON формат (строго):
       });
     }
 
-    console.log(`[PRACTICE] Generated ${questions.length} questions`);
+    // Normalize all correct_answers before returning
+    for (const q of questions) {
+      q.correct_answer = normalizeAnswer(q.correct_answer);
+    }
+
+    console.log(`[PRACTICE] Generated ${questions.length} questions, answers: ${questions.map((q: any) => q.correct_answer).join(',')}`);
 
     // Save to practice_questions table
     const toInsert = questions.map((q: any) => ({
@@ -239,7 +244,7 @@ JSON формат (строго):
       topic: q.topic || topics[0],
       question_type: q.type || formatType,
       question_data: q,
-      correct_answer: q.correct_answer || 'A',
+      correct_answer: normalizeAnswer(q.correct_answer),
       source: isControl ? 'ai_control' : 'ai',
     }));
 
