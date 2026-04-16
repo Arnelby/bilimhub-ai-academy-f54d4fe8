@@ -327,7 +327,6 @@ export default function Practice() {
   };
 
   const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string) => {
-    // AI-only feature
     if (!isAI) return;
     
     const key = qKey(q);
@@ -344,11 +343,44 @@ export default function Practice() {
 
     try {
       const questionText = q.type === 'comparison'
-        ? `Условие: ${q.instruction || 'Сравните величины'}\nСтолбец A: ${q.column_a}\nСтолбец B: ${q.column_b}`
-        : `Условие: ${q.instruction}`;
+        ? `Условие: ${q.instruction || 'Сравните величины'}\nСтолбец A: ${q.column_a}\nСтолбец B: ${q.column_b}\n\nВарианты ответа:\nА) Величина в столбце A больше\nБ) Величина в столбце B больше\nВ) Величины равны\nГ) Недостаточно информации`
+        : `Условие: ${q.instruction}${q.type === 'mcq' && q.options ? '\n\nВарианты:\n' + Object.entries(q.options).map(([k, v]) => `${toCyrillicKey(k)}) ${v}`).join('\n') : ''}`;
 
       const correctLabel = toCyrillicKey(q.correct_answer);
       const userLabel = toCyrillicKey(userAnswer);
+
+      // Build structured prompt with strict format
+      const explanationPrompt = `Ученик решал математическую задачу ОРТ.
+
+ЗАДАЧА:
+${questionText}
+
+Ответ ученика: ${userLabel}
+Правильный ответ: ${correctLabel}
+
+ОТВЕТЬ СТРОГО ПО ФОРМАТУ (4 блока):
+
+❌ ОШИБКА:
+[Конкретно что ученик сделал неправильно. Одно предложение.]
+
+✅ РЕШЕНИЕ:
+[Пошаговое решение. Каждый шаг на новой строке. Используй математическую запись:]
+[- Дроби: $\\frac{a}{b}$]
+[- Степени: $x^{2}$, $\\sqrt{x}$]
+[- Сравнения: $>$, $<$, $=$]
+[- Вычисления показывай: $2^3 = 8$]
+
+📌 ОТВЕТ: ${correctLabel}
+
+💡 ЗАПОМНИ:
+[Одно предложение — ключевое правило для запоминания.]
+
+ПРАВИЛА:
+- Математические формулы оборачивай в $...$
+- Не используй фразы "давайте разберём", "рассмотрим" — пиши прямо
+- Решение должно быть конкретным с числами
+- Ответ ОБЯЗАН совпадать с правильным: ${correctLabel}
+- Пиши на русском языке`;
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
@@ -363,7 +395,7 @@ export default function Practice() {
             messages: [
               {
                 role: 'user',
-                content: `Ученик решал задачу по теме "${q.topic}".\n\n${questionText}\n\nУченик выбрал ответ: ${userLabel}\nПравильный ответ: ${correctLabel}\n\nОбъясни кратко:\n1. Почему ответ ученика неправильный\n2. Как правильно решить эту задачу\n3. Какой верный ход рассуждений\n\nОтветь на русском языке, кратко и понятно.`,
+                content: explanationPrompt,
               },
             ],
             context: { type: 'mistake_review' },
@@ -648,7 +680,7 @@ export default function Practice() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="mt-2"
+                          className="mt-2 text-accent hover:text-accent"
                           onClick={() => loadMistakeExplanation(q, userAnswer)}
                         >
                           {explanation?.loading ? (
@@ -656,11 +688,11 @@ export default function Practice() {
                           ) : (
                             <Lightbulb className="mr-1 h-3 w-3" />
                           )}
-                          {expandedMistake === key ? 'Скрыть' : 'Объяснение ошибки'}
+                          {expandedMistake === key ? 'Скрыть разбор' : 'Разбор с AI'}
                         </Button>
 
                         {expandedMistake === key && explanation?.explanation && (
-                          <div className="mt-2 rounded bg-muted/50 p-3 text-sm whitespace-pre-line">
+                          <div className="mt-2 rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
                             <MathRenderer content={explanation.explanation} />
                           </div>
                         )}
