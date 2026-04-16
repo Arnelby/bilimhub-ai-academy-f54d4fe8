@@ -185,7 +185,7 @@ JSON формат (строго):
           { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Никаких пояснений. Каждая задача должна быть математически корректной — проверь решение перед выдачей." },
           { role: "user", content: prompt },
         ],
-        temperature: isControl ? 0.6 : 0.8, // less randomness for control consistency
+        temperature: isControl ? 0.3 : 0.5, // lower temperature for more accurate answers
       }),
     });
 
