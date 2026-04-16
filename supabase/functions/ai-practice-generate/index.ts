@@ -270,14 +270,14 @@ JSON: {"questions": [{"type":"comparison","topic":"тема","subtopic":"под�
 - ТОЛЬКО JSON`;
     }
 
-    console.log("[PRACTICE] AI_GENERATION_STARTED (model: gemini-2.5-pro)");
+    console.log("[PRACTICE] AI_GENERATION_STARTED (model: gemini-2.5-flash)");
 
     let content: string;
     try {
       content = await callAI(LOVABLE_API_KEY, [
         { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Каждая задача должна быть математически корректной — РЕШИ задачу перед выдачей ответа. Генерируй РОВНО столько задач, сколько запрошено." },
         { role: "user", content: prompt },
-      ], isControl ? 0.2 : 0.4, "google/gemini-2.5-pro");
+      ], isControl ? 0.2 : 0.4, "google/gemini-2.5-flash");
     } catch (e: any) {
       console.error(`[PRACTICE] AI_ERROR: ${e.message}`);
       const is429 = e.message.includes('429');
