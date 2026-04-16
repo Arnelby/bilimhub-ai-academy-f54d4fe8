@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normalize answer to uppercase Latin letter
+function normalizeAnswer(raw: string | null | undefined): string {
+  if (!raw) return 'A';
+  let ans = raw.trim().toUpperCase();
+  // Cyrillic to Latin mapping
+  const map: Record<string, string> = { 'А': 'A', 'Б': 'B', 'В': 'C', 'Г': 'D', 'Д': 'E' };
+  if (map[ans]) ans = map[ans];
+  if (['A', 'B', 'C', 'D', 'E'].includes(ans)) return ans;
+  return 'A'; // fallback
+}
+
 function flattenCachedQuestion(row: any): any {
   const qd = row.question_data || {};
   return {
@@ -15,7 +26,7 @@ function flattenCachedQuestion(row: any): any {
     column_a: qd.column_a || null,
     column_b: qd.column_b || null,
     options: qd.options || null,
-    correct_answer: row.correct_answer || qd.correct_answer || 'A',
+    correct_answer: normalizeAnswer(row.correct_answer || qd.correct_answer),
   };
 }
 
