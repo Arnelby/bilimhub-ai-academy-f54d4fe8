@@ -6,7 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Normalize answer to uppercase Latin letter
 function normalizeAnswer(raw: string | null | undefined): string {
   if (!raw) return 'A';
   let ans = raw.trim().toUpperCase();
@@ -16,19 +15,6 @@ function normalizeAnswer(raw: string | null | undefined): string {
   return 'A';
 }
 
-function flattenCachedQuestion(row: any): any {
-  const qd = row.question_data || {};
-  return {
-    type: row.question_type || qd.type || 'comparison',
-    topic: row.topic || qd.topic || '',
-    instruction: qd.instruction || null,
-    column_a: qd.column_a || null,
-    column_b: qd.column_b || null,
-    options: qd.options || null,
-    correct_answer: normalizeAnswer(row.correct_answer || qd.correct_answer),
-  };
-}
-
 const ALL_ORT_TOPICS = [
   'Арифметика', 'Алгебра', 'Геометрия', 'Уравнения',
   'Неравенства', 'Функции', 'Проценты', 'Дроби',
@@ -36,7 +22,6 @@ const ALL_ORT_TOPICS = [
   'Системы уравнений', 'Теория вероятностей', 'Комбинаторика',
 ];
 
-// Call AI gateway
 async function callAI(apiKey: string, messages: any[], temperature: number, model: string): Promise<string> {
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -54,7 +39,6 @@ async function callAI(apiKey: string, messages: any[], temperature: number, mode
   return data.choices?.[0]?.message?.content || '';
 }
 
-// Parse JSON from AI response
 function parseAIJson(content: string): any {
   const cleaned = content.replace(/[\x00-\x1F\x7F]/g, (ch: string) =>
     ch === '\n' || ch === '\r' || ch === '\t' ? ch : ' '
@@ -68,32 +52,24 @@ function parseAIJson(content: string): any {
   }
 }
 
-// Verify answers using a second AI call with a more capable model
+// Verify answers with a second AI call
 async function verifyAnswers(apiKey: string, questions: any[]): Promise<any[]> {
-  // Build verification prompt
   const questionsForVerification = questions.map((q: any, i: number) => {
     if (q.type === 'comparison') {
-      return `Задача ${i + 1} (сравнение):
-Условие: ${q.instruction || 'нет'}
-Столбец A: ${q.column_a}
-Столбец B: ${q.column_b}
-Заявленный ответ: ${q.correct_answer}`;
+      return `Задача ${i + 1} (сравнение):\nУсловие: ${q.instruction || 'нет'}\nСтолбец A: ${q.column_a}\nСтолбец B: ${q.column_b}\nЗаявленный ответ: ${q.correct_answer}`;
     } else {
       const opts = q.options ? Object.entries(q.options).map(([k, v]) => `${k}: ${v}`).join(', ') : '';
-      return `Задача ${i + 1} (MCQ):
-Условие: ${q.instruction}
-Варианты: ${opts}
-Заявленный ответ: ${q.correct_answer}`;
+      return `Задача ${i + 1} (MCQ):\nУсловие: ${q.instruction}\nВарианты: ${opts}\nЗаявленный ответ: ${q.correct_answer}`;
     }
   }).join('\n\n');
 
   const verifyPrompt = `Ты математический верификатор. Проверь КАЖДУЮ задачу ниже.
-Для каждой задачи:
+Для каждой:
 1. Реши задачу самостоятельно шаг за шагом
 2. Сравни свой ответ с заявленным
 3. Если заявленный ответ НЕВЕРЕН — исправь его
 
-Ответь СТРОГО в JSON формате:
+Ответь СТРОГО JSON:
 {"verified": [{"index": 0, "correct_answer": "A", "was_wrong": false}, ...]}
 
 correct_answer — ТОЛЬКО латинские буквы A, B, C, D или E.
@@ -101,17 +77,17 @@ correct_answer — ТОЛЬКО латинские буквы A, B, C, D или 
 Задачи:
 ${questionsForVerification}
 
-Ответь ТОЛЬКО JSON, без пояснений.`;
+ТОЛЬКО JSON, без пояснений.`;
 
   try {
     const content = await callAI(apiKey, [
-      { role: "system", content: "Ты строгий математический верификатор. Проверяй каждую задачу, решая её заново. Отвечай ТОЛЬКО JSON." },
+      { role: "system", content: "Ты строгий математический верификатор. Решай каждую задачу заново. ТОЛЬКО JSON." },
       { role: "user", content: verifyPrompt },
-    ], 0.1, "google/gemini-2.5-pro");
+    ], 0.1, "google/gemini-2.5-flash");
 
     const parsed = parseAIJson(content);
     if (!parsed?.verified || !Array.isArray(parsed.verified)) {
-      console.warn("[PRACTICE] Verification parse failed, keeping original answers");
+      console.warn("[PRACTICE] Verification parse failed, keeping original");
       return questions;
     }
 
@@ -127,12 +103,29 @@ ${questionsForVerification}
         }
       }
     }
-    console.log(`[PRACTICE] Verification complete: ${fixedCount} answers corrected out of ${questions.length}`);
+    console.log(`[PRACTICE] Verification: ${fixedCount} fixes out of ${questions.length}`);
     return questions;
   } catch (e) {
     console.error("[PRACTICE] Verification failed:", e);
-    return questions; // Return unmodified if verification fails
+    return questions;
   }
+}
+
+// Build topic distribution for the prompt
+function buildTopicDistribution(
+  weakTopics: string[],
+  mediumTopics: string[],
+  count: number
+): { weakCount: number; mediumCount: number; weakList: string; mediumList: string } {
+  // 80% weak, 20% medium
+  const weakCount = Math.ceil(count * 0.8);
+  const mediumCount = count - weakCount;
+  return {
+    weakCount,
+    mediumCount: mediumTopics.length > 0 ? mediumCount : 0,
+    weakList: weakTopics.join(', '),
+    mediumList: mediumTopics.length > 0 ? mediumTopics.join(', ') : weakTopics.join(', '),
+  };
 }
 
 serve(async (req) => {
@@ -167,34 +160,34 @@ serve(async (req) => {
     const userId = user.id;
     const body = await req.json();
     const {
-      weakTopics,
-      questionCount = 8,
+      weakTopics = [],
+      mediumTopics = [],
+      mistakePatterns = [],
+      previousInstructions = [],
+      questionCount = 10,
       formatType = 'comparison',
       groupType = 'ai',
     } = body;
 
     const isControl = groupType === 'control';
-    const actualCount = isControl ? 25 : questionCount;
-    const topics = isControl ? ALL_ORT_TOPICS : (weakTopics || []);
+    const actualCount = isControl ? 25 : Math.max(10, questionCount);
+    const topics = isControl ? ALL_ORT_TOPICS : weakTopics;
 
-    if (!isControl && (!topics || topics.length === 0)) {
+    if (!isControl && topics.length === 0) {
       return new Response(JSON.stringify({ error: 'weakTopics required for AI group' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[PRACTICE] User: ${userId}, Group: ${groupType}, Topics: ${topics.join(', ')}, Count: ${actualCount}`);
+    console.log(`[PRACTICE] User: ${userId}, Group: ${groupType}, Weak: [${topics.join(', ')}], Medium: [${mediumTopics.join(', ')}], Count: ${actualCount}`);
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('participant_id, group_type')
+      .select('participant_id')
       .eq('id', userId)
       .maybeSingle();
 
     const participantId = profile?.participant_id || null;
-
-    // NO CACHE — always generate fresh questions to avoid stale wrong answers
-    // Previous 2-hour cache was serving questions with incorrect correct_answers
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -203,57 +196,88 @@ serve(async (req) => {
       });
     }
 
-    const topicList = topics.join(', ');
-    const controlNote = isControl
-      ? '\n- Задачи должны быть общими, без адаптации к уровню ученика\n- Равномерно распредели задачи по всем указанным темам'
-      : '\n- Фокусируйся на слабых темах ученика';
+    // Build anti-repetition block
+    const antiRepetitionBlock = previousInstructions.length > 0
+      ? `\n\nЗАПРЕЩЁННЫЕ ЗАДАЧИ (НЕ ПОВТОРЯЙ эти условия, создай ДРУГИЕ с другими числами и формулировками):\n${previousInstructions.slice(0, 20).map((inst: string, i: number) => `${i + 1}. "${inst}"`).join('\n')}`
+      : '';
 
-    const validationNote = `\nКРИТИЧЕСКИ ВАЖНО — ПРОВЕРКА ПРАВИЛЬНОСТИ ОТВЕТА:
-1. Сначала ПОЛНОСТЬЮ реши каждую задачу шаг за шагом
-2. Запиши промежуточные вычисления
-3. Только после решения определи correct_answer
-4. correct_answer ДОЛЖЕН быть математически верным
-5. Если задача на сравнение: вычисли ОБА выражения ЧИСЛЕНО, сравни числа, потом выбери A/B/C/D
-6. Если задача MCQ: вычисли ответ, найди его среди вариантов
-7. ЗАПРЕЩЕНО угадывать correct_answer без решения
-8. ЗАПРЕЩЕНО копировать задачи из реальных тестов ОРТ
-9. correct_answer: ТОЛЬКО латинские буквы A, B, C, D или E (НЕ кириллица)
-10. ПЕРЕД ВЫДАЧЕЙ — ПЕРЕПРОВЕРЬ каждый ответ ещё раз`;
+    // Build mistake pattern context
+    const mistakeContext = mistakePatterns.length > 0
+      ? `\n\nОШИБКИ УЧЕНИКА (создай задачи НА ТЕ ЖЕ ПОДТЕМЫ, но с другими числами):\n${mistakePatterns.slice(0, 8).map((m: any, i: number) => `${i + 1}. Тема: ${m.topic}, Задача: "${m.instruction}"`).join('\n')}`
+      : '';
 
-    const prompt = formatType === 'mcq'
-      ? `Сгенерируй ${actualCount} НОВЫХ уникальных задач по математике в формате ОРТ (множественный выбор) для тем: ${topicList}.
+    const validationNote = `\nКРИТИЧЕСКИ ВАЖНО:
+1. ПОЛНОСТЬЮ реши каждую задачу шаг за шагом ПЕРЕД выдачей ответа
+2. correct_answer ДОЛЖЕН быть математически верным
+3. Если сравнение: вычисли ОБА выражения ЧИСЛЕНО
+4. correct_answer: ТОЛЬКО латинские буквы A, B, C, D или E
+5. ПЕРЕПРОВЕРЬ каждый ответ`;
 
-JSON формат (строго):
-{"questions": [{"type":"mcq","topic":"тема","instruction":"текст задачи","options":{"A":"вариант1","B":"вариант2","C":"вариант3","D":"вариант4","E":"вариант5"},"correct_answer":"A"}]}
+    let prompt: string;
 
-Требования:
-- Каждая задача НОВАЯ и уникальная
-- 5 вариантов ответа (A-E)
-- correct_answer: латинская буква A-E
-- Стиль ОРТ экзамена Кыргызстана
-- Разная сложность${controlNote}${validationNote}
-- Ответь ТОЛЬКО JSON, без пояснений`
-      : `Сгенерируй ${actualCount} НОВЫХ уникальных задач по математике в формате ОРТ (сравнение величин) для тем: ${topicList}.
+    if (isControl) {
+      // CONTROL: uniform distribution across all topics
+      prompt = formatType === 'mcq'
+        ? `Сгенерируй ${actualCount} НОВЫХ уникальных задач MCQ по математике для ОРТ.
+Темы: ${ALL_ORT_TOPICS.join(', ')}. Равномерно распредели по темам.
 
-JSON формат (строго):
-{"questions": [{"type":"comparison","topic":"тема","instruction":"условие или null","column_a":"выражение A","column_b":"выражение B","correct_answer":"A"}]}
+JSON: {"questions": [{"type":"mcq","topic":"тема","subtopic":"подтема","instruction":"текст","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"correct_answer":"A"}]}
 
-Требования:
-- Каждая задача НОВАЯ и уникальная
-- correct_answer: A (столбец A больше), B (столбец B больше), C (равны), D (невозможно определить)
-- Стиль ОРТ экзамена Кыргызстана
-- Разная сложность${controlNote}${validationNote}
-- Ответь ТОЛЬКО JSON, без пояснений`;
+- Задачи общие, без адаптации
+- Каждая НОВАЯ и уникальная${antiRepetitionBlock}${validationNote}
+- ТОЛЬКО JSON`
+        : `Сгенерируй ${actualCount} НОВЫХ уникальных задач (сравнение величин) по математике для ОРТ.
+Темы: ${ALL_ORT_TOPICS.join(', ')}. Равномерно распредели.
 
-    console.log("[PRACTICE] AI_GENERATION_STARTED (model: gemini-2.5-pro)");
+JSON: {"questions": [{"type":"comparison","topic":"тема","subtopic":"подтема","instruction":"условие или null","column_a":"выражение A","column_b":"выражение B","correct_answer":"A"}]}
 
-    // Step 1: Generate questions with gemini-2.5-pro for better math accuracy
+- correct_answer: A (A>B), B (B>A), C (равны), D (невозможно определить)
+- Каждая НОВАЯ${antiRepetitionBlock}${validationNote}
+- ТОЛЬКО JSON`;
+    } else {
+      // AI GROUP: personalized with 80/20 distribution
+      const dist = buildTopicDistribution(weakTopics, mediumTopics, actualCount);
+      
+      const topicInstruction = dist.mediumCount > 0
+        ? `РАСПРЕДЕЛЕНИЕ ЗАДАЧ:
+- ${dist.weakCount} задач по СЛАБЫМ темам: ${dist.weakList}
+- ${dist.mediumCount} задач по СРЕДНИМ темам: ${dist.mediumList}
+
+Для каждой слабой темы используй РАЗНЫЕ подтемы (например, для Геометрии: площади, углы, треугольники, окружности).`
+        : `ВСЕ ${actualCount} задач по темам: ${dist.weakList}
+Используй РАЗНЫЕ подтемы для каждой темы.`;
+
+      prompt = formatType === 'mcq'
+        ? `Сгенерируй РОВНО ${actualCount} НОВЫХ уникальных задач MCQ по математике для ОРТ.
+
+${topicInstruction}${mistakeContext}
+
+JSON: {"questions": [{"type":"mcq","topic":"тема","subtopic":"подтема (напр. площади, углы, дроби обыкновенные)","instruction":"текст задачи","options":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"correct_answer":"A"}]}
+
+- Фокусируйся на слабых темах ученика
+- Используй КОНКРЕТНЫЕ подтемы, не общие категории
+- 5 вариантов ответа (A-E)${antiRepetitionBlock}${validationNote}
+- ТОЛЬКО JSON`
+        : `Сгенерируй РОВНО ${actualCount} НОВЫХ уникальных задач (сравнение величин) по математике для ОРТ.
+
+${topicInstruction}${mistakeContext}
+
+JSON: {"questions": [{"type":"comparison","topic":"тема","subtopic":"подтема (напр. площади, углы, степени с дробным показателем)","instruction":"условие или null","column_a":"выражение A","column_b":"выражение B","correct_answer":"A"}]}
+
+- correct_answer: A (A>B), B (B>A), C (равны), D (невозможно определить)
+- Используй КОНКРЕТНЫЕ подтемы
+- Фокусируйся на паттернах ошибок ученика${antiRepetitionBlock}${validationNote}
+- ТОЛЬКО JSON`;
+    }
+
+    console.log("[PRACTICE] AI_GENERATION_STARTED (model: gemini-2.5-flash)");
+
     let content: string;
     try {
       content = await callAI(LOVABLE_API_KEY, [
-        { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Каждая задача должна быть математически корректной — РЕШИ задачу перед выдачей ответа." },
+        { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Каждая задача должна быть математически корректной — РЕШИ задачу перед выдачей ответа. Генерируй РОВНО столько задач, сколько запрошено." },
         { role: "user", content: prompt },
-      ], isControl ? 0.2 : 0.3, "google/gemini-2.5-pro");
+      ], isControl ? 0.2 : 0.4, "google/gemini-2.5-flash");
     } catch (e: any) {
       console.error(`[PRACTICE] AI_ERROR: ${e.message}`);
       const is429 = e.message.includes('429');
@@ -265,7 +289,7 @@ JSON формат (строго):
 
     const parsed = parseAIJson(content);
     if (!parsed) {
-      console.error("[PRACTICE] No valid JSON in AI response");
+      console.error("[PRACTICE] No valid JSON in response");
       return new Response(JSON.stringify({ error: 'AI returned invalid format' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -278,32 +302,35 @@ JSON формат (строго):
       });
     }
 
-    // Normalize all answers
+    // Normalize answers
     for (const q of questions) {
       q.correct_answer = normalizeAnswer(q.correct_answer);
     }
 
-    console.log(`[PRACTICE] Generated ${questions.length} questions, pre-verify answers: ${questions.map((q: any) => q.correct_answer).join(',')}`);
+    const topicBreakdown = questions.reduce((acc: Record<string, number>, q: any) => {
+      const key = `${q.topic}/${q.subtopic || '?'}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    console.log(`[PRACTICE] Generated ${questions.length} questions. Topics: ${JSON.stringify(topicBreakdown)}`);
 
-    // Step 2: VERIFY answers with a second AI call
+    // Verify answers
     questions = await verifyAnswers(LOVABLE_API_KEY, questions);
 
     console.log(`[PRACTICE] Post-verify answers: ${questions.map((q: any) => q.correct_answer).join(',')}`);
 
-    // Save to practice_questions table
+    // Save to DB
     const toInsert = questions.map((q: any) => ({
       user_id: userId,
       topic: q.topic || topics[0],
       question_type: q.type || formatType,
       question_data: q,
       correct_answer: q.correct_answer,
-      source: isControl ? 'ai_control_verified' : 'ai_verified',
+      source: isControl ? 'ai_control_v3' : 'ai_personalized_v3',
     }));
 
     const { error: insertError } = await supabase.from('practice_questions').insert(toInsert);
-    if (insertError) {
-      console.error("[PRACTICE] DB insert error:", insertError);
-    }
+    if (insertError) console.error("[PRACTICE] DB insert error:", insertError);
 
     const totalLatency = Date.now() - startTs;
     console.log(`[PRACTICE] Done in ${totalLatency}ms`);
