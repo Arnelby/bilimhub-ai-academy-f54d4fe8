@@ -83,7 +83,7 @@ ${questionsForVerification}
     const content = await callAI(apiKey, [
       { role: "system", content: "Ты строгий математический верификатор. Решай каждую задачу заново. ТОЛЬКО JSON." },
       { role: "user", content: verifyPrompt },
-    ], 0.1, "google/gemini-2.5-pro");
+    ], 0.1, "google/gemini-2.5-flash");
 
     const parsed = parseAIJson(content);
     if (!parsed?.verified || !Array.isArray(parsed.verified)) {
