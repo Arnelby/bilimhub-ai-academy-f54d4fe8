@@ -12,6 +12,7 @@ import { useUserGroup } from '@/hooks/useUserGroup';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
+import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -380,16 +381,21 @@ export default function Practice() {
 
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
-        // Use ?? to preserve falsy-but-valid answers; || would drop "0"
         const userAns = answers[qKey(q)] ?? null;
-        const safeUserAns = (userAns && userAns !== '0') ? userAns : (userAns === '0' ? null : userAns);
-        const isCorrect = safeUserAns === q.correct_answer;
+        const normUser = normalizeAnswer(userAns);
+        const normCorrect = normalizeAnswer(q.correct_answer);
+        const isCorrect = compareAnswers(userAns, q.correct_answer);
         if (isCorrect) correctCount++;
         
-        console.log("[ANSWER DEBUG]", {
-          question_id: `practice_${i}`,
-          raw_ui_answer: answers[qKey(q)],
-          final_user_answer: safeUserAns,
+        console.log("[PRACTICE_VALIDATION]", {
+          question_index: i,
+          topic: q.topic,
+          raw_user_answer: userAns,
+          normalized_user: normUser,
+          raw_correct: q.correct_answer,
+          normalized_correct: normCorrect,
+          is_correct: isCorrect,
+          match: normUser === normCorrect,
         });
 
         const respReliable = !!(participantId && safeUserAns);
@@ -407,7 +413,7 @@ export default function Practice() {
           question_data: q.type === 'comparison'
             ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
-          user_answer: safeUserAns,
+          user_answer: normUser,
           correct_answer: q.correct_answer,
           is_correct: isCorrect,
           data_version: 'v2',
