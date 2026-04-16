@@ -680,7 +680,7 @@ ${questionText}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="mt-2"
+                          className="mt-2 text-accent hover:text-accent"
                           onClick={() => loadMistakeExplanation(q, userAnswer)}
                         >
                           {explanation?.loading ? (
@@ -688,11 +688,11 @@ ${questionText}
                           ) : (
                             <Lightbulb className="mr-1 h-3 w-3" />
                           )}
-                          {expandedMistake === key ? 'Скрыть' : 'Объяснение ошибки'}
+                          {expandedMistake === key ? 'Скрыть разбор' : 'Разбор с AI'}
                         </Button>
 
                         {expandedMistake === key && explanation?.explanation && (
-                          <div className="mt-2 rounded bg-muted/50 p-3 text-sm whitespace-pre-line">
+                          <div className="mt-2 rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
                             <MathRenderer content={explanation.explanation} />
                           </div>
                         )}
