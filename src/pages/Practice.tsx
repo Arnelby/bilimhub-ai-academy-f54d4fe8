@@ -12,6 +12,7 @@ import { useUserGroup } from '@/hooks/useUserGroup';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
+import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -233,6 +234,8 @@ export default function Practice() {
       const aiQuestions: PracticeQuestion[] = (data.questions || []).map((raw: any, idx: number) => {
         const q = raw.question_data ? { ...raw.question_data, type: raw.question_type, topic: raw.topic, correct_answer: raw.correct_answer } : raw;
         const qType = q.type || formatType;
+        // Normalize correct_answer from AI at ingestion
+        const rawCorrect = (q.correct_answer || 'A').toString().trim().toUpperCase();
         
         if (qType === 'mcq') {
           return {
@@ -242,7 +245,7 @@ export default function Practice() {
             topic: q.topic || '',
             instruction: q.instruction || '',
             options: q.options || {},
-            correct_answer: q.correct_answer || 'A',
+            correct_answer: rawCorrect,
             variantId: mathTestId,
           };
         }
@@ -256,7 +259,7 @@ export default function Practice() {
           column_b: q.column_b || '',
           option_c: null,
           option_d: null,
-          correct_answer: q.correct_answer || 'A',
+          correct_answer: rawCorrect,
           variantId: mathTestId,
         };
       });
@@ -380,21 +383,26 @@ export default function Practice() {
 
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
-        // Use ?? to preserve falsy-but-valid answers; || would drop "0"
         const userAns = answers[qKey(q)] ?? null;
-        const safeUserAns = (userAns && userAns !== '0') ? userAns : (userAns === '0' ? null : userAns);
-        const isCorrect = safeUserAns === q.correct_answer;
+        const normUser = normalizeAnswer(userAns);
+        const normCorrect = normalizeAnswer(q.correct_answer);
+        const isCorrect = compareAnswers(userAns, q.correct_answer);
         if (isCorrect) correctCount++;
         
-        console.log("[ANSWER DEBUG]", {
-          question_id: `practice_${i}`,
-          raw_ui_answer: answers[qKey(q)],
-          final_user_answer: safeUserAns,
+        console.log("[PRACTICE_VALIDATION]", {
+          question_index: i,
+          topic: q.topic,
+          raw_user_answer: userAns,
+          normalized_user: normUser,
+          raw_correct: q.correct_answer,
+          normalized_correct: normCorrect,
+          is_correct: isCorrect,
+          match: normUser === normCorrect,
         });
 
-        const respReliable = !!(participantId && safeUserAns);
+        const respReliable = !!(participantId && normUser);
         if (!respReliable) {
-          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: safeUserAns });
+          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: normUser });
         }
 
         responses.push({
@@ -407,7 +415,7 @@ export default function Practice() {
           question_data: q.type === 'comparison'
             ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
-          user_answer: safeUserAns,
+          user_answer: normUser,
           correct_answer: q.correct_answer,
           is_correct: isCorrect,
           data_version: 'v2',
@@ -504,7 +512,7 @@ export default function Practice() {
 
     for (const q of questions) {
       const userAns = answers[qKey(q)] || null;
-      const correct = userAns === q.correct_answer;
+      const correct = compareAnswers(userAns, q.correct_answer);
       if (correct) correctCount++;
       allResults.push({ q, userAnswer: userAns, isCorrect: correct });
     }

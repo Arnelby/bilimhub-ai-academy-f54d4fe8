@@ -6,6 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normalize answer to uppercase Latin letter
+function normalizeAnswer(raw: string | null | undefined): string {
+  if (!raw) return 'A';
+  let ans = raw.trim().toUpperCase();
+  // Cyrillic to Latin mapping
+  const map: Record<string, string> = { 'А': 'A', 'Б': 'B', 'В': 'C', 'Г': 'D', 'Д': 'E' };
+  if (map[ans]) ans = map[ans];
+  if (['A', 'B', 'C', 'D', 'E'].includes(ans)) return ans;
+  return 'A'; // fallback
+}
+
 function flattenCachedQuestion(row: any): any {
   const qd = row.question_data || {};
   return {
@@ -15,7 +26,7 @@ function flattenCachedQuestion(row: any): any {
     column_a: qd.column_a || null,
     column_b: qd.column_b || null,
     options: qd.options || null,
-    correct_answer: row.correct_answer || qd.correct_answer || 'A',
+    correct_answer: normalizeAnswer(row.correct_answer || qd.correct_answer),
   };
 }
 
@@ -123,14 +134,17 @@ serve(async (req) => {
       ? '\n- Задачи должны быть общими, без адаптации к уровню ученика\n- Равномерно распредели задачи по всем указанным темам'
       : '\n- Фокусируйся на слабых темах ученика';
 
-    const validationNote = `\nВАЖНО: Для каждой задачи:
-1. Сначала реши задачу самостоятельно
-2. Убедись, что ответ математически корректен
-3. Не генерируй задачи, если не уверен в решении
-4. correct_answer должен быть проверенным и верным
-5. ЗАПРЕЩЕНО копировать задачи из реальных тестов ОРТ
-6. Каждая задача должна иметь ДРУГИЕ числа, формулировки и структуру
-7. Если задача похожа на типичную тестовую — измени числа и контекст`;
+    const validationNote = `\nКРИТИЧЕСКИ ВАЖНО — ПРОВЕРКА ПРАВИЛЬНОСТИ ОТВЕТА:
+1. Сначала ПОЛНОСТЬЮ реши каждую задачу шаг за шагом
+2. Запиши промежуточные вычисления
+3. Только после решения определи correct_answer
+4. correct_answer ДОЛЖЕН быть математически верным — это единственный источник правды
+5. Если задача на сравнение: вычисли ОБА выражения, сравни числа, потом выбери A/B/C/D
+6. Если задача MCQ: вычисли ответ, найди его среди вариантов
+7. ЗАПРЕЩЕНО угадывать correct_answer без решения
+8. ЗАПРЕЩЕНО копировать задачи из реальных тестов ОРТ
+9. Каждая задача должна иметь ДРУГИЕ числа, формулировки и структуру
+10. correct_answer: ТОЛЬКО латинские буквы A, B, C, D или E (НЕ кириллица)`;
 
     const prompt = formatType === 'mcq'
       ? `Сгенерируй ${actualCount} НОВЫХ уникальных задач по математике в формате ОРТ (множественный выбор) для тем: ${topicList}.
@@ -171,7 +185,7 @@ JSON формат (строго):
           { role: "system", content: "Ты генератор математических задач для ОРТ. Отвечай ТОЛЬКО валидным JSON. Никаких пояснений. Каждая задача должна быть математически корректной — проверь решение перед выдачей." },
           { role: "user", content: prompt },
         ],
-        temperature: isControl ? 0.6 : 0.8, // less randomness for control consistency
+        temperature: isControl ? 0.3 : 0.5, // lower temperature for more accurate answers
       }),
     });
 
@@ -217,7 +231,12 @@ JSON формат (строго):
       });
     }
 
-    console.log(`[PRACTICE] Generated ${questions.length} questions`);
+    // Normalize all correct_answers before returning
+    for (const q of questions) {
+      q.correct_answer = normalizeAnswer(q.correct_answer);
+    }
+
+    console.log(`[PRACTICE] Generated ${questions.length} questions, answers: ${questions.map((q: any) => q.correct_answer).join(',')}`);
 
     // Save to practice_questions table
     const toInsert = questions.map((q: any) => ({
@@ -225,7 +244,7 @@ JSON формат (строго):
       topic: q.topic || topics[0],
       question_type: q.type || formatType,
       question_data: q,
-      correct_answer: q.correct_answer || 'A',
+      correct_answer: normalizeAnswer(q.correct_answer),
       source: isControl ? 'ai_control' : 'ai',
     }));
 
