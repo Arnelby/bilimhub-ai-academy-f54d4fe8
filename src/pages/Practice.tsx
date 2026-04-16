@@ -234,6 +234,8 @@ export default function Practice() {
       const aiQuestions: PracticeQuestion[] = (data.questions || []).map((raw: any, idx: number) => {
         const q = raw.question_data ? { ...raw.question_data, type: raw.question_type, topic: raw.topic, correct_answer: raw.correct_answer } : raw;
         const qType = q.type || formatType;
+        // Normalize correct_answer from AI at ingestion
+        const rawCorrect = (q.correct_answer || 'A').toString().trim().toUpperCase();
         
         if (qType === 'mcq') {
           return {
@@ -243,7 +245,7 @@ export default function Practice() {
             topic: q.topic || '',
             instruction: q.instruction || '',
             options: q.options || {},
-            correct_answer: q.correct_answer || 'A',
+            correct_answer: rawCorrect,
             variantId: mathTestId,
           };
         }
@@ -257,7 +259,7 @@ export default function Practice() {
           column_b: q.column_b || '',
           option_c: null,
           option_d: null,
-          correct_answer: q.correct_answer || 'A',
+          correct_answer: rawCorrect,
           variantId: mathTestId,
         };
       });
@@ -510,7 +512,7 @@ export default function Practice() {
 
     for (const q of questions) {
       const userAns = answers[qKey(q)] || null;
-      const correct = userAns === q.correct_answer;
+      const correct = compareAnswers(userAns, q.correct_answer);
       if (correct) correctCount++;
       allResults.push({ q, userAnswer: userAns, isCorrect: correct });
     }
