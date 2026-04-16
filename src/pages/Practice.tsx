@@ -93,6 +93,8 @@ export default function Practice() {
       let formatType: 'comparison' | 'mcq' = 'comparison';
       let mathTestId = 1;
       let weak: string[] = [];
+      let medium: string[] = [];
+      let mistakePatterns: { topic: string; instruction: string }[] = [];
 
       if (isAI) {
         // AI GROUP: personalized practice based on weak topics
@@ -117,6 +119,7 @@ export default function Practice() {
         formatType = configEntry?.questionType || 'comparison';
         setLatestTestType(formatType);
 
+        // SOURCE 1: weak topics from test attempts
         const { data: attempts } = await supabase
           .from('question_attempts')
           .select('topic, is_correct')
@@ -139,28 +142,46 @@ export default function Practice() {
 
         topicMap.forEach((data, topic) => {
           const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
-          if (accuracy < 50) weak.push(topic);
+          if (accuracy < 50) {
+            weak.push(topic);
+          } else if (accuracy < 80) {
+            medium.push(topic);
+          }
         });
 
-        if (weak.length < 3) {
-          topicMap.forEach((data, topic) => {
-            const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
-            if (accuracy >= 50 && accuracy < 80 && !weak.includes(topic)) {
-              weak.push(topic);
-            }
-          });
+        // Ensure at least some topics
+        if (weak.length === 0 && medium.length > 0) {
+          weak = medium.splice(0, 2);
         }
 
         setWeakTopics(weak);
 
-        if (weak.length === 0) {
+        if (weak.length === 0 && medium.length === 0) {
           setLoading(false);
           return;
+        }
+
+        // SOURCE 2: recent mistake patterns from practice_responses
+        const { data: recentMistakes } = await supabase
+          .from('practice_responses' as any)
+          .select('topic, question_data')
+          .eq('user_id', user.id)
+          .eq('is_correct', false)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (recentMistakes) {
+          mistakePatterns = (recentMistakes as any[])
+            .filter((m: any) => m.question_data?.instruction)
+            .map((m: any) => ({
+              topic: m.topic || '',
+              instruction: (m.question_data as any)?.instruction || '',
+            }))
+            .slice(0, 10);
         }
       } else {
         // CONTROL GROUP: non-personalized practice
         setLatestTestName('Общая практика ОРТ');
-        // Determine format from latest test if available
         const { data: latestAttempt } = await supabase
           .from('user_tests')
           .select('test_id')
@@ -179,6 +200,19 @@ export default function Practice() {
         }
         setLatestTestType(formatType);
       }
+
+      // Fetch previous question instructions to avoid repetition
+      const { data: prevQuestions } = await supabase
+        .from('practice_questions')
+        .select('question_data')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      const previousInstructions: string[] = (prevQuestions || [])
+        .map((pq: any) => (pq.question_data as any)?.instruction)
+        .filter(Boolean)
+        .slice(0, 30);
 
       // Create practice session in DB
       const { data: sessionData } = await supabase
@@ -199,8 +233,8 @@ export default function Practice() {
         setSessionId((sessionData as any).id);
       }
 
-      // Call edge function
-      const questionCount = isControl ? 25 : Math.min(10, Math.max(5, weak.length * 3));
+      // ALWAYS 10 questions for AI, 25 for control
+      const questionCount = isControl ? 25 : 10;
       const session = await supabase.auth.getSession();
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-practice-generate`,
@@ -213,6 +247,9 @@ export default function Practice() {
           },
           body: JSON.stringify({
             weakTopics: isAI ? weak : [],
+            mediumTopics: isAI ? medium : [],
+            mistakePatterns: isAI ? mistakePatterns : [],
+            previousInstructions,
             questionCount,
             formatType,
             groupType: group || 'ai',
