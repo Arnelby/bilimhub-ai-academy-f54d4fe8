@@ -445,8 +445,8 @@ ${questionText}
           topic: q.topic,
           difficulty: null,
           question_data: q.type === 'comparison'
-            ? { instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
-            : { instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
+            ? { question_id: (q as any)._qid, instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
+            : { question_id: (q as any)._qid, instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
           user_answer: normUser,
           correct_answer: q.correct_answer,
           is_correct: isCorrect,
