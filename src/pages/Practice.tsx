@@ -76,28 +76,89 @@ export default function Practice() {
     setExpandedMistake(null);
     setGenerationError(null);
     sessionStartRef.current = Date.now();
-    
-    try {
-      console.log(`[PRACTICE_FRONTEND] Loading practice for user: ${user.id}, group: ${group}`);
 
-      // Fetch participant_id
+    try {
+      console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}`);
+
+      // participant_id
       const { data: profile } = await supabase
         .from('profiles')
-        .select('participant_id, group_type')
+        .select('participant_id')
         .eq('id', user.id)
         .maybeSingle();
-      
       const pid = profile?.participant_id || null;
       setParticipantId(pid);
 
+      // ============ 1. LOAD ENTIRE QUESTION BANK ============
+      const [{ data: compRows }, { data: mcqRows }] = await Promise.all([
+        supabase.from('math_questions').select('id, test_id, question_number, topic, instruction, column_a, column_b, correct_answer').not('correct_answer', 'is', null),
+        supabase.from('math_test_questions').select('id, test_id, question_number, topic, instruction, options, correct_answer, question_type').eq('question_type', 'mcq').not('correct_answer', 'is', null),
+      ]);
+
+      type Bank = { qid: string; topic: string; q: PracticeQuestion };
+      const bank: Bank[] = [];
+      for (const r of compRows || []) {
+        const qid = `mq_${r.test_id}_${r.question_number}`;
+        bank.push({
+          qid,
+          topic: r.topic || '',
+          q: {
+            type: 'comparison',
+            id: r.id,
+            question_number: r.question_number,
+            topic: r.topic || '',
+            instruction: r.instruction,
+            column_a: r.column_a,
+            column_b: r.column_b,
+            option_c: null,
+            option_d: null,
+            correct_answer: (r.correct_answer || 'A').toString().trim().toUpperCase(),
+            variantId: r.test_id,
+          },
+        });
+      }
+      for (const r of mcqRows || []) {
+        const qid = `mtq_${r.test_id}_${r.question_number}`;
+        bank.push({
+          qid,
+          topic: r.topic || '',
+          q: {
+            type: 'mcq',
+            id: r.id,
+            question_number: r.question_number,
+            topic: r.topic || '',
+            instruction: r.instruction || '',
+            options: (r.options as any) || {},
+            correct_answer: (r.correct_answer || 'A').toString().trim().toUpperCase(),
+            variantId: r.test_id,
+          },
+        });
+      }
+
+      // ============ 2. EXCLUDE ALREADY ANSWERED ============
+      const [{ data: priorAttempts }, { data: priorPractice }] = await Promise.all([
+        supabase.from('question_attempts').select('question_id').eq('user_id', user.id),
+        supabase.from('practice_responses').select('question_data').eq('user_id', user.id),
+      ]);
+      const seen = new Set<string>();
+      for (const a of priorAttempts || []) if (a.question_id) seen.add(a.question_id);
+      for (const p of priorPractice || []) {
+        const qid = (p.question_data as any)?.question_id;
+        if (qid) seen.add(qid);
+      }
+      console.log(`[PRACTICE_FRONTEND] Bank: ${bank.length}, seen: ${seen.size}`);
+
+      let unseen = bank.filter(b => !seen.has(b.qid));
+      // If pool exhausted, allow reuse but unseen first
+      const allowReuse = unseen.length < (isControl ? 25 : 10);
+      const seenPool = allowReuse ? bank.filter(b => seen.has(b.qid)) : [];
+
+      // ============ 3. WEAK TOPICS (AI only) ============
+      let weak: string[] = [];
       let formatType: 'comparison' | 'mcq' = 'comparison';
       let mathTestId = 1;
-      let weak: string[] = [];
-      let medium: string[] = [];
-      let mistakePatterns: { topic: string; instruction: string }[] = [];
 
       if (isAI) {
-        // AI GROUP: personalized practice based on weak topics
         const { data: latestAttempt } = await supabase
           .from('user_tests')
           .select('id, test_id')
@@ -107,116 +168,93 @@ export default function Practice() {
           .limit(1)
           .maybeSingle();
 
-        if (!latestAttempt) {
-          setLoading(false);
-          return;
-        }
-
-        const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
-        const configEntry = matchedConfig ? matchedConfig[1] : null;
-        mathTestId = matchedConfig ? parseInt(matchedConfig[0]) : 1;
-        setLatestTestName(configEntry ? configEntry.name : 'Тест');
-        formatType = configEntry?.questionType || 'comparison';
-        setLatestTestType(formatType);
-
-        // SOURCE 1: weak topics from test attempts
-        const { data: attempts } = await supabase
-          .from('question_attempts')
-          .select('topic, is_correct')
-          .eq('user_id', user.id)
-          .eq('test_attempt_id', latestAttempt.id);
-
-        if (!attempts || attempts.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        const topicMap = new Map<string, { correct: number; total: number }>();
-        for (const a of attempts) {
-          const t = a.topic || 'Unknown';
-          const entry = topicMap.get(t) || { correct: 0, total: 0 };
-          entry.total++;
-          if (a.is_correct) entry.correct++;
-          topicMap.set(t, entry);
-        }
-
-        topicMap.forEach((data, topic) => {
-          const accuracy = data.total > 0 ? (data.correct / data.total) * 100 : 0;
-          if (accuracy < 50) {
-            weak.push(topic);
-          } else if (accuracy < 80) {
-            medium.push(topic);
-          }
-        });
-
-        // Ensure at least some topics
-        if (weak.length === 0 && medium.length > 0) {
-          weak = medium.splice(0, 2);
-        }
-
-        setWeakTopics(weak);
-
-        if (weak.length === 0 && medium.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        // SOURCE 2: recent mistake patterns from practice_responses
-        const { data: recentMistakes } = await supabase
-          .from('practice_responses' as any)
-          .select('topic, question_data')
-          .eq('user_id', user.id)
-          .eq('is_correct', false)
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        if (recentMistakes) {
-          mistakePatterns = (recentMistakes as any[])
-            .filter((m: any) => m.question_data?.instruction)
-            .map((m: any) => ({
-              topic: m.topic || '',
-              instruction: (m.question_data as any)?.instruction || '',
-            }))
-            .slice(0, 10);
-        }
-      } else {
-        // CONTROL GROUP: non-personalized practice
-        setLatestTestName('Общая практика ОРТ');
-        const { data: latestAttempt } = await supabase
-          .from('user_tests')
-          .select('test_id')
-          .eq('user_id', user.id)
-          .not('completed_at', 'is', null)
-          .order('completed_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
         if (latestAttempt) {
           const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
           if (matchedConfig) {
-            formatType = matchedConfig[1]?.questionType || 'comparison';
             mathTestId = parseInt(matchedConfig[0]);
+            formatType = matchedConfig[1]?.questionType || 'comparison';
+            setLatestTestName(matchedConfig[1].name);
           }
+          setLatestTestType(formatType);
+
+          // accuracy per topic from question_attempts (existing logic)
+          const { data: attempts } = await supabase
+            .from('question_attempts')
+            .select('topic, is_correct')
+            .eq('user_id', user.id);
+          const tmap = new Map<string, { c: number; t: number }>();
+          for (const a of attempts || []) {
+            const t = a.topic || '';
+            if (!t) continue;
+            const e = tmap.get(t) || { c: 0, t: 0 };
+            e.t++;
+            if (a.is_correct) e.c++;
+            tmap.set(t, e);
+          }
+          tmap.forEach((v, k) => {
+            if (v.t >= 1 && (v.c / v.t) * 100 < 60) weak.push(k);
+          });
+          setWeakTopics(weak);
         }
-        setLatestTestType(formatType);
+      } else {
+        setLatestTestName('Общая практика ОРТ');
+        setLatestTestType('comparison');
       }
 
-      // Fetch previous question instructions to avoid repetition
-      const { data: prevQuestions } = await supabase
-        .from('practice_questions')
-        .select('question_data')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // ============ 4. SELECT QUESTIONS ============
+      const shuffle = <T,>(arr: T[]) => arr.map(v => [Math.random(), v] as const).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 
-      const previousInstructions: string[] = (prevQuestions || [])
-        .map((pq: any) => (pq.question_data as any)?.instruction)
-        .filter(Boolean)
-        .slice(0, 30);
+      let chosen: Bank[] = [];
 
-      // Create practice session in DB
+      if (isControl) {
+        // 25 random across all topics
+        chosen = shuffle(unseen).slice(0, 25);
+        if (chosen.length < 25 && allowReuse) {
+          chosen = chosen.concat(shuffle(seenPool).slice(0, 25 - chosen.length));
+        }
+      } else {
+        // AI: 10 total — 8 weak + 2 other (strict 80/20)
+        const TOTAL = 10;
+        const WEAK_N = 8;
+
+        if (weak.length === 0) {
+          // fallback: random
+          chosen = shuffle(unseen).slice(0, TOTAL);
+        } else {
+          const weakSet = new Set(weak);
+          const weakPool = shuffle(unseen.filter(b => weakSet.has(b.topic)));
+          const otherPool = shuffle(unseen.filter(b => !weakSet.has(b.topic)));
+
+          const weakPick = weakPool.slice(0, WEAK_N);
+          const otherPick = otherPool.slice(0, TOTAL - weakPick.length);
+          chosen = [...weakPick, ...otherPick];
+
+          // backfill if short
+          if (chosen.length < TOTAL) {
+            const remaining = unseen.filter(b => !chosen.includes(b));
+            chosen = chosen.concat(shuffle(remaining).slice(0, TOTAL - chosen.length));
+          }
+          if (chosen.length < TOTAL && allowReuse) {
+            chosen = chosen.concat(shuffle(seenPool).slice(0, TOTAL - chosen.length));
+          }
+        }
+        chosen = shuffle(chosen);
+      }
+
+      console.log(`[PRACTICE_FRONTEND] Chosen ${chosen.length} questions. Weak topics: [${weak.join(', ')}]`);
+
+      if (chosen.length === 0) {
+        setGenerationError('Нет доступных заданий. Пройдите тест сначала.');
+        setLoading(false);
+        return;
+      }
+
+      // attach qid into question for save step
+      const finalQuestions: PracticeQuestion[] = chosen.map(b => ({ ...b.q, _qid: b.qid } as any));
+
+      // ============ 5. CREATE SESSION ============
       const { data: sessionData } = await supabase
-        .from('practice_sessions' as any)
+        .from('practice_sessions')
         .insert({
           user_id: user.id,
           participant_id: pid,
@@ -229,83 +267,8 @@ export default function Practice() {
         .select('id')
         .single();
 
-      if (sessionData) {
-        setSessionId((sessionData as any).id);
-      }
-
-      // ALWAYS 10 questions for AI, 25 for control
-      const questionCount = isControl ? 25 : 10;
-      const session = await supabase.auth.getSession();
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-practice-generate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.data.session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            weakTopics: isAI ? weak : [],
-            mediumTopics: isAI ? medium : [],
-            mistakePatterns: isAI ? mistakePatterns : [],
-            previousInstructions,
-            questionCount,
-            formatType,
-            groupType: group || 'ai',
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("[PRACTICE_FRONTEND] Edge function error:", response.status, errData);
-        setGenerationError(errData.error || `Ошибка генерации (${response.status})`);
-        setLoading(false);
-        return;
-      }
-
-      const data = await response.json();
-      console.log(`[PRACTICE_FRONTEND] Received ${data.questions?.length || 0} questions from ${data.source}`);
-
-      const aiQuestions: PracticeQuestion[] = (data.questions || []).map((raw: any, idx: number) => {
-        const q = raw.question_data ? { ...raw.question_data, type: raw.question_type, topic: raw.topic, correct_answer: raw.correct_answer } : raw;
-        const qType = q.type || formatType;
-        // Normalize correct_answer from AI at ingestion
-        const rawCorrect = (q.correct_answer || 'A').toString().trim().toUpperCase();
-        
-        if (qType === 'mcq') {
-          return {
-            type: 'mcq' as const,
-            id: 90000 + idx,
-            question_number: idx + 1,
-            topic: q.topic || '',
-            instruction: q.instruction || '',
-            options: q.options || {},
-            correct_answer: rawCorrect,
-            variantId: mathTestId,
-          };
-        }
-        return {
-          type: 'comparison' as const,
-          id: 90000 + idx,
-          question_number: idx + 1,
-          topic: q.topic || '',
-          instruction: q.instruction || null,
-          column_a: q.column_a || '',
-          column_b: q.column_b || '',
-          option_c: null,
-          option_d: null,
-          correct_answer: rawCorrect,
-          variantId: mathTestId,
-        };
-      });
-
-      if (aiQuestions.length > 0) {
-        setQuestions(aiQuestions);
-      } else {
-        setGenerationError('AI не вернул вопросы. Попробуйте ещё раз.');
-      }
+      if (sessionData) setSessionId(sessionData.id);
+      setQuestions(finalQuestions);
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
       setGenerationError('Ошибка загрузки практики');
