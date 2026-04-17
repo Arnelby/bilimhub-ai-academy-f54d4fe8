@@ -248,10 +248,12 @@ export default function Practice() {
               setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
               console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
             }
+            console.log(`[PRACTICE_DEBUG] session_id=${activeSess.id} loaded_questions_count=${restored.length} loaded_answers_count=${Object.keys(restoredAnswers).length} status=${activeSess.status}`);
             setLoading(false);
             return;
           }
-          // Session exists but has no question rows → close only if active, then regenerate
+          // Session exists but has no question rows → BUG, do not silently regenerate over it.
+          console.error(`[SESSION_NO_QUESTIONS] session_id=${activeSess.id} has 0 rows in practice_session_questions. Closing and regenerating.`);
           if (activeSess.status === 'active') {
             await supabase
               .from('practice_sessions')
