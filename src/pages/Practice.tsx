@@ -237,18 +237,27 @@ export default function Practice() {
               if (k) restoredAnswers[k] = r.user_answer;
             }
             setAnswers(restoredAnswers);
-            // Resume at first unanswered question
-            const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
-            setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
-            console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
+
+            if (activeSess.status === 'completed') {
+              // Permanently restore results screen
+              setCurrentIndex(restored.length - 1);
+              setShowResults(true);
+              console.log(`[PRACTICE_RESULTS] restored session=${activeSess.id} score=${activeSess.num_correct}/${activeSess.num_tasks}`);
+            } else {
+              const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
+              setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
+              console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
+            }
             setLoading(false);
             return;
           }
-          // Active session exists but has no question rows → close it and regenerate
-          await supabase
-            .from('practice_sessions')
-            .update({ status: 'completed', ended_at: new Date().toISOString() })
-            .eq('id', activeSess.id);
+          // Session exists but has no question rows → close only if active, then regenerate
+          if (activeSess.status === 'active') {
+            await supabase
+              .from('practice_sessions')
+              .update({ status: 'completed', ended_at: new Date().toISOString() })
+              .eq('id', activeSess.id);
+          }
         }
       } else {
         // forceNew: close any active sessions before creating a new one
