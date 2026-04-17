@@ -972,7 +972,12 @@ export default function Practice() {
           {currentIndex === questions.length - 1 ? (
             <Button
               variant="accent"
-              onClick={() => { savePracticeResults(); setShowResults(true); }}
+              onClick={async () => {
+                console.log('[PRACTICE_RESULTS] saving before showing results screen');
+                await savePracticeResults();
+                console.log('[PRACTICE_RESULTS] saved — results now persistent');
+                setShowResults(true);
+              }}
               disabled={answeredCount === 0}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
