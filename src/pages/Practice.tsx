@@ -676,7 +676,7 @@ ${questionText}
 
               {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
               <div className="flex gap-3 justify-center mb-6">
-                <Button onClick={loadPractice} variant="accent">
+                <Button onClick={() => loadPractice(true)} variant="accent">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Новая практика
                 </Button>
