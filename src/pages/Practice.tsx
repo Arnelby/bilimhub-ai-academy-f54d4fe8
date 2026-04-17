@@ -42,9 +42,10 @@ interface McqPractice {
 type PracticeQuestion = ComparisonPractice | McqPractice;
 
 interface MistakeExplanation {
-  explanation: string;
-  correctReasoning: string;
-  loading: boolean;
+  staticSolution: string;     // full solution from question_explanations (no AI)
+  mistakeHint: string;        // short AI hint, only when wrong
+  loadingStatic: boolean;
+  loadingHint: boolean;
 }
 
 export default function Practice() {
@@ -385,11 +386,16 @@ export default function Practice() {
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
   };
 
-  const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string) => {
-    if (!isAI) return;
-    
+  // Always load the static solution from question_explanations.
+  // Only call AI for a SHORT mistake hint when user_answer != correct_answer (and cache it).
+  const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string | null) => {
     const key = qKey(q);
-    if (mistakeExplanations[key]?.explanation) {
+    const questionId = `${q.type}_${q.id}`;
+    const isWrong = !!userAnswer && !compareAnswers(userAnswer, q.correct_answer);
+
+    // Toggle if already loaded
+    const existing = mistakeExplanations[key];
+    if (existing && !existing.loadingStatic && !existing.loadingHint) {
       setExpandedMistake(expandedMistake === key ? null : key);
       return;
     }
@@ -397,49 +403,72 @@ export default function Practice() {
     setExpandedMistake(key);
     setMistakeExplanations(prev => ({
       ...prev,
-      [key]: { explanation: '', correctReasoning: '', loading: true },
+      [key]: {
+        staticSolution: '',
+        mistakeHint: '',
+        loadingStatic: true,
+        loadingHint: isWrong,
+      },
     }));
 
+    // STEP 1 — static explanation from DB (no AI)
+    let staticSolution = '';
     try {
-      const questionText = q.type === 'comparison'
-        ? `Условие: ${q.instruction || 'Сравните величины'}\nСтолбец A: ${q.column_a}\nСтолбец B: ${q.column_b}\n\nВарианты ответа:\nА) Величина в столбце A больше\nБ) Величина в столбце B больше\nВ) Величины равны\nГ) Недостаточно информации`
-        : `Условие: ${q.instruction}${q.type === 'mcq' && q.options ? '\n\nВарианты:\n' + Object.entries(q.options).map(([k, v]) => `${toCyrillicKey(k)}) ${v}`).join('\n') : ''}`;
+      const { data: staticRow } = await supabase
+        .from('question_explanations')
+        .select('explanation_text')
+        .eq('question_id', questionId)
+        .maybeSingle();
+      staticSolution = staticRow?.explanation_text
+        || `Правильный ответ: ${toCyrillicKey(q.correct_answer)}. Подробное решение для этой задачи скоро появится.`;
+    } catch {
+      staticSolution = `Правильный ответ: ${toCyrillicKey(q.correct_answer)}.`;
+    }
 
+    setMistakeExplanations(prev => ({
+      ...prev,
+      [key]: {
+        staticSolution,
+        mistakeHint: '',
+        loadingStatic: false,
+        loadingHint: isWrong,
+      },
+    }));
+
+    if (!isWrong) return;
+
+    // STEP 2 — short AI mistake hint, cached by (question_id, user_answer)
+    try {
+      const { data: cached } = await supabase
+        .from('ai_mistake_explanations')
+        .select('explanation')
+        .eq('question_id', questionId)
+        .eq('user_answer', userAnswer!)
+        .maybeSingle();
+
+      if (cached?.explanation) {
+        setMistakeExplanations(prev => ({
+          ...prev,
+          [key]: {
+            staticSolution,
+            mistakeHint: cached.explanation,
+            loadingStatic: false,
+            loadingHint: false,
+          },
+        }));
+        return;
+      }
+
+      // Cache miss → call AI for a SHORT 1-2 sentence mistake explanation only
       const correctLabel = toCyrillicKey(q.correct_answer);
-      const userLabel = toCyrillicKey(userAnswer);
+      const userLabel = toCyrillicKey(userAnswer!);
+      const questionSummary = q.type === 'comparison'
+        ? `Сравнение: A = ${q.column_a}, B = ${q.column_b}`
+        : `${q.instruction}`;
 
-      // Build structured prompt with strict format
-      const explanationPrompt = `Ученик решал математическую задачу ОРТ.
-
-ЗАДАЧА:
-${questionText}
-
-Ответ ученика: ${userLabel}
-Правильный ответ: ${correctLabel}
-
-ОТВЕТЬ СТРОГО ПО ФОРМАТУ (4 блока):
-
-❌ ОШИБКА:
-[Конкретно что ученик сделал неправильно. Одно предложение.]
-
-✅ РЕШЕНИЕ:
-[Пошаговое решение. Каждый шаг на новой строке. Используй математическую запись:]
-[- Дроби: $\\frac{a}{b}$]
-[- Степени: $x^{2}$, $\\sqrt{x}$]
-[- Сравнения: $>$, $<$, $=$]
-[- Вычисления показывай: $2^3 = 8$]
-
-📌 ОТВЕТ: ${correctLabel}
-
-💡 ЗАПОМНИ:
-[Одно предложение — ключевое правило для запоминания.]
-
-ПРАВИЛА:
-- Математические формулы оборачивай в $...$
-- Не используй фразы "давайте разберём", "рассмотрим" — пиши прямо
-- Решение должно быть конкретным с числами
-- Ответ ОБЯЗАН совпадать с правильным: ${correctLabel}
-- Пиши на русском языке`;
+      const prompt = `Задача: ${questionSummary}
+Ученик выбрал: ${userLabel}. Правильный ответ: ${correctLabel}.
+Кратко (1–2 предложения, без полного решения) объясни типичную причину этой ошибки. Используй $...$ для формул. Без вступлений.`;
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
@@ -451,13 +480,8 @@ ${questionText}
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            messages: [
-              {
-                role: 'user',
-                content: explanationPrompt,
-              },
-            ],
-            context: { type: 'mistake_review' },
+            messages: [{ role: 'user', content: prompt }],
+            context: { type: 'mistake_hint' },
             language: 'ru',
           }),
         }
@@ -468,14 +492,12 @@ ${questionText}
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
-
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          for (const line of lines) {
+          for (const line of chunk.split('\n')) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim();
               if (data === '[DONE]') continue;
@@ -489,15 +511,41 @@ ${questionText}
         }
       }
 
-      const explanation = fullText || 'Не удалось получить объяснение.';
+      const hint = (fullText || '').trim() || 'Перепроверь шаги решения и сравни с правильным ответом.';
+
+      // Save to cache (best-effort, ignore errors / unique violations)
+      supabase
+        .from('ai_mistake_explanations')
+        .insert({
+          question_id: questionId,
+          user_answer: userAnswer!,
+          correct_answer: q.correct_answer,
+          explanation: hint,
+        })
+        .then(({ error }) => {
+          if (error && error.code !== '23505') {
+            console.warn('[mistake_hint cache insert]', error.message);
+          }
+        });
+
       setMistakeExplanations(prev => ({
         ...prev,
-        [key]: { explanation, correctReasoning: '', loading: false },
+        [key]: {
+          staticSolution,
+          mistakeHint: hint,
+          loadingStatic: false,
+          loadingHint: false,
+        },
       }));
     } catch {
       setMistakeExplanations(prev => ({
         ...prev,
-        [key]: { explanation: 'Ошибка при загрузке объяснения.', correctReasoning: '', loading: false },
+        [key]: {
+          staticSolution,
+          mistakeHint: 'Не удалось загрузить разбор ошибки.',
+          loadingStatic: false,
+          loadingHint: false,
+        },
       }));
     }
   };
@@ -743,30 +791,50 @@ ${questionText}
                       <span className="text-success">Верный: {toCyrillicKey(q.correct_answer)}</span>
                     </div>
 
-                    {/* AI group only: mistake explanation via AI */}
-                    {isAI && !isCorrect && userAnswer && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-accent hover:text-accent"
-                          onClick={() => loadMistakeExplanation(q, userAnswer)}
-                        >
-                          {explanation?.loading ? (
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                          ) : (
-                            <Lightbulb className="mr-1 h-3 w-3" />
-                          )}
-                          {expandedMistake === key ? 'Скрыть разбор' : 'Разбор с AI'}
-                        </Button>
-
-                        {expandedMistake === key && explanation?.explanation && (
-                          <div className="mt-2 rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
-                            <MathRenderer content={explanation.explanation} />
-                          </div>
+                    {/* Static solution always available; AI mistake hint only when wrong */}
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-accent hover:text-accent"
+                        onClick={() => loadMistakeExplanation(q, userAnswer)}
+                      >
+                        {(explanation?.loadingStatic || explanation?.loadingHint) ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Lightbulb className="mr-1 h-3 w-3" />
                         )}
-                      </>
-                    )}
+                        {expandedMistake === key
+                          ? 'Скрыть разбор'
+                          : (isCorrect ? 'Показать решение' : 'Разбор ошибки')}
+                      </Button>
+
+                      {expandedMistake === key && explanation && (
+                        <div className="mt-2 space-y-3">
+                          {explanation.staticSolution && (
+                            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed">
+                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Решение
+                              </div>
+                              <MathRenderer content={explanation.staticSolution} />
+                            </div>
+                          )}
+                          {!isCorrect && userAnswer && (
+                            <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
+                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-accent">
+                                Разбор ошибки {explanation.loadingHint ? '(загрузка…)' : ''}
+                              </div>
+                              {explanation.mistakeHint
+                                ? <MathRenderer content={explanation.mistakeHint} />
+                                : (explanation.loadingHint
+                                    ? <span className="text-muted-foreground">Готовим короткий разбор…</span>
+                                    : null)
+                              }
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   </div>
                 );
               })}
