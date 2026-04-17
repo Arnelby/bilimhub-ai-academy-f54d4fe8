@@ -488,117 +488,18 @@ export default function Practice() {
 
     if (!isWrong) return;
 
-    // STEP 2 — short AI mistake hint, cached by (question_id, user_answer)
-    try {
-      const { data: cached } = await supabase
-        .from('ai_mistake_explanations')
-        .select('explanation')
-        .eq('question_id', questionId)
-        .eq('user_answer', userAnswer!)
-        .maybeSingle();
-
-      if (cached?.explanation) {
-        setMistakeExplanations(prev => ({
-          ...prev,
-          [key]: {
-            staticSolution,
-            mistakeHint: cached.explanation,
-            loadingStatic: false,
-            loadingHint: false,
-          },
-        }));
-        return;
-      }
-
-      // Cache miss → call AI for a SHORT 1-2 sentence mistake explanation only
-      const correctLabel = toCyrillicKey(q.correct_answer);
-      const userLabel = toCyrillicKey(userAnswer!);
-      const questionSummary = q.type === 'comparison'
-        ? `Сравнение: A = ${q.column_a}, B = ${q.column_b}`
-        : `${q.instruction}`;
-
-      const prompt = `Задача: ${questionSummary}
-Ученик выбрал: ${userLabel}. Правильный ответ: ${correctLabel}.
-Кратко (1–2 предложения, без полного решения) объясни типичную причину этой ошибки. Используй $...$ для формул. Без вступлений.`;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: prompt }],
-            context: { type: 'mistake_hint' },
-            language: 'ru',
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n')) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6).trim();
-              if (data === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) fullText += content;
-              } catch { /* skip */ }
-            }
-          }
-        }
-      }
-
-      const hint = (fullText || '').trim() || 'Перепроверь шаги решения и сравни с правильным ответом.';
-
-      // Save to cache (best-effort, ignore errors / unique violations)
-      supabase
-        .from('ai_mistake_explanations')
-        .insert({
-          question_id: questionId,
-          user_answer: userAnswer!,
-          correct_answer: q.correct_answer,
-          explanation: hint,
-        })
-        .then(({ error }) => {
-          if (error && error.code !== '23505') {
-            console.warn('[mistake_hint cache insert]', error.message);
-          }
-        });
-
-      setMistakeExplanations(prev => ({
-        ...prev,
-        [key]: {
-          staticSolution,
-          mistakeHint: hint,
-          loadingStatic: false,
-          loadingHint: false,
-        },
-      }));
-    } catch {
-      setMistakeExplanations(prev => ({
-        ...prev,
-        [key]: {
-          staticSolution,
-          mistakeHint: 'Не удалось загрузить разбор ошибки.',
-          loadingStatic: false,
-          loadingHint: false,
-        },
-      }));
-    }
+    // AI HARD-DISABLED in practice. No AI generation, validation, or explanations.
+    // Only the static DB solution (loaded above from question_explanations) is shown.
+    console.error('[PRACTICE_AI_BLOCKED] AI mistake hint disabled — DB-only practice mode.');
+    setMistakeExplanations(prev => ({
+      ...prev,
+      [key]: {
+        staticSolution,
+        mistakeHint: '',
+        loadingStatic: false,
+        loadingHint: false,
+      },
+    }));
   };
 
   // Save practice results to DB
