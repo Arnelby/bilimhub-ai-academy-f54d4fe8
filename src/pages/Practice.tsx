@@ -447,6 +447,7 @@ export default function Practice() {
             .insert(sessQRows);
           if (sqErr) console.error('[PRACTICE_SESSION] Failed to save session questions:', sqErr);
         }
+        console.log(`[PRACTICE_DEBUG] session_id=${sessionData.id} loaded_questions_count=${chosen.length} loaded_answers_count=0 status=active(new)`);
       }
       setQuestions(finalQuestions);
     } catch (err) {
