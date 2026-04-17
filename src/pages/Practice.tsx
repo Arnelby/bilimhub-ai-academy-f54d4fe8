@@ -90,51 +90,105 @@ export default function Practice() {
       const pid = profile?.participant_id || null;
       setParticipantId(pid);
 
-      // ============ 1. LOAD ENTIRE QUESTION BANK ============
-      const [{ data: compRows }, { data: mcqRows }] = await Promise.all([
-        supabase.from('math_questions').select('id, test_id, question_number, topic, instruction, column_a, column_b, correct_answer').not('correct_answer', 'is', null),
-        supabase.from('math_test_questions').select('id, test_id, question_number, topic, instruction, options, correct_answer, question_type').eq('question_type', 'mcq').not('correct_answer', 'is', null),
+      // ============ 1. LOAD PRACTICE-ONLY BANK ============
+      // STRICT RULE: Practice MUST NOT reuse test questions.
+      // Source = practice_questions only. math_questions + math_test_questions are TEST tables
+      // and are used solely to build an exclusion set (filter, not delete).
+      const [{ data: practiceRows }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
+        supabase
+          .from('practice_questions')
+          .select('id, topic, question_type, correct_answer, question_data')
+          .not('correct_answer', 'is', null),
+        supabase
+          .from('math_questions')
+          .select('test_id, question_number, instruction, column_a, column_b'),
+        supabase
+          .from('math_test_questions')
+          .select('test_id, question_number, instruction, options')
+          .eq('question_type', 'mcq'),
       ]);
+
+      // Build exclusion fingerprints from TEST tables.
+      // We can't compare by id (different schemas), so we fingerprint by content.
+      const norm = (s: any) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const testFingerprints = new Set<string>();
+      const testIdSet = new Set<string>(); // synthetic test ids (mq_/mtq_) — legacy
+      for (const r of testCompRows || []) {
+        testIdSet.add(`mq_${r.test_id}_${r.question_number}`);
+        testFingerprints.add(`comp|${norm(r.instruction)}|${norm(r.column_a)}|${norm(r.column_b)}`);
+      }
+      for (const r of testMcqRows || []) {
+        testIdSet.add(`mtq_${r.test_id}_${r.question_number}`);
+        const opts = (r.options as any) || {};
+        const optBlob = ['A','B','C','D','E']
+          .map(k => norm(opts[k] ?? opts[k.toLowerCase()]))
+          .join('|');
+        testFingerprints.add(`mcq|${norm(r.instruction)}|${optBlob}`);
+      }
 
       type Bank = { qid: string; topic: string; q: PracticeQuestion };
       const rawBank: Bank[] = [];
-      for (const r of compRows || []) {
-        const qid = `mq_${r.test_id}_${r.question_number}`;
-        rawBank.push({
-          qid,
-          topic: r.topic || '',
-          q: {
-            type: 'comparison',
-            id: r.id,
-            question_number: r.question_number,
-            topic: r.topic || '',
-            instruction: r.instruction,
-            column_a: r.column_a,
-            column_b: r.column_b,
-            option_c: null,
-            option_d: null,
-            correct_answer: (r.correct_answer || 'A').toString().trim().toUpperCase(),
-            variantId: r.test_id,
-          },
-        });
+      let duplicateCount = 0;
+
+      for (const r of practiceRows || []) {
+        const qid = `pq_${r.id}`;
+        const data = (r.question_data as any) || {};
+        const qtype = (r.question_type || data.type || '').toString().toLowerCase();
+        const ans = (r.correct_answer || data.correct_answer || 'A').toString().trim().toUpperCase();
+
+        // Build fingerprint to check against test bank.
+        let fingerprint = '';
+        if (qtype === 'comparison') {
+          fingerprint = `comp|${norm(data.instruction)}|${norm(data.column_a)}|${norm(data.column_b)}`;
+        } else if (qtype === 'mcq') {
+          const opts = data.options || {};
+          const optBlob = ['A','B','C','D','E']
+            .map(k => norm(opts[k] ?? opts[k.toLowerCase()]))
+            .join('|');
+          fingerprint = `mcq|${norm(data.instruction)}|${optBlob}`;
+        }
+
+        if (fingerprint && testFingerprints.has(fingerprint)) {
+          duplicateCount++;
+          console.warn(`[DUPLICATE_TEST_QUESTION] practice_questions.id=${r.id} matches a test question — excluded.`);
+          continue;
+        }
+
+        if (qtype === 'comparison') {
+          rawBank.push({
+            qid,
+            topic: r.topic || data.topic || '',
+            q: {
+              type: 'comparison',
+              id: r.id as any,
+              question_number: 0,
+              topic: r.topic || data.topic || '',
+              instruction: data.instruction ?? null,
+              column_a: data.column_a ?? '',
+              column_b: data.column_b ?? '',
+              option_c: null,
+              option_d: null,
+              correct_answer: ans,
+            } as ComparisonPractice,
+          });
+        } else if (qtype === 'mcq') {
+          rawBank.push({
+            qid,
+            topic: r.topic || data.topic || '',
+            q: {
+              type: 'mcq',
+              id: r.id as any,
+              question_number: 0,
+              topic: r.topic || data.topic || '',
+              instruction: data.instruction || '',
+              options: data.options || {},
+              correct_answer: ans,
+            } as McqPractice,
+          });
+        }
       }
-      for (const r of mcqRows || []) {
-        const qid = `mtq_${r.test_id}_${r.question_number}`;
-        rawBank.push({
-          qid,
-          topic: r.topic || '',
-          q: {
-            type: 'mcq',
-            id: r.id,
-            question_number: r.question_number,
-            topic: r.topic || '',
-            instruction: r.instruction || '',
-            options: (r.options as any) || {},
-            correct_answer: (r.correct_answer || 'A').toString().trim().toUpperCase(),
-            variantId: r.test_id,
-          },
-        });
-      }
+
+      console.log(`[PRACTICE_SOURCE] practice_questions=${practiceRows?.length || 0}, test_excluded=${duplicateCount}, test_bank_size=${testFingerprints.size}`);
 
       // ============ 1a. SMART QUALITY FILTER + STRICT FORMAT LOCK ============
       // NOTE: filter only — never delete DB rows.
