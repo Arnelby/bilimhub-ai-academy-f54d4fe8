@@ -449,10 +449,46 @@ export default function Practice() {
 
   const qKey = (q: PracticeQuestion) => `${q.type}_${q.id}`;
 
+  // Immediately persist a single answer to practice_responses (upsert by session+question)
+  const persistAnswer = useCallback(async (q: PracticeQuestion, latinKey: string, index: number) => {
+    if (!user || !sessionId) return;
+    const qid = (q as any)._qid as string | undefined;
+    if (!qid) return;
+    const normUser = normalizeAnswer(latinKey);
+    const normCorrect = normalizeAnswer(q.correct_answer);
+    const isCorrect = compareAnswers(latinKey, q.correct_answer);
+    const respReliable = !!(participantId && normUser);
+
+    const row = {
+      session_id: sessionId,
+      user_id: user.id,
+      participant_id: participantId,
+      question_index: index,
+      topic: q.topic,
+      difficulty: null as string | null,
+      question_id: qid,
+      question_data: q.type === 'comparison'
+        ? { question_id: qid, instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
+        : { question_id: qid, instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
+      user_answer: normUser,
+      correct_answer: normCorrect,
+      is_correct: isCorrect,
+      data_version: 'v2',
+      is_reliable: respReliable,
+    };
+
+    const { error } = await supabase
+      .from('practice_responses' as any)
+      .upsert(row, { onConflict: 'session_id,question_id' });
+    if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
+    else console.log(`[PRACTICE_SESSION] saved answer session=${sessionId} qid=${qid} correct=${isCorrect}`);
+  }, [user, sessionId, participantId]);
+
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
     if (!q) return;
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
+    void persistAnswer(q, latinKey, currentIndex);
   };
 
   // Always load the static solution from question_explanations.
