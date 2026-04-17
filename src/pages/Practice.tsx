@@ -66,7 +66,7 @@ export default function Practice() {
   const [participantId, setParticipantId] = useState<string | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
 
-  const loadPractice = useCallback(async () => {
+  const loadPractice = useCallback(async (forceNew: boolean = false) => {
     if (!user || groupLoading) return;
     setLoading(true);
     setAnswers({});
@@ -78,7 +78,7 @@ export default function Practice() {
     sessionStartRef.current = Date.now();
 
     try {
-      console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}`);
+      console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}, forceNew: ${forceNew}`);
 
       // participant_id
       const { data: profile } = await supabase
@@ -135,15 +135,68 @@ export default function Practice() {
         });
       }
 
+      const bankByQid = new Map(bank.map(b => [b.qid, b]));
+
+      // ============ 1b. SESSION REUSE — load active session BEFORE generating ============
+      if (!forceNew) {
+        const { data: activeSess } = await supabase
+          .from('practice_sessions')
+          .select('id, weak_topics, practice_type')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (activeSess) {
+          const { data: sessQs } = await supabase
+            .from('practice_session_questions')
+            .select('question_id, order_index')
+            .eq('session_id', activeSess.id)
+            .order('order_index', { ascending: true });
+
+          const restored: PracticeQuestion[] = [];
+          for (const sq of sessQs || []) {
+            const b = bankByQid.get(sq.question_id);
+            if (b) restored.push({ ...b.q, _qid: b.qid } as any);
+          }
+
+          if (restored.length > 0) {
+            console.log(`[PRACTICE_FRONTEND] Reusing active session ${activeSess.id} with ${restored.length} questions`);
+            setSessionId(activeSess.id);
+            setQuestions(restored);
+            const wt = Array.isArray(activeSess.weak_topics) ? (activeSess.weak_topics as string[]) : [];
+            setWeakTopics(wt);
+            setLatestTestName(isAI ? 'Персональная практика' : 'Общая практика ОРТ');
+            setLatestTestType(restored[0].type);
+            setLoading(false);
+            return;
+          }
+          // Active session exists but has no question rows → close it and regenerate
+          await supabase
+            .from('practice_sessions')
+            .update({ status: 'completed', ended_at: new Date().toISOString() })
+            .eq('id', activeSess.id);
+        }
+      } else {
+        // forceNew: close any active sessions before creating a new one
+        await supabase
+          .from('practice_sessions')
+          .update({ status: 'completed', ended_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+      }
+
       // ============ 2. EXCLUDE ALREADY ANSWERED (per-participant non-repetition) ============
       const [{ data: priorAttempts }, { data: priorPractice }] = await Promise.all([
         supabase.from('question_attempts').select('question_id').eq('user_id', user.id),
-        supabase.from('practice_responses').select('question_data').eq('user_id', user.id),
+        supabase.from('practice_responses').select('question_id, question_data').eq('user_id', user.id),
       ]);
       const seen = new Set<string>();
       for (const a of priorAttempts || []) if (a.question_id) seen.add(a.question_id);
       for (const p of priorPractice || []) {
-        const qid = (p.question_data as any)?.question_id;
+        // Prefer dedicated column; fall back to JSON for legacy rows
+        const qid = (p as any).question_id || (p.question_data as any)?.question_id;
         if (qid) seen.add(qid);
       }
       const unseen = bank.filter(b => !seen.has(b.qid));
@@ -280,7 +333,7 @@ export default function Practice() {
       // attach qid into question for save step
       const finalQuestions: PracticeQuestion[] = chosen.map(b => ({ ...b.q, _qid: b.qid } as any));
 
-      // ============ 5. CREATE SESSION ============
+      // ============ 5. CREATE SESSION + STORE ASSIGNED QUESTIONS ============
       const { data: sessionData } = await supabase
         .from('practice_sessions')
         .insert({
@@ -291,11 +344,26 @@ export default function Practice() {
           weak_topics: isAI ? weak : [],
           data_version: 'v2',
           is_reliable: !!pid,
+          status: 'active',
         })
         .select('id')
         .single();
 
-      if (sessionData) setSessionId(sessionData.id);
+      if (sessionData) {
+        setSessionId(sessionData.id);
+        // Persist the assigned question set so we can reuse this session later
+        const sessQRows = chosen.map((b, idx) => ({
+          session_id: sessionData.id,
+          question_id: b.qid,
+          order_index: idx,
+        }));
+        if (sessQRows.length > 0) {
+          const { error: sqErr } = await supabase
+            .from('practice_session_questions')
+            .insert(sessQRows);
+          if (sqErr) console.error('[PRACTICE_FRONTEND] Failed to save session questions:', sqErr);
+        }
+      }
       setQuestions(finalQuestions);
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
@@ -478,6 +546,7 @@ ${questionText}
           question_index: i,
           topic: q.topic,
           difficulty: null,
+          question_id: (q as any)._qid,
           question_data: q.type === 'comparison'
             ? { question_id: (q as any)._qid, instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { question_id: (q as any)._qid, instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
@@ -490,17 +559,20 @@ ${questionText}
       }
 
       // Save practice_responses
-      if (sessionId && responses.length > 0) {
-        const { error: respError } = await supabase
-          .from('practice_responses' as any)
-          .insert(responses);
-        if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
+      if (sessionId) {
+        if (responses.length > 0) {
+          const { error: respError } = await supabase
+            .from('practice_responses' as any)
+            .insert(responses);
+          if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
+        }
 
-        // Update practice session summary
+        // ALWAYS mark the session as completed on submit
         const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
         await supabase
           .from('practice_sessions' as any)
           .update({
+            status: 'completed',
             ended_at: new Date().toISOString(),
             total_time_seconds: totalTime,
             num_tasks: questions.length,
@@ -535,7 +607,7 @@ ${questionText}
           <h2 className="text-2xl font-bold mb-2">Ошибка генерации</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">{generationError}</p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={loadPractice} variant="accent">
+            <Button onClick={() => loadPractice(false)} variant="accent">
               <RefreshCw className="mr-2 h-4 w-4" />
               Попробовать снова
             </Button>
@@ -604,7 +676,7 @@ ${questionText}
 
               {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
               <div className="flex gap-3 justify-center mb-6">
-                <Button onClick={loadPractice} variant="accent">
+                <Button onClick={() => loadPractice(true)} variant="accent">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Новая практика
                 </Button>
