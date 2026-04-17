@@ -66,7 +66,7 @@ export default function Practice() {
   const [participantId, setParticipantId] = useState<string | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
 
-  const loadPractice = useCallback(async () => {
+  const loadPractice = useCallback(async (forceNew: boolean = false) => {
     if (!user || groupLoading) return;
     setLoading(true);
     setAnswers({});
@@ -78,7 +78,7 @@ export default function Practice() {
     sessionStartRef.current = Date.now();
 
     try {
-      console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}`);
+      console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}, forceNew: ${forceNew}`);
 
       // participant_id
       const { data: profile } = await supabase
