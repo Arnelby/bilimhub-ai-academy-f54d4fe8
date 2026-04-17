@@ -559,17 +559,20 @@ ${questionText}
       }
 
       // Save practice_responses
-      if (sessionId && responses.length > 0) {
-        const { error: respError } = await supabase
-          .from('practice_responses' as any)
-          .insert(responses);
-        if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
+      if (sessionId) {
+        if (responses.length > 0) {
+          const { error: respError } = await supabase
+            .from('practice_responses' as any)
+            .insert(responses);
+          if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
+        }
 
-        // Update practice session summary
+        // ALWAYS mark the session as completed on submit
         const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
         await supabase
           .from('practice_sessions' as any)
           .update({
+            status: 'completed',
             ended_at: new Date().toISOString(),
             total_time_seconds: totalTime,
             num_tasks: questions.length,
