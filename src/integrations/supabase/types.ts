@@ -95,6 +95,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_mistake_explanations: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          explanation: string
+          id: string
+          question_id: string
+          user_answer: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          explanation: string
+          id?: string
+          question_id: string
+          user_answer: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          explanation?: string
+          id?: string
+          question_id?: string
+          user_answer?: string
+        }
+        Relationships: []
+      }
       ai_recommendations: {
         Row: {
           error_patterns: Json | null
@@ -713,6 +740,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      question_explanations: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          explanation_text: string
+          id: string
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          explanation_text: string
+          id?: string
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          explanation_text?: string
+          id?: string
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       questions: {
         Row: {
