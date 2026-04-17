@@ -333,7 +333,7 @@ export default function Practice() {
       // attach qid into question for save step
       const finalQuestions: PracticeQuestion[] = chosen.map(b => ({ ...b.q, _qid: b.qid } as any));
 
-      // ============ 5. CREATE SESSION ============
+      // ============ 5. CREATE SESSION + STORE ASSIGNED QUESTIONS ============
       const { data: sessionData } = await supabase
         .from('practice_sessions')
         .insert({
@@ -344,11 +344,26 @@ export default function Practice() {
           weak_topics: isAI ? weak : [],
           data_version: 'v2',
           is_reliable: !!pid,
+          status: 'active',
         })
         .select('id')
         .single();
 
-      if (sessionData) setSessionId(sessionData.id);
+      if (sessionData) {
+        setSessionId(sessionData.id);
+        // Persist the assigned question set so we can reuse this session later
+        const sessQRows = chosen.map((b, idx) => ({
+          session_id: sessionData.id,
+          question_id: b.qid,
+          order_index: idx,
+        }));
+        if (sessQRows.length > 0) {
+          const { error: sqErr } = await supabase
+            .from('practice_session_questions')
+            .insert(sessQRows);
+          if (sqErr) console.error('[PRACTICE_FRONTEND] Failed to save session questions:', sqErr);
+        }
+      }
       setQuestions(finalQuestions);
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
