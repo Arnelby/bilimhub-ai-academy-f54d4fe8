@@ -452,6 +452,7 @@ export type Database = {
           is_reliable: boolean
           participant_id: string | null
           question_data: Json | null
+          question_id: string | null
           question_index: number
           session_id: string
           time_spent_seconds: number | null
@@ -469,6 +470,7 @@ export type Database = {
           is_reliable?: boolean
           participant_id?: string | null
           question_data?: Json | null
+          question_id?: string | null
           question_index: number
           session_id: string
           time_spent_seconds?: number | null
@@ -486,6 +488,7 @@ export type Database = {
           is_reliable?: boolean
           participant_id?: string | null
           question_data?: Json | null
+          question_id?: string | null
           question_index?: number
           session_id?: string
           time_spent_seconds?: number | null
@@ -510,6 +513,30 @@ export type Database = {
           },
         ]
       }
+      practice_session_questions: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          question_id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
       practice_sessions: {
         Row: {
           created_at: string
@@ -523,6 +550,7 @@ export type Database = {
           participant_id: string | null
           practice_type: string | null
           started_at: string
+          status: string
           total_time_seconds: number | null
           user_id: string
           weak_topics: Json | null
@@ -539,6 +567,7 @@ export type Database = {
           participant_id?: string | null
           practice_type?: string | null
           started_at?: string
+          status?: string
           total_time_seconds?: number | null
           user_id: string
           weak_topics?: Json | null
@@ -555,6 +584,7 @@ export type Database = {
           participant_id?: string | null
           practice_type?: string | null
           started_at?: string
+          status?: string
           total_time_seconds?: number | null
           user_id?: string
           weak_topics?: Json | null
