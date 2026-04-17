@@ -189,17 +189,19 @@ export default function Practice() {
 
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
 
-      // ============ 1b. SESSION REUSE — load active session BEFORE generating ============
+      // ============ 1b. SESSION REUSE — load latest session BEFORE generating ============
+      // Also restore COMPLETED sessions so results never disappear on refresh.
       if (!forceNew) {
-        const { data: activeSess } = await supabase
+        const { data: latestSess } = await supabase
           .from('practice_sessions')
-          .select('id, weak_topics, practice_type')
+          .select('id, weak_topics, practice_type, status, num_correct, num_tasks')
           .eq('user_id', user.id)
-          .eq('status', 'active')
+          .in('status', ['active', 'completed'])
           .order('started_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
+        const activeSess = latestSess;
         if (activeSess) {
           const { data: sessQs } = await supabase
             .from('practice_session_questions')
