@@ -96,7 +96,10 @@ export function MathRenderer({ content, className, inline = false }: MathRendere
         className
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+      <ReactMarkdown
+        remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
+        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false, output: 'html' }]]}
+      >
         {normalized}
       </ReactMarkdown>
     </Tag>
