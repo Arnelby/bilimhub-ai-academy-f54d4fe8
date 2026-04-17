@@ -317,14 +317,15 @@ export default function Practice() {
             console.log(`[PRACTICE_DEBUG] session_id=${activeSess.id} loaded_questions_count=${restored.length} loaded_answers_count=${Object.keys(restoredAnswers).length} status=${activeSess.status}`);
             setLoading(false);
             return;
-          }
-          // Session exists but has no question rows → BUG, do not silently regenerate over it.
-          console.error(`[SESSION_NO_QUESTIONS] session_id=${activeSess.id} has 0 rows in practice_session_questions. Closing and regenerating.`);
-          if (activeSess.status === 'active') {
-            await supabase
-              .from('practice_sessions')
-              .update({ status: 'completed', ended_at: new Date().toISOString() })
-              .eq('id', activeSess.id);
+            }
+            // Session exists but has no question rows → BUG, do not silently regenerate over it.
+            console.error(`[SESSION_NO_QUESTIONS] session_id=${activeSess.id} has 0 rows in practice_session_questions. Closing and regenerating.`);
+            if (activeSess.status === 'active') {
+              await supabase
+                .from('practice_sessions')
+                .update({ status: 'completed', ended_at: new Date().toISOString() })
+                .eq('id', activeSess.id);
+            }
           }
         }
       } else {
