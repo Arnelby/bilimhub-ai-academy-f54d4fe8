@@ -97,10 +97,10 @@ export default function Practice() {
       ]);
 
       type Bank = { qid: string; topic: string; q: PracticeQuestion };
-      const bank: Bank[] = [];
+      const rawBank: Bank[] = [];
       for (const r of compRows || []) {
         const qid = `mq_${r.test_id}_${r.question_number}`;
-        bank.push({
+        rawBank.push({
           qid,
           topic: r.topic || '',
           q: {
@@ -120,7 +120,7 @@ export default function Practice() {
       }
       for (const r of mcqRows || []) {
         const qid = `mtq_${r.test_id}_${r.question_number}`;
-        bank.push({
+        rawBank.push({
           qid,
           topic: r.topic || '',
           q: {
@@ -135,6 +135,57 @@ export default function Practice() {
           },
         });
       }
+
+      // ============ 1a. SMART QUALITY FILTER + STRICT FORMAT LOCK ============
+      // NOTE: filter only — never delete DB rows.
+      const HAS_NUMBER = /\d/;
+      const FIGURE_REF = /(рисун|рис\.|фигур|диаграмм|график|чертеж|figure|diagram|see\s+the)/i;
+      const VAR_ONLY = /^[\s,;:.\-+*/=()a-zA-Zа-яА-Я]+$/; // no digits at all
+
+      const reasons: Record<string, number> = {};
+      const bump = (k: string) => { reasons[k] = (reasons[k] || 0) + 1; };
+
+      const isQualityOk = (b: Bank): boolean => {
+        const q = b.q;
+        const ans = (q.correct_answer || '').trim().toUpperCase();
+
+        if (q.type === 'comparison') {
+          // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
+          const a = (q.column_a || '').trim();
+          const bcol = (q.column_b || '').trim();
+          if (!a || !bcol) { bump('comp_missing_columns'); return false; }
+          if (!['A', 'B', 'C', 'D'].includes(ans)) { bump('comp_bad_answer'); return false; }
+
+          // Quality: figure reference without numbers in either column or instruction
+          const blob = `${q.instruction || ''} ${a} ${bcol}`;
+          if (FIGURE_REF.test(blob) && !HAS_NUMBER.test(blob)) { bump('figure_no_data'); return false; }
+
+          // Undefined problem: BOTH columns are pure variables (no digits anywhere)
+          if (!HAS_NUMBER.test(a) && !HAS_NUMBER.test(bcol) && VAR_ONLY.test(a) && VAR_ONLY.test(bcol)) {
+            bump('vars_only'); return false;
+          }
+          return true;
+        }
+
+        // MCQ: STRICT — exactly 5 options A..E, correct_answer must be one of them
+        const opts = q.options || {};
+        const keys = Object.keys(opts).map(k => k.trim().toUpperCase());
+        const need = ['A', 'B', 'C', 'D', 'E'];
+        const hasAll5 = need.every(k => keys.includes(k) && String((opts as any)[k] ?? (opts as any)[k.toLowerCase()] ?? '').trim() !== '');
+        if (!hasAll5) { bump('mcq_not_5_options'); return false; }
+        if (!need.includes(ans)) { bump('mcq_bad_answer'); return false; }
+
+        const instr = (q.instruction || '').trim();
+        if (!instr) { bump('mcq_empty_instruction'); return false; }
+        if (FIGURE_REF.test(instr) && !HAS_NUMBER.test(instr)) { bump('figure_no_data'); return false; }
+        // Undefined: instruction has no digits AND looks like vars-only
+        if (!HAS_NUMBER.test(instr) && VAR_ONLY.test(instr)) { bump('vars_only'); return false; }
+        return true;
+      };
+
+      const bank: Bank[] = rawBank.filter(isQualityOk);
+      console.log(`[PRACTICE_FILTER] raw=${rawBank.length}, kept=${bank.length}, excluded=${rawBank.length - bank.length}`);
+      console.log('[PRACTICE_FILTER] exclusion reasons:', reasons);
 
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
 
