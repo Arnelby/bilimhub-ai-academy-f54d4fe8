@@ -135,15 +135,68 @@ export default function Practice() {
         });
       }
 
+      const bankByQid = new Map(bank.map(b => [b.qid, b]));
+
+      // ============ 1b. SESSION REUSE — load active session BEFORE generating ============
+      if (!forceNew) {
+        const { data: activeSess } = await supabase
+          .from('practice_sessions')
+          .select('id, weak_topics, practice_type')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (activeSess) {
+          const { data: sessQs } = await supabase
+            .from('practice_session_questions')
+            .select('question_id, order_index')
+            .eq('session_id', activeSess.id)
+            .order('order_index', { ascending: true });
+
+          const restored: PracticeQuestion[] = [];
+          for (const sq of sessQs || []) {
+            const b = bankByQid.get(sq.question_id);
+            if (b) restored.push({ ...b.q, _qid: b.qid } as any);
+          }
+
+          if (restored.length > 0) {
+            console.log(`[PRACTICE_FRONTEND] Reusing active session ${activeSess.id} with ${restored.length} questions`);
+            setSessionId(activeSess.id);
+            setQuestions(restored);
+            const wt = Array.isArray(activeSess.weak_topics) ? (activeSess.weak_topics as string[]) : [];
+            setWeakTopics(wt);
+            setLatestTestName(isAI ? 'Персональная практика' : 'Общая практика ОРТ');
+            setLatestTestType(restored[0].type);
+            setLoading(false);
+            return;
+          }
+          // Active session exists but has no question rows → close it and regenerate
+          await supabase
+            .from('practice_sessions')
+            .update({ status: 'completed', ended_at: new Date().toISOString() })
+            .eq('id', activeSess.id);
+        }
+      } else {
+        // forceNew: close any active sessions before creating a new one
+        await supabase
+          .from('practice_sessions')
+          .update({ status: 'completed', ended_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+      }
+
       // ============ 2. EXCLUDE ALREADY ANSWERED (per-participant non-repetition) ============
       const [{ data: priorAttempts }, { data: priorPractice }] = await Promise.all([
         supabase.from('question_attempts').select('question_id').eq('user_id', user.id),
-        supabase.from('practice_responses').select('question_data').eq('user_id', user.id),
+        supabase.from('practice_responses').select('question_id, question_data').eq('user_id', user.id),
       ]);
       const seen = new Set<string>();
       for (const a of priorAttempts || []) if (a.question_id) seen.add(a.question_id);
       for (const p of priorPractice || []) {
-        const qid = (p.question_data as any)?.question_id;
+        // Prefer dedicated column; fall back to JSON for legacy rows
+        const qid = (p as any).question_id || (p.question_data as any)?.question_id;
         if (qid) seen.add(qid);
       }
       const unseen = bank.filter(b => !seen.has(b.qid));
