@@ -135,7 +135,7 @@ export default function Practice() {
         });
       }
 
-      // ============ 2. EXCLUDE ALREADY ANSWERED ============
+      // ============ 2. EXCLUDE ALREADY ANSWERED (per-participant non-repetition) ============
       const [{ data: priorAttempts }, { data: priorPractice }] = await Promise.all([
         supabase.from('question_attempts').select('question_id').eq('user_id', user.id),
         supabase.from('practice_responses').select('question_data').eq('user_id', user.id),
@@ -146,12 +146,8 @@ export default function Practice() {
         const qid = (p.question_data as any)?.question_id;
         if (qid) seen.add(qid);
       }
-      console.log(`[PRACTICE_FRONTEND] Bank: ${bank.length}, seen: ${seen.size}`);
-
-      let unseen = bank.filter(b => !seen.has(b.qid));
-      // If pool exhausted, allow reuse but unseen first
-      const allowReuse = unseen.length < (isControl ? 25 : 10);
-      const seenPool = allowReuse ? bank.filter(b => seen.has(b.qid)) : [];
+      const unseen = bank.filter(b => !seen.has(b.qid));
+      console.log(`[PRACTICE_FRONTEND] Bank: ${bank.length}, seen: ${seen.size}, unseen: ${unseen.length}`);
 
       // ============ 3. WEAK TOPICS (AI only) ============
       let weak: string[] = [];
@@ -177,23 +173,36 @@ export default function Practice() {
           }
           setLatestTestType(formatType);
 
-          // accuracy per topic from question_attempts (existing logic)
-          const { data: attempts } = await supabase
-            .from('question_attempts')
-            .select('topic, is_correct')
-            .eq('user_id', user.id);
+          // Accuracy per topic from BOTH tests and prior practice (full history)
+          const [{ data: attempts }, { data: practiceHist }] = await Promise.all([
+            supabase.from('question_attempts').select('topic, is_correct').eq('user_id', user.id),
+            supabase.from('practice_responses').select('topic, is_correct').eq('user_id', user.id),
+          ]);
           const tmap = new Map<string, { c: number; t: number }>();
-          for (const a of attempts || []) {
-            const t = a.topic || '';
-            if (!t) continue;
-            const e = tmap.get(t) || { c: 0, t: 0 };
-            e.t++;
-            if (a.is_correct) e.c++;
-            tmap.set(t, e);
-          }
-          tmap.forEach((v, k) => {
-            if (v.t >= 1 && (v.c / v.t) * 100 < 60) weak.push(k);
-          });
+          const ingest = (rows: { topic: string | null; is_correct: boolean | null }[] | null) => {
+            for (const a of rows || []) {
+              const t = (a.topic || '').trim();
+              if (!t) continue;
+              const e = tmap.get(t) || { c: 0, t: 0 };
+              e.t++;
+              if (a.is_correct) e.c++;
+              tmap.set(t, e);
+            }
+          };
+          ingest(attempts);
+          ingest(practiceHist);
+
+          // Rank topics by accuracy ASC; require ≥3 attempts AND <60% accuracy.
+          // Cap to top-8 worst so the weak set is actually targeted.
+          const ranked = Array.from(tmap.entries())
+            .filter(([, v]) => v.t >= 3 && (v.c / v.t) * 100 < 60)
+            .sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))
+            .slice(0, 8)
+            .map(([k]) => k);
+          weak = ranked;
+          console.log('[PRACTICE_FRONTEND] Topic accuracy map:',
+            Array.from(tmap.entries()).map(([k, v]) => `${k}=${v.c}/${v.t}`).join(', '));
+          console.log('[PRACTICE_FRONTEND] Weak topics (top-8 <60%, ≥3 attempts):', weak);
           setWeakTopics(weak);
         }
       } else {
@@ -207,38 +216,57 @@ export default function Practice() {
       let chosen: Bank[] = [];
 
       if (isControl) {
-        // 25 random across all topics
+        // CONTROL: 25 random across all topics, no weak-topic bias
         chosen = shuffle(unseen).slice(0, 25);
-        if (chosen.length < 25 && allowReuse) {
-          chosen = chosen.concat(shuffle(seenPool).slice(0, 25 - chosen.length));
+        if (chosen.length < 25) {
+          // Pool exhausted — allow reuse to keep practice available
+          const reusable = shuffle(bank.filter(b => !chosen.includes(b)));
+          chosen = chosen.concat(reusable.slice(0, 25 - chosen.length));
         }
       } else {
-        // AI: 10 total — 8 weak + 2 other (strict 80/20)
+        // AI: 10 total — strict 80/20 (8 weak + 2 other)
         const TOTAL = 10;
         const WEAK_N = 8;
+        const weakSet = new Set(weak);
+
+        // Helper: pick by weak/other split from a pool
+        const pickFromPool = (pool: Bank[]) => {
+          const weakP = shuffle(pool.filter(b => weakSet.has(b.topic)));
+          const otherP = shuffle(pool.filter(b => !weakSet.has(b.topic)));
+          const weakPick = weakP.slice(0, WEAK_N);
+          const otherPick = otherP.slice(0, TOTAL - weakPick.length);
+          return [...weakPick, ...otherPick];
+        };
 
         if (weak.length === 0) {
-          // fallback: random
+          // No weak data → random sample from unseen (then bank)
           chosen = shuffle(unseen).slice(0, TOTAL);
-        } else {
-          const weakSet = new Set(weak);
-          const weakPool = shuffle(unseen.filter(b => weakSet.has(b.topic)));
-          const otherPool = shuffle(unseen.filter(b => !weakSet.has(b.topic)));
-
-          const weakPick = weakPool.slice(0, WEAK_N);
-          const otherPick = otherPool.slice(0, TOTAL - weakPick.length);
-          chosen = [...weakPick, ...otherPick];
-
-          // backfill if short
           if (chosen.length < TOTAL) {
-            const remaining = unseen.filter(b => !chosen.includes(b));
-            chosen = chosen.concat(shuffle(remaining).slice(0, TOTAL - chosen.length));
+            const reusable = shuffle(bank.filter(b => !chosen.includes(b)));
+            chosen = chosen.concat(reusable.slice(0, TOTAL - chosen.length));
           }
-          if (chosen.length < TOTAL && allowReuse) {
-            chosen = chosen.concat(shuffle(seenPool).slice(0, TOTAL - chosen.length));
+        } else {
+          // 1) Try unseen pool with strict 80/20
+          chosen = pickFromPool(unseen);
+
+          // 2) If short, backfill from seen pool — STILL respecting 80/20
+          if (chosen.length < TOTAL) {
+            const seenAvail = bank.filter(b => !chosen.includes(b));
+            const fromSeen = pickFromPool(seenAvail);
+            chosen = chosen.concat(fromSeen.slice(0, TOTAL - chosen.length));
+          }
+
+          // 3) Last-resort: any remaining (shouldn't trigger normally)
+          if (chosen.length < TOTAL) {
+            const remaining = shuffle(bank.filter(b => !chosen.includes(b)));
+            chosen = chosen.concat(remaining.slice(0, TOTAL - chosen.length));
           }
         }
         chosen = shuffle(chosen);
+
+        // Validate 80/20 distribution and log
+        const weakInChosen = chosen.filter(b => weakSet.has(b.topic)).length;
+        console.log(`[PRACTICE_FRONTEND] AI distribution: ${weakInChosen}/${chosen.length} from weak topics. Topics: ${chosen.map(b => b.topic).join(', ')}`);
       }
 
       console.log(`[PRACTICE_FRONTEND] Chosen ${chosen.length} questions. Weak topics: [${weak.join(', ')}]`);
@@ -437,6 +465,12 @@ ${questionText}
           console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: normUser });
         }
 
+        // Skip questions the user did not answer at all — do not pollute analytics
+        if (!normUser) {
+          console.log('[PRACTICE_VALIDATION] Skipping unanswered question', { index: i, qid: (q as any)._qid });
+          continue;
+        }
+
         responses.push({
           session_id: sessionId,
           user_id: user.id,
@@ -448,7 +482,7 @@ ${questionText}
             ? { question_id: (q as any)._qid, instruction: (q as ComparisonPractice).instruction, column_a: (q as ComparisonPractice).column_a, column_b: (q as ComparisonPractice).column_b }
             : { question_id: (q as any)._qid, instruction: (q as McqPractice).instruction, options: (q as McqPractice).options },
           user_answer: normUser,
-          correct_answer: q.correct_answer,
+          correct_answer: normalizeAnswer(q.correct_answer),
           is_correct: isCorrect,
           data_version: 'v2',
           is_reliable: respReliable,
