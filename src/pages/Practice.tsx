@@ -421,6 +421,7 @@ export default function Practice() {
 
       if (sessionData) {
         setSessionId(sessionData.id);
+        console.log(`[PRACTICE_SESSION] created session_id=${sessionData.id} questions=${chosen.length} group=${group}`);
         // Persist the assigned question set so we can reuse this session later
         const sessQRows = chosen.map((b, idx) => ({
           session_id: sessionData.id,
@@ -431,7 +432,7 @@ export default function Practice() {
           const { error: sqErr } = await supabase
             .from('practice_session_questions')
             .insert(sessQRows);
-          if (sqErr) console.error('[PRACTICE_FRONTEND] Failed to save session questions:', sqErr);
+          if (sqErr) console.error('[PRACTICE_SESSION] Failed to save session questions:', sqErr);
         }
       }
       setQuestions(finalQuestions);
