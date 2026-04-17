@@ -791,30 +791,50 @@ export default function Practice() {
                       <span className="text-success">Верный: {toCyrillicKey(q.correct_answer)}</span>
                     </div>
 
-                    {/* AI group only: mistake explanation via AI */}
-                    {isAI && !isCorrect && userAnswer && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-accent hover:text-accent"
-                          onClick={() => loadMistakeExplanation(q, userAnswer)}
-                        >
-                          {explanation?.loading ? (
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                          ) : (
-                            <Lightbulb className="mr-1 h-3 w-3" />
-                          )}
-                          {expandedMistake === key ? 'Скрыть разбор' : 'Разбор с AI'}
-                        </Button>
-
-                        {expandedMistake === key && explanation?.explanation && (
-                          <div className="mt-2 rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
-                            <MathRenderer content={explanation.explanation} />
-                          </div>
+                    {/* Static solution always available; AI mistake hint only when wrong */}
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-accent hover:text-accent"
+                        onClick={() => loadMistakeExplanation(q, userAnswer)}
+                      >
+                        {(explanation?.loadingStatic || explanation?.loadingHint) ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Lightbulb className="mr-1 h-3 w-3" />
                         )}
-                      </>
-                    )}
+                        {expandedMistake === key
+                          ? 'Скрыть разбор'
+                          : (isCorrect ? 'Показать решение' : 'Разбор ошибки')}
+                      </Button>
+
+                      {expandedMistake === key && explanation && (
+                        <div className="mt-2 space-y-3">
+                          {explanation.staticSolution && (
+                            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed">
+                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Решение
+                              </div>
+                              <MathRenderer content={explanation.staticSolution} />
+                            </div>
+                          )}
+                          {!isCorrect && userAnswer && (
+                            <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
+                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-accent">
+                                Разбор ошибки {explanation.loadingHint ? '(загрузка…)' : ''}
+                              </div>
+                              {explanation.mistakeHint
+                                ? <MathRenderer content={explanation.mistakeHint} />
+                                : (explanation.loadingHint
+                                    ? <span className="text-muted-foreground">Готовим короткий разбор…</span>
+                                    : null)
+                              }
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   </div>
                 );
               })}
