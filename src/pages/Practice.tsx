@@ -557,44 +557,24 @@ export default function Practice() {
     }));
   };
 
-  // Save practice results to DB
+  // Per-answer rows are saved immediately by persistAnswer().
+  // On submit we only finalize the session (status = completed + summary stats).
+  // We additionally upsert any answers that may have been changed in-memory but failed to persist (best-effort).
   const savePracticeResults = useCallback(async () => {
-    if (!user) return;
+    if (!user || !sessionId) return;
     try {
       let correctCount = 0;
-      const responses: any[] = [];
+      const fallbackRows: any[] = [];
 
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         const userAns = answers[qKey(q)] ?? null;
         const normUser = normalizeAnswer(userAns);
-        const normCorrect = normalizeAnswer(q.correct_answer);
         const isCorrect = compareAnswers(userAns, q.correct_answer);
         if (isCorrect) correctCount++;
-        
-        console.log("[PRACTICE_VALIDATION]", {
-          question_index: i,
-          topic: q.topic,
-          raw_user_answer: userAns,
-          normalized_user: normUser,
-          raw_correct: q.correct_answer,
-          normalized_correct: normCorrect,
-          is_correct: isCorrect,
-          match: normUser === normCorrect,
-        });
-
-        const respReliable = !!(participantId && normUser);
-        if (!respReliable) {
-          console.warn('[DATA_INTEGRITY] Unreliable practice_response:', { index: i, participantId, user_answer: normUser });
-        }
-
-        // Skip questions the user did not answer at all — do not pollute analytics
-        if (!normUser) {
-          console.log('[PRACTICE_VALIDATION] Skipping unanswered question', { index: i, qid: (q as any)._qid });
-          continue;
-        }
-
-        responses.push({
+        if (!normUser) continue;
+        // Best-effort upsert in case persistAnswer failed earlier
+        fallbackRows.push({
           session_id: sessionId,
           user_id: user.id,
           participant_id: participantId,
@@ -609,34 +589,33 @@ export default function Practice() {
           correct_answer: normalizeAnswer(q.correct_answer),
           is_correct: isCorrect,
           data_version: 'v2',
-          is_reliable: respReliable,
+          is_reliable: !!(participantId && normUser),
         });
       }
 
-      // Save practice_responses
-      if (sessionId) {
-        if (responses.length > 0) {
-          const { error: respError } = await supabase
-            .from('practice_responses' as any)
-            .insert(responses);
-          if (respError) console.error('[PRACTICE] Failed to save responses:', respError);
-        }
-
-        // ALWAYS mark the session as completed on submit
-        const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
-        await supabase
-          .from('practice_sessions' as any)
-          .update({
-            status: 'completed',
-            ended_at: new Date().toISOString(),
-            total_time_seconds: totalTime,
-            num_tasks: questions.length,
-            num_correct: correctCount,
-          })
-          .eq('id', sessionId);
+      if (fallbackRows.length > 0) {
+        const { error: respError } = await supabase
+          .from('practice_responses' as any)
+          .upsert(fallbackRows, { onConflict: 'session_id,question_id' });
+        if (respError) console.error('[PRACTICE_SESSION] final upsert failed:', respError);
       }
+
+      const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      const { error: sessErr } = await supabase
+        .from('practice_sessions' as any)
+        .update({
+          status: 'completed',
+          ended_at: new Date().toISOString(),
+          total_time_seconds: totalTime,
+          num_tasks: questions.length,
+          num_correct: correctCount,
+        })
+        .eq('id', sessionId)
+        .neq('status', 'completed'); // never overwrite an already-completed session
+      if (sessErr) console.error('[PRACTICE_SESSION] complete failed:', sessErr);
+      else console.log(`[PRACTICE_SESSION] completed session_id=${sessionId} score=${correctCount}/${questions.length}`);
     } catch (err) {
-      console.error('[PRACTICE] Failed to save results:', err);
+      console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
   }, [user, questions, answers, sessionId, participantId]);
 
