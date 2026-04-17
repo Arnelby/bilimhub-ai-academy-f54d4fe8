@@ -263,13 +263,25 @@ export default function Practice() {
             .eq('session_id', activeSess.id)
             .order('order_index', { ascending: true });
 
-          const restored: PracticeQuestion[] = [];
-          for (const sq of sessQs || []) {
-            const b = bankByQid.get(sq.question_id);
-            if (b) restored.push({ ...b.q, _qid: b.qid } as any);
-          }
+          // Detect legacy sessions whose stored qids point to TEST tables (mq_/mtq_).
+          // Those sessions must NOT be restored — they would re-serve test questions.
+          const hasTestQids = (sessQs || []).some(
+            sq => typeof sq.question_id === 'string' && (sq.question_id.startsWith('mq_') || sq.question_id.startsWith('mtq_'))
+          );
+          if (hasTestQids && activeSess.status === 'active') {
+            console.warn(`[DUPLICATE_TEST_QUESTION] session=${activeSess.id} contains test-bank qids — closing and regenerating from practice_questions only.`);
+            await supabase
+              .from('practice_sessions')
+              .update({ status: 'completed', ended_at: new Date().toISOString() })
+              .eq('id', activeSess.id);
+          } else {
+            const restored: PracticeQuestion[] = [];
+            for (const sq of sessQs || []) {
+              const b = bankByQid.get(sq.question_id);
+              if (b) restored.push({ ...b.q, _qid: b.qid } as any);
+            }
 
-          if (restored.length > 0) {
+            if (restored.length > 0) {
             console.log(`[PRACTICE_SESSION] restored session_id=${activeSess.id} questions=${restored.length}`);
             setSessionId(activeSess.id);
             setQuestions(restored);
