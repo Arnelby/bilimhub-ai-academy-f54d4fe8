@@ -189,17 +189,19 @@ export default function Practice() {
 
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
 
-      // ============ 1b. SESSION REUSE — load active session BEFORE generating ============
+      // ============ 1b. SESSION REUSE — load latest session BEFORE generating ============
+      // Also restore COMPLETED sessions so results never disappear on refresh.
       if (!forceNew) {
-        const { data: activeSess } = await supabase
+        const { data: latestSess } = await supabase
           .from('practice_sessions')
-          .select('id, weak_topics, practice_type')
+          .select('id, weak_topics, practice_type, status, num_correct, num_tasks')
           .eq('user_id', user.id)
-          .eq('status', 'active')
+          .in('status', ['active', 'completed'])
           .order('started_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
+        const activeSess = latestSess;
         if (activeSess) {
           const { data: sessQs } = await supabase
             .from('practice_session_questions')
@@ -235,18 +237,27 @@ export default function Practice() {
               if (k) restoredAnswers[k] = r.user_answer;
             }
             setAnswers(restoredAnswers);
-            // Resume at first unanswered question
-            const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
-            setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
-            console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
+
+            if (activeSess.status === 'completed') {
+              // Permanently restore results screen
+              setCurrentIndex(restored.length - 1);
+              setShowResults(true);
+              console.log(`[PRACTICE_RESULTS] restored session=${activeSess.id} score=${activeSess.num_correct}/${activeSess.num_tasks}`);
+            } else {
+              const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
+              setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
+              console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
+            }
             setLoading(false);
             return;
           }
-          // Active session exists but has no question rows → close it and regenerate
-          await supabase
-            .from('practice_sessions')
-            .update({ status: 'completed', ended_at: new Date().toISOString() })
-            .eq('id', activeSess.id);
+          // Session exists but has no question rows → close only if active, then regenerate
+          if (activeSess.status === 'active') {
+            await supabase
+              .from('practice_sessions')
+              .update({ status: 'completed', ended_at: new Date().toISOString() })
+              .eq('id', activeSess.id);
+          }
         }
       } else {
         // forceNew: close any active sessions before creating a new one
@@ -961,7 +972,12 @@ export default function Practice() {
           {currentIndex === questions.length - 1 ? (
             <Button
               variant="accent"
-              onClick={() => { savePracticeResults(); setShowResults(true); }}
+              onClick={async () => {
+                console.log('[PRACTICE_RESULTS] saving before showing results screen');
+                await savePracticeResults();
+                console.log('[PRACTICE_RESULTS] saved — results now persistent');
+                setShowResults(true);
+              }}
               disabled={answeredCount === 0}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
