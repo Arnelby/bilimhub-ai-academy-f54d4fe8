@@ -30,14 +30,32 @@ function normalizeMath(raw: string): string {
 
   let text = raw;
 
-  // If already has proper LaTeX delimiters, just fix multi-digit exponents/subscripts inside them
+  // 0a. Convert LaTeX-style delimiters that AI often emits into $ / $$
+  //    \[ ... \]  → $$ ... $$    (block)
+  //    \( ... \)  → $ ... $      (inline)
+  text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_m, inner) => `$$${String(inner).trim()}$$`);
+  text = text.replace(/\\\(([\s\S]+?)\\\)/g, (_m, inner) => `$${String(inner).trim()}$`);
+
+  // 0b. Drop stray ``` fences around math blocks
+  text = text.replace(/```(?:math|latex)?\s*\n?([\s\S]*?)```/gi, (_m, inner) => String(inner));
+
+  // 0c. If number of unescaped $ is odd, escape the last lonely one so KaTeX doesn't eat the rest
+  const dollarCount = (text.match(/(?<!\\)\$/g) || []).length;
+  if (dollarCount % 2 === 1) {
+    text = text.replace(/(?<!\\)\$(?=[^$]*$)/, '\\$');
+  }
+
+  // If we now have proper LaTeX delimiters, fix multi-digit exponents/subscripts inside them
   if (/\$/.test(text)) {
-    // Fix bare ^digits and _digits inside existing LaTeX to use braces
-    text = text.replace(/\$([^$]+)\$/g, (_match, inner: string) => {
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_match, inner: string) => {
       let fixed = inner;
-      // ^followed by 2+ digits/chars without braces → wrap in braces
       fixed = fixed.replace(/\^([A-Za-z0-9]{2,})(?![{}])/g, '^{$1}');
-      // _followed by 2+ digits/chars without braces → wrap in braces
+      fixed = fixed.replace(/_([A-Za-z0-9]{2,})(?![{}])/g, '_{$1}');
+      return `$$${fixed}$$`;
+    });
+    text = text.replace(/(?<!\$)\$([^\n$]+?)\$(?!\$)/g, (_match, inner: string) => {
+      let fixed = inner;
+      fixed = fixed.replace(/\^([A-Za-z0-9]{2,})(?![{}])/g, '^{$1}');
       fixed = fixed.replace(/_([A-Za-z0-9]{2,})(?![{}])/g, '_{$1}');
       return `$${fixed}$`;
     });
@@ -49,21 +67,15 @@ function normalizeMath(raw: string): string {
   text = text.replace(/sqrt\(([^)]+)\)/gi, '\\sqrt{$1}');
   text = text.replace(/\*\*/g, '^');
 
-  // Step 2: Fix multi-digit exponents: ^followed by 2+ alphanumeric → wrap in braces
-  // e.g. 11^55 → 11^{55}, t^2021 → t^{2021}
+  // Step 2: Multi-digit exponents
   text = text.replace(/\^([A-Za-z0-9]{2,})/g, '^{$1}');
-
-  // Step 3: Fix multi-digit subscripts: _followed by 2+ alphanumeric → wrap in braces
-  // e.g. a_12 → a_{12}, x_mn → x_{mn}
+  // Step 3: Multi-digit subscripts
   text = text.replace(/_([A-Za-z0-9]{2,})/g, '_{$1}');
 
-  // Step 4: Check if text now contains any math-worthy content
   const hasMath = /\\frac|\\sqrt|\^|_\{|(?<![a-zA-Z:\/])\d+\s*\/\s*\d+(?![a-zA-Z\/])/.test(text);
 
   if (hasMath) {
-    // Convert standalone numeric fractions a/b → \frac{a}{b}
     text = text.replace(/(?<![a-zA-Z:\/\\])(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)(?![a-zA-Z\/])/g, '\\frac{$1}{$2}');
-    // Wrap entire expression in single $ for inline KaTeX
     text = `$${text}$`;
   }
 
@@ -84,7 +96,10 @@ export function MathRenderer({ content, className, inline = false }: MathRendere
         className
       )}
     >
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+      <ReactMarkdown
+        remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
+        rehypePlugins={[[rehypeKatex, { strict: false, throwOnError: false, output: 'html' }]]}
+      >
         {normalized}
       </ReactMarkdown>
     </Tag>
