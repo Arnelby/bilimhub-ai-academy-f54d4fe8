@@ -42,9 +42,10 @@ interface McqPractice {
 type PracticeQuestion = ComparisonPractice | McqPractice;
 
 interface MistakeExplanation {
-  explanation: string;
-  correctReasoning: string;
-  loading: boolean;
+  staticSolution: string;     // full solution from question_explanations (no AI)
+  mistakeHint: string;        // short AI hint, only when wrong
+  loadingStatic: boolean;
+  loadingHint: boolean;
 }
 
 export default function Practice() {
