@@ -607,7 +607,7 @@ ${questionText}
           <h2 className="text-2xl font-bold mb-2">Ошибка генерации</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">{generationError}</p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={loadPractice} variant="accent">
+            <Button onClick={() => loadPractice(false)} variant="accent">
               <RefreshCw className="mr-2 h-4 w-4" />
               Попробовать снова
             </Button>
