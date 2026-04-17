@@ -614,6 +614,14 @@ export default function Practice() {
         if (respError) console.error('[PRACTICE_SESSION] final upsert failed:', respError);
       }
 
+      // Canonical score: ALWAYS recount from DB (never trust frontend state).
+      const { count: dbCorrect } = await supabase
+        .from('practice_responses')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', sessionId)
+        .eq('is_correct', true);
+      const finalCorrect = typeof dbCorrect === 'number' ? dbCorrect : correctCount;
+
       const totalTime = Math.round((Date.now() - sessionStartRef.current) / 1000);
       const { error: sessErr } = await supabase
         .from('practice_sessions' as any)
@@ -622,12 +630,12 @@ export default function Practice() {
           ended_at: new Date().toISOString(),
           total_time_seconds: totalTime,
           num_tasks: questions.length,
-          num_correct: correctCount,
+          num_correct: finalCorrect,
         })
         .eq('id', sessionId)
         .neq('status', 'completed'); // never overwrite an already-completed session
       if (sessErr) console.error('[PRACTICE_SESSION] complete failed:', sessErr);
-      else console.log(`[PRACTICE_SESSION] completed session_id=${sessionId} score=${correctCount}/${questions.length}`);
+      else console.log(`[PRACTICE_RESULTS] saved session_id=${sessionId} db_correct=${finalCorrect}/${questions.length}`);
     } catch (err) {
       console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
