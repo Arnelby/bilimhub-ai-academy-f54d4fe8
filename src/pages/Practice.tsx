@@ -214,13 +214,31 @@ export default function Practice() {
           }
 
           if (restored.length > 0) {
-            console.log(`[PRACTICE_FRONTEND] Reusing active session ${activeSess.id} with ${restored.length} questions`);
+            console.log(`[PRACTICE_SESSION] restored session_id=${activeSess.id} questions=${restored.length}`);
             setSessionId(activeSess.id);
             setQuestions(restored);
             const wt = Array.isArray(activeSess.weak_topics) ? (activeSess.weak_topics as string[]) : [];
             setWeakTopics(wt);
             setLatestTestName(isAI ? 'Персональная практика' : 'Общая практика ОРТ');
             setLatestTestType(restored[0].type);
+
+            // Restore previously saved answers for this session
+            const { data: priorResp } = await supabase
+              .from('practice_responses')
+              .select('question_id, user_answer')
+              .eq('session_id', activeSess.id);
+            const restoredAnswers: Record<string, string> = {};
+            const qidToKey = new Map(restored.map(q => [(q as any)._qid as string, `${q.type}_${q.id}`]));
+            for (const r of priorResp || []) {
+              if (!r.question_id || !r.user_answer) continue;
+              const k = qidToKey.get(r.question_id);
+              if (k) restoredAnswers[k] = r.user_answer;
+            }
+            setAnswers(restoredAnswers);
+            // Resume at first unanswered question
+            const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
+            setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
+            console.log(`[PRACTICE_SESSION] restored answers=${Object.keys(restoredAnswers).length} resume_index=${firstUnanswered === -1 ? restored.length - 1 : firstUnanswered}`);
             setLoading(false);
             return;
           }
