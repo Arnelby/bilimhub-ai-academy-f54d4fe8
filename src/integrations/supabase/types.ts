@@ -440,6 +440,8 @@ export type Database = {
           correct_answer: string
           created_at: string
           id: string
+          quality_reason: string | null
+          quality_status: string
           question_data: Json
           question_type: string
           source: string
@@ -450,6 +452,8 @@ export type Database = {
           correct_answer: string
           created_at?: string
           id?: string
+          quality_reason?: string | null
+          quality_status?: string
           question_data?: Json
           question_type?: string
           source?: string
@@ -460,6 +464,8 @@ export type Database = {
           correct_answer?: string
           created_at?: string
           id?: string
+          quality_reason?: string | null
+          quality_status?: string
           question_data?: Json
           question_type?: string
           source?: string
