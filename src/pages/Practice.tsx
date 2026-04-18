@@ -97,8 +97,11 @@ export default function Practice() {
       const [{ data: practiceRows }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
         supabase
           .from('practice_questions')
-          .select('id, topic, question_type, correct_answer, question_data')
-          .not('correct_answer', 'is', null),
+          .select('id, topic, question_type, correct_answer, question_data, quality_status')
+          .not('correct_answer', 'is', null)
+          // Quality gate: never serve questions explicitly marked as broken/duplicate.
+          // 'keep' = passed deterministic checks; 'review'/'unknown' = still acceptable until LLM pass.
+          .in('quality_status', ['keep', 'review', 'unknown']),
         supabase
           .from('math_questions')
           .select('test_id, question_number, instruction, column_a, column_b'),
