@@ -1,0 +1,1 @@
+UPDATE public.practice_questions SET quality_status='unknown', quality_reason=NULL;
