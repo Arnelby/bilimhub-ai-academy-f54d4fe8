@@ -99,8 +99,12 @@ export function MathRenderer({ content, className, inline = false }: MathRendere
   return (
     <Tag
       className={cn(
-        'math-renderer prose prose-sm dark:prose-invert max-w-none',
+        'math-renderer prose prose-sm dark:prose-invert max-w-none break-words',
         '[&_p]:my-0.5 [&_ul]:my-1 [&_ol]:my-1 [&_.katex]:text-inherit',
+        // Make long display equations scroll horizontally instead of overflowing parent
+        '[&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_.katex-display]:my-2',
+        '[&_.katex]:whitespace-normal',
+        '[overflow-wrap:anywhere]',
         inline && '[&_p]:inline [&>*]:inline',
         className
       )}

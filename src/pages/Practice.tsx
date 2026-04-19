@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, ChevronLeft, ChevronRight, CheckCircle, Target, AlertTriangle, Dumbbell, Lightbulb, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -63,6 +63,8 @@ interface MistakeExplanation {
 
 export default function Practice() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusedTopic = searchParams.get('topic'); // null = no focus
   const { user } = useAuth();
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
   const [loading, setLoading] = useState(true);
@@ -456,7 +458,25 @@ export default function Practice() {
 
       let chosen: Bank[] = [];
 
-      if (isControl) {
+      // 4a. TOPIC-FOCUSED MODE — overrides everything else.
+      // Triggered by ?topic=... from "My Plan". Strict filter, no weak/other split.
+      if (focusedTopic) {
+        const focusNorm = focusedTopic.trim().toLowerCase();
+        const topicBank = bank.filter(b => (b.topic || '').trim().toLowerCase() === focusNorm);
+        const unseenTopic = topicBank.filter(b => !seen.has(b.qid));
+        const TOPIC_TOTAL = 10;
+        chosen = shuffle(unseenTopic).slice(0, TOPIC_TOTAL);
+        if (chosen.length < TOPIC_TOTAL) {
+          // Topic pool exhausted — allow seen reuse so practice never blocks
+          const reusable = shuffle(topicBank.filter(b => !chosen.includes(b)));
+          chosen = chosen.concat(reusable.slice(0, TOPIC_TOTAL - chosen.length));
+        }
+        setLatestTestName(`Практика по теме: ${focusedTopic}`);
+        if (topicBank.length === 0) {
+          console.warn(`[PRACTICE_TOPIC] no questions found for topic="${focusedTopic}"`);
+        }
+        console.log(`[PRACTICE_TOPIC] focus="${focusedTopic}" topic_bank=${topicBank.length} chosen=${chosen.length}`);
+      } else if (isControl) {
         // CONTROL: 25 random across all topics, no weak-topic bias
         chosen = shuffle(unseen).slice(0, 25);
         if (chosen.length < 25) {
@@ -581,11 +601,12 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic]);
 
   useEffect(() => {
-    if (user && !groupLoading) loadPractice();
-  }, [user, groupLoading, loadPractice]);
+    // When user navigates with ?topic=..., always start a fresh session for that topic.
+    if (user && !groupLoading) loadPractice(!!focusedTopic);
+  }, [user, groupLoading, loadPractice, focusedTopic]);
 
   // Reset per-question timer whenever the visible question changes
   useEffect(() => {
@@ -865,10 +886,31 @@ export default function Practice() {
               </div>
 
               {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
-              <div className="flex gap-3 justify-center mb-6">
-                <Button onClick={() => loadPractice(true)} variant="accent">
+              <div className="flex gap-3 justify-center mb-6 flex-wrap">
+                <Button
+                  onClick={() => {
+                    // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
+                    if (focusedTopic && weakTopics.length > 0) {
+                      const idx = weakTopics.findIndex(
+                        t => t.toLowerCase() === focusedTopic.toLowerCase(),
+                      );
+                      const next = weakTopics[(idx + 1) % weakTopics.length];
+                      if (next && next.toLowerCase() !== focusedTopic.toLowerCase()) {
+                        setSearchParams({ topic: next });
+                        return;
+                      }
+                    }
+                    // Otherwise: clear focus and start a fresh general session
+                    if (focusedTopic) {
+                      setSearchParams({});
+                      return;
+                    }
+                    loadPractice(true);
+                  }}
+                  variant="accent"
+                >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Новая практика
+                  {focusedTopic ? 'Следующая тема' : 'Новая практика'}
                 </Button>
                 {isAI && (
                   <Button onClick={() => navigate('/learning-plan')} variant="outline">
@@ -893,6 +935,7 @@ export default function Practice() {
               {allResults.map(({ q, userAnswer, isCorrect }, idx) => (
                 <QuestionReview
                   key={qKey(q)}
+                  groupMode={isAI ? 'ai' : 'control'}
                   data={{
                     questionNumber: idx + 1,
                     topic: isAI ? q.topic : null,
@@ -910,6 +953,7 @@ export default function Practice() {
                     explanationC: q.explanation_c ?? null,
                     explanationD: q.explanation_d ?? null,
                     explanationE: q.explanation_e ?? null,
+                    questionCacheId: (q as any)._qid ?? null,
                   }}
                 />
               ))}

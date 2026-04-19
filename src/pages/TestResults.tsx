@@ -308,6 +308,14 @@ export default function TestResults() {
                     explanation_d: null,
                     explanation_e: null,
                   };
+                  const numericTestId = Object.entries(TEST_CONFIG).find(
+                    ([, cfg]) => cfg.uuid === (result as any).test_id,
+                  )?.[0];
+                  const cfg = numericTestId ? TEST_CONFIG[Number(numericTestId)] : null;
+                  const cachePrefix = cfg?.table === 'math_test_questions' ? 'mtq' : 'mq';
+                  const cacheId = numericTestId
+                    ? `${cachePrefix}_${numericTestId}_${a.questionNumber}`
+                    : null;
                   const reviewData: QuestionReviewData = {
                     questionNumber: a.questionNumber,
                     topic: a.topic,
@@ -325,8 +333,15 @@ export default function TestResults() {
                     explanationC: expl.explanation_c,
                     explanationD: expl.explanation_d,
                     explanationE: expl.explanation_e,
+                    questionCacheId: cacheId,
                   };
-                  return <QuestionReview key={idx} data={reviewData} />;
+                  return (
+                    <QuestionReview
+                      key={idx}
+                      data={reviewData}
+                      groupMode={isAI ? 'ai' : 'control'}
+                    />
+                  );
                 })}
               </div>
 
