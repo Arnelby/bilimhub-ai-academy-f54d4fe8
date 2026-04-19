@@ -63,6 +63,8 @@ interface MistakeExplanation {
 
 export default function Practice() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusedTopic = searchParams.get('topic'); // null = no focus
   const { user } = useAuth();
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
   const [loading, setLoading] = useState(true);
