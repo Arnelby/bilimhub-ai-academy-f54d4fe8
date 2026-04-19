@@ -601,11 +601,12 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic]);
 
   useEffect(() => {
-    if (user && !groupLoading) loadPractice();
-  }, [user, groupLoading, loadPractice]);
+    // When user navigates with ?topic=..., always start a fresh session for that topic.
+    if (user && !groupLoading) loadPractice(!!focusedTopic);
+  }, [user, groupLoading, loadPractice, focusedTopic]);
 
   // Reset per-question timer whenever the visible question changes
   useEffect(() => {
