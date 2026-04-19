@@ -66,6 +66,7 @@ export default function Practice() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
+  const questionStartRef = useRef<number>(Date.now());
 
   const loadPractice = useCallback(async (forceNew: boolean = false) => {
     if (!user || groupLoading) return;
@@ -99,9 +100,9 @@ export default function Practice() {
           .from('practice_questions')
           .select('id, topic, question_type, correct_answer, question_data, quality_status')
           .not('correct_answer', 'is', null)
-          // Quality gate: never serve questions explicitly marked as broken/duplicate.
-          // 'keep' = passed deterministic checks; 'review'/'unknown' = still acceptable until LLM pass.
-          .in('quality_status', ['keep', 'review', 'unknown']),
+          // STRICT quality gate: ONLY 'keep' questions are served to students.
+          // 'review' / 'unknown' / 'remove' are excluded — no exceptions.
+          .in('quality_status', ['keep']),
         supabase
           .from('math_questions')
           .select('test_id, question_number, instruction, column_a, column_b'),
@@ -520,6 +521,8 @@ export default function Practice() {
         console.log(`[PRACTICE_DEBUG] session_id=${sessionData.id} loaded_questions_count=${chosen.length} loaded_answers_count=0 status=active(new)`);
       }
       setQuestions(finalQuestions);
+      console.log(`[PRACTICE_LOAD] loaded_questions_count=${finalQuestions.length}`);
+      console.log('[SCOPE_LOCKED] practice runtime: no AI generation, no runtime personalization beyond pre-built session.');
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
       setGenerationError('Ошибка загрузки практики');
@@ -531,6 +534,11 @@ export default function Practice() {
   useEffect(() => {
     if (user && !groupLoading) loadPractice();
   }, [user, groupLoading, loadPractice]);
+
+  // Reset per-question timer whenever the visible question changes
+  useEffect(() => {
+    questionStartRef.current = Date.now();
+  }, [currentIndex, questions.length]);
 
   const qKey = (q: PracticeQuestion) => `${q.type}_${q.id}`;
 
@@ -544,6 +552,7 @@ export default function Practice() {
     const isCorrect = compareAnswers(latinKey, q.correct_answer);
     const respReliable = !!(participantId && normUser);
 
+    const timeSpentSeconds = Math.max(0, Math.round((Date.now() - questionStartRef.current) / 1000));
     const row = {
       session_id: sessionId,
       user_id: user.id,
@@ -558,6 +567,7 @@ export default function Practice() {
       user_answer: normUser,
       correct_answer: normCorrect,
       is_correct: isCorrect,
+      time_spent_seconds: timeSpentSeconds,
       data_version: 'v2',
       is_reliable: respReliable,
     };
@@ -566,7 +576,7 @@ export default function Practice() {
       .from('practice_responses' as any)
       .upsert(row, { onConflict: 'session_id,question_id' });
     if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
-    else console.log(`[PRACTICE_SESSION] saved answer session=${sessionId} qid=${qid} correct=${isCorrect}`);
+    else console.log(`[TRACKING_ENABLED] is_correct=${isCorrect} time_spent_s=${timeSpentSeconds} topic="${q.topic}" session=${sessionId}`);
   }, [user, sessionId, participantId]);
 
   const handleAnswer = (latinKey: string) => {
@@ -574,6 +584,8 @@ export default function Practice() {
     if (!q) return;
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
     void persistAnswer(q, latinKey, currentIndex);
+    // Reset timer for next question
+    questionStartRef.current = Date.now();
   };
 
   // Always load the static solution from question_explanations.
