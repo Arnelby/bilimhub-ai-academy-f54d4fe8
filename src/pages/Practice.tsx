@@ -185,6 +185,12 @@ export default function Practice() {
               option_c: null,
               option_d: null,
               correct_answer: ans,
+              correct_explanation: (r as any).correct_explanation ?? null,
+              explanation_a: (r as any).explanation_a ?? null,
+              explanation_b: (r as any).explanation_b ?? null,
+              explanation_c: (r as any).explanation_c ?? null,
+              explanation_d: (r as any).explanation_d ?? null,
+              explanation_e: (r as any).explanation_e ?? null,
             } as ComparisonPractice,
           });
         } else if (qtype === 'mcq') {
@@ -199,6 +205,12 @@ export default function Practice() {
               instruction: data.instruction || '',
               options: data.options || {},
               correct_answer: ans,
+              correct_explanation: (r as any).correct_explanation ?? null,
+              explanation_a: (r as any).explanation_a ?? null,
+              explanation_b: (r as any).explanation_b ?? null,
+              explanation_c: (r as any).explanation_c ?? null,
+              explanation_d: (r as any).explanation_d ?? null,
+              explanation_e: (r as any).explanation_e ?? null,
             } as McqPractice,
           });
         }
