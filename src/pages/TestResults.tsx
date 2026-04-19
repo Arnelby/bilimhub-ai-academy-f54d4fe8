@@ -87,11 +87,46 @@ export default function TestResults() {
         if (error) throw error;
         setResult(data as unknown as TestResult);
 
+        // Load DB explanations for all questions of this test (data-driven, no AI)
+        const numericTestId = Object.entries(TEST_CONFIG).find(
+          ([, cfg]) => cfg.uuid === (data as any).test_id,
+        )?.[0];
+        if (numericTestId) {
+          const cfg = TEST_CONFIG[Number(numericTestId)];
+          const table = cfg.table;
+          const { data: expls } = await supabase
+            .from(table)
+            .select(
+              'question_number, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d' +
+                (table === 'math_test_questions' ? ', explanation_e' : ''),
+            )
+            .eq('test_id', Number(numericTestId));
+          if (expls) {
+            const map: Record<number, any> = {};
+            for (const row of expls as any[]) {
+              // For variant 2/4 (mtq) DB stores 31..60 / 91..120 etc → display number = ((qn-1)%30)+1
+              const displayNum =
+                table === 'math_test_questions'
+                  ? ((row.question_number - 1) % 30) + 1
+                  : row.question_number;
+              map[displayNum] = {
+                correct_explanation: row.correct_explanation ?? null,
+                explanation_a: row.explanation_a ?? null,
+                explanation_b: row.explanation_b ?? null,
+                explanation_c: row.explanation_c ?? null,
+                explanation_d: row.explanation_d ?? null,
+                explanation_e: (row as any).explanation_e ?? null,
+              };
+            }
+            setExplanationsByQNum(map);
+          }
+        }
+
         const gamParsed = parseScore(data.score, data.total_questions);
         const percentage = gamParsed.percentage;
-        
+
         const pointsEarned = Math.round(percentage / 2) + 25;
-        
+
         setTimeout(() => {
           triggerEvent({
             type: 'test_completed',
