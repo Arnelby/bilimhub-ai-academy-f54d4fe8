@@ -21,12 +21,14 @@ import {
   BarChart3,
   Settings,
   ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
 const mainMenuItems = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
+  { title: 'Practice Quality (AI Review)', url: '/admin/practice-quality', icon: Sparkles },
 ];
 
 const futureMenuItems = [

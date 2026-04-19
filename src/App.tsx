@@ -44,6 +44,7 @@ import TestBuilder from "./pages/admin/TestBuilder";
 import LearningPlanConstructor from "./pages/admin/LearningPlanConstructor";
 import AnalyticsDashboard from "./pages/admin/AnalyticsDashboard";
 import AdminSettings from "./pages/admin/AdminSettings";
+import PracticeQualityReview from "./pages/admin/PracticeQualityReview";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,7 @@ const App = () => (
                     <Route path="test-builder" element={<TestBuilder />} />
                     <Route path="learning-plans" element={<LearningPlanConstructor />} />
                     <Route path="analytics" element={<AnalyticsDashboard />} />
+                    <Route path="practice-quality" element={<PracticeQualityReview />} />
                     <Route path="settings" element={<AdminSettings />} />
                   </Route>
                   
