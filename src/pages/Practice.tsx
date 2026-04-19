@@ -935,6 +935,7 @@ export default function Practice() {
               {allResults.map(({ q, userAnswer, isCorrect }, idx) => (
                 <QuestionReview
                   key={qKey(q)}
+                  groupMode={isAI ? 'ai' : 'control'}
                   data={{
                     questionNumber: idx + 1,
                     topic: isAI ? q.topic : null,
@@ -952,6 +953,7 @@ export default function Practice() {
                     explanationC: q.explanation_c ?? null,
                     explanationD: q.explanation_d ?? null,
                     explanationE: q.explanation_e ?? null,
+                    questionCacheId: (q as any)._qid ?? null,
                   }}
                 />
               ))}
