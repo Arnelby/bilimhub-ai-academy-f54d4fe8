@@ -232,6 +232,15 @@ export default function Practice() {
         const q = b.q;
         const ans = (q.correct_answer || '').trim().toUpperCase();
 
+        const hasFullReview =
+          !!q.correct_explanation &&
+          !!q.explanation_a &&
+          !!q.explanation_b &&
+          !!q.explanation_c &&
+          !!q.explanation_d &&
+          (q.type === 'comparison' || !!q.explanation_e);
+        if (!hasFullReview) { bump('missing_review_explanations'); return false; }
+
         if (q.type === 'comparison') {
           // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
           const a = (q.column_a || '').trim();
