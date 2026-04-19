@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Trophy, 
-  TrendingUp, 
-  TrendingDown,
+import {
+  CheckCircle,
+  XCircle,
+  Trophy,
   ArrowRight,
   Loader2,
-  Target,
   Clock,
-  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,10 +18,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { useGamificationEvents } from '@/hooks/useGamificationEvents';
 import { Confetti } from '@/components/gamification/Confetti';
-import { MathRenderer } from '@/components/math/MathRenderer';
-import { toCyrillicKey } from '@/lib/mathTestConfig';
-import { translateTopic } from '@/lib/topicTranslations';
+import { TEST_CONFIG } from '@/lib/mathTestConfig';
 import { parseScore } from '@/lib/scoreUtils';
+import { QuestionReview, QuestionReviewData } from '@/components/review/QuestionReview';
 
 interface AnswerDetail {
   questionNumber: number;
@@ -58,12 +53,22 @@ interface TestResult {
 export default function TestResults() {
   const { testId, attemptId } = useParams();
   const { user } = useAuth();
-  const { isAI, isControl } = useUserGroup();
+  const { isAI } = useUserGroup();
   const { triggerEvent } = useGamificationEvents();
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [explanationsByQNum, setExplanationsByQNum] = useState<
+    Record<number, {
+      correct_explanation: string | null;
+      explanation_a: string | null;
+      explanation_b: string | null;
+      explanation_c: string | null;
+      explanation_d: string | null;
+      explanation_e: string | null;
+    }>
+  >({});
 
   useEffect(() => {
     async function fetchResults() {
@@ -82,11 +87,46 @@ export default function TestResults() {
         if (error) throw error;
         setResult(data as unknown as TestResult);
 
+        // Load DB explanations for all questions of this test (data-driven, no AI)
+        const numericTestId = Object.entries(TEST_CONFIG).find(
+          ([, cfg]) => cfg.uuid === (data as any).test_id,
+        )?.[0];
+        if (numericTestId) {
+          const cfg = TEST_CONFIG[Number(numericTestId)];
+          const table = cfg.table;
+          const { data: expls } = await supabase
+            .from(table)
+            .select(
+              'question_number, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d' +
+                (table === 'math_test_questions' ? ', explanation_e' : ''),
+            )
+            .eq('test_id', Number(numericTestId));
+          if (expls) {
+            const map: Record<number, any> = {};
+            for (const row of expls as any[]) {
+              // For variant 2/4 (mtq) DB stores 31..60 / 91..120 etc → display number = ((qn-1)%30)+1
+              const displayNum =
+                table === 'math_test_questions'
+                  ? ((row.question_number - 1) % 30) + 1
+                  : row.question_number;
+              map[displayNum] = {
+                correct_explanation: row.correct_explanation ?? null,
+                explanation_a: row.explanation_a ?? null,
+                explanation_b: row.explanation_b ?? null,
+                explanation_c: row.explanation_c ?? null,
+                explanation_d: row.explanation_d ?? null,
+                explanation_e: (row as any).explanation_e ?? null,
+              };
+            }
+            setExplanationsByQNum(map);
+          }
+        }
+
         const gamParsed = parseScore(data.score, data.total_questions);
         const percentage = gamParsed.percentage;
-        
+
         const pointsEarned = Math.round(percentage / 2) + 25;
-        
+
         setTimeout(() => {
           triggerEvent({
             type: 'test_completed',
@@ -255,82 +295,44 @@ export default function TestResults() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Разбор по вопросам</CardTitle>
-              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
+              <CardDescription>Подробный разбор каждого ответа из базы данных</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {displayedAnswers.map((a, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-start gap-3 rounded-lg border p-3 ${
-                      a.isCorrect
-                        ? 'border-success/30 bg-success/5'
-                        : 'border-destructive/30 bg-destructive/5'
-                    }`}
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      {a.isCorrect ? (
-                        <CheckCircle className="h-5 w-5 text-success" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-destructive" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm">
-                          Вопрос {a.questionNumber}
-                        </span>
-                        {a.topic && (
-                          <Badge variant="outline" className="text-xs">
-                            {translateTopic(a.topic, "ru")}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Question content */}
-                      {a.type === 'comparison' && a.column_a && a.column_b && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          {a.instruction && (
-                            <div className="mb-1"><MathRenderer content={a.instruction} /></div>
-                          )}
-                          <span>Столбец А: </span>
-                          <MathRenderer content={a.column_a} />
-                          <span className="mx-2">vs</span>
-                          <span>Столбец Б: </span>
-                          <MathRenderer content={a.column_b} />
-                        </div>
-                      )}
-                      {a.type === 'mcq' && a.instruction && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          <MathRenderer content={a.instruction} />
-                        </div>
-                      )}
-
-                      {/* Answer details */}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                        <span>
-                          Ваш ответ:{' '}
-                          <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
-                            {a.answer ? toCyrillicKey(a.answer) : '—'}
-                          </span>
-                        </span>
-                        {!a.isCorrect && (
-                          <span>
-                            Правильный:{' '}
-                            <span className="font-medium text-success">
-                              {toCyrillicKey(a.correctAnswer)}
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {displayedAnswers.map((a, idx) => {
+                  const expl = explanationsByQNum[a.questionNumber] || {
+                    correct_explanation: null,
+                    explanation_a: null,
+                    explanation_b: null,
+                    explanation_c: null,
+                    explanation_d: null,
+                    explanation_e: null,
+                  };
+                  const reviewData: QuestionReviewData = {
+                    questionNumber: a.questionNumber,
+                    topic: a.topic,
+                    type: a.type,
+                    instruction: a.instruction,
+                    column_a: a.column_a,
+                    column_b: a.column_b,
+                    options: a.options,
+                    userAnswer: a.answer,
+                    correctAnswer: a.correctAnswer,
+                    isCorrect: a.isCorrect,
+                    correctExplanation: expl.correct_explanation,
+                    explanationA: expl.explanation_a,
+                    explanationB: expl.explanation_b,
+                    explanationC: expl.explanation_c,
+                    explanationD: expl.explanation_d,
+                    explanationE: expl.explanation_e,
+                  };
+                  return <QuestionReview key={idx} data={reviewData} />;
+                })}
               </div>
-              
+
               {answerDetails.length > 10 && !showAllQuestions && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full mt-4"
                   onClick={() => setShowAllQuestions(true)}
                 >
@@ -339,93 +341,6 @@ export default function TestResults() {
               )}
             </CardContent>
           </Card>
-        )}
-
-        {/* AI Analysis — AI group only */}
-        {isAI && analysis && analysis.assessment && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card variant="accent" className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  AI Анализ
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg">{analysis.assessment}</p>
-              </CardContent>
-            </Card>
-
-            {analysis.strengths?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-success">
-                    <TrendingUp className="h-5 w-5" />
-                    Сильные стороны
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {analysis.strengths.map((s: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 mt-1 text-success shrink-0" />
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.weaknesses?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-warning">
-                    <TrendingDown className="h-5 w-5" />
-                    Области для улучшения
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {analysis.weaknesses.map((w: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Target className="h-4 w-4 mt-1 text-warning shrink-0" />
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.recommendations?.length > 0 && (
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Рекомендации</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {analysis.recommendations.map((rec: string, i: number) => (
-                      <div key={i} className="rounded-lg border border-border p-4">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent font-bold mb-3">
-                          {i + 1}
-                        </div>
-                        <p className="text-sm">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.motivation && (
-              <Card className="lg:col-span-2 bg-gradient-to-r from-accent/10 to-success/10 border-accent/20">
-                <CardContent className="p-6 text-center">
-                  <p className="text-lg font-medium">{analysis.motivation}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         )}
 
         {/* Actions */}
