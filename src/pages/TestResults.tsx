@@ -300,7 +300,14 @@ export default function TestResults() {
             <CardContent>
               <div className="space-y-3">
                 {displayedAnswers.map((a, idx) => {
-                  const expl = explanationsByQNum[a.questionNumber] || {};
+                  const expl = explanationsByQNum[a.questionNumber] || {
+                    correct_explanation: null,
+                    explanation_a: null,
+                    explanation_b: null,
+                    explanation_c: null,
+                    explanation_d: null,
+                    explanation_e: null,
+                  };
                   const reviewData: QuestionReviewData = {
                     questionNumber: a.questionNumber,
                     topic: a.topic,
