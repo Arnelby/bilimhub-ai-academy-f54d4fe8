@@ -66,6 +66,7 @@ export default function Practice() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
+  const questionStartRef = useRef<number>(Date.now());
 
   const loadPractice = useCallback(async (forceNew: boolean = false) => {
     if (!user || groupLoading) return;
@@ -544,6 +545,7 @@ export default function Practice() {
     const isCorrect = compareAnswers(latinKey, q.correct_answer);
     const respReliable = !!(participantId && normUser);
 
+    const timeSpentSeconds = Math.max(0, Math.round((Date.now() - questionStartRef.current) / 1000));
     const row = {
       session_id: sessionId,
       user_id: user.id,
@@ -558,6 +560,7 @@ export default function Practice() {
       user_answer: normUser,
       correct_answer: normCorrect,
       is_correct: isCorrect,
+      time_spent_seconds: timeSpentSeconds,
       data_version: 'v2',
       is_reliable: respReliable,
     };
@@ -566,7 +569,7 @@ export default function Practice() {
       .from('practice_responses' as any)
       .upsert(row, { onConflict: 'session_id,question_id' });
     if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
-    else console.log(`[PRACTICE_SESSION] saved answer session=${sessionId} qid=${qid} correct=${isCorrect}`);
+    else console.log(`[TRACKING_ENABLED] is_correct=${isCorrect} time_spent_s=${timeSpentSeconds} topic="${q.topic}" session=${sessionId}`);
   }, [user, sessionId, participantId]);
 
   const handleAnswer = (latinKey: string) => {
@@ -574,6 +577,8 @@ export default function Practice() {
     if (!q) return;
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
     void persistAnswer(q, latinKey, currentIndex);
+    // Reset timer for next question
+    questionStartRef.current = Date.now();
   };
 
   // Always load the static solution from question_explanations.
