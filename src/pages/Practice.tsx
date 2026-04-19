@@ -115,7 +115,7 @@ export default function Practice() {
           .not('correct_answer', 'is', null)
           // STRICT quality gate: ONLY 'keep' questions are served to students.
           // 'review' / 'unknown' / 'remove' are excluded — no exceptions.
-          .in('quality_status', ['keep']),
+          .in('quality_status', ['keep', 'approved']),
         supabase
           .from('math_questions')
           .select('test_id, question_number, instruction, column_a, column_b'),
@@ -613,8 +613,8 @@ export default function Practice() {
     questionStartRef.current = Date.now();
   };
 
-  // Always load the static solution from question_explanations.
-  // Only call AI for a SHORT mistake hint when user_answer != correct_answer (and cache it).
+  // Legacy helper kept only for compatibility with old UI branches.
+  // Runtime is DB-only; QuestionReview reads explanations directly from question rows.
   const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string | null) => {
     const key = qKey(q);
     const questionId = `${q.type}_${q.id}`;

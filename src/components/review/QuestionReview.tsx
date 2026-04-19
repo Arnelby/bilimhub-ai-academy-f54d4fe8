@@ -2,7 +2,7 @@ import { CheckCircle, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MathRenderer } from "@/components/math/MathRenderer";
 import { translateTopic } from "@/lib/topicTranslations";
-import { toCyrillicKey } from "@/lib/mathTestConfig";
+import { formatAnswerKey, sanitizeReviewText } from "@/lib/reviewFormatting";
 
 /**
  * Universal question-review block.
@@ -63,6 +63,10 @@ export function QuestionReview({ data }: { data: QuestionReviewData }) {
     ? pickDistractorExplanation(data.userAnswer, data)
     : null;
   const correctExpl = data.correctExplanation;
+  const displayUserAnswer = formatAnswerKey(data.userAnswer);
+  const displayCorrectAnswer = formatAnswerKey(data.correctAnswer);
+  const wrongExplText = sanitizeReviewText(wrongExpl);
+  const correctExplText = sanitizeReviewText(correctExpl);
 
   return (
     <div
@@ -124,14 +128,14 @@ export function QuestionReview({ data }: { data: QuestionReviewData }) {
                     : "font-medium text-destructive"
                 }
               >
-                {data.userAnswer ? toCyrillicKey(data.userAnswer) : "—"}
+                {displayUserAnswer}
               </span>
             </span>
             {!data.isCorrect && (
               <span>
                 Правильный:{" "}
                 <span className="font-medium text-success">
-                  {toCyrillicKey(data.correctAnswer)}
+                  {displayCorrectAnswer}
                 </span>
               </span>
             )}
@@ -141,10 +145,10 @@ export function QuestionReview({ data }: { data: QuestionReviewData }) {
           {!data.isCorrect && (
             <div className="rounded-md border border-destructive/20 bg-background/60 p-3 text-sm">
               <div className="mb-1 font-medium text-destructive">
-                ❌ Почему «{data.userAnswer ? toCyrillicKey(data.userAnswer) : "—"}» неверно
+                ❌ Почему «{displayUserAnswer}» неверно
               </div>
               <div className="text-foreground/90">
-                {wrongExpl ? <MathRenderer content={wrongExpl} /> : NO_EXPL}
+                {wrongExplText ? <MathRenderer content={wrongExplText} /> : NO_EXPL}
               </div>
             </div>
           )}
@@ -155,7 +159,7 @@ export function QuestionReview({ data }: { data: QuestionReviewData }) {
               ✅ Правильное решение
             </div>
             <div className="text-foreground/90">
-              {correctExpl ? <MathRenderer content={correctExpl} /> : NO_EXPL}
+              {correctExplText ? <MathRenderer content={correctExplText} /> : NO_EXPL}
             </div>
           </div>
         </div>
