@@ -378,7 +378,7 @@ export default function Practice() {
       // ============ 2. EXCLUDE ALREADY ANSWERED (per-participant non-repetition) ============
       const [{ data: priorAttempts }, { data: priorPractice }] = await Promise.all([
         supabase.from('question_attempts').select('question_id').eq('user_id', user.id),
-        supabase.from('practice_responses').select('question_id, question_data').eq('user_id', user.id),
+        supabase.from('practice_responses').select('question_id, question_data, is_correct, created_at').eq('user_id', user.id).order('created_at', { ascending: true }),
       ]);
       const seen = new Set<string>();
       for (const a of priorAttempts || []) if (a.question_id) seen.add(a.question_id);
