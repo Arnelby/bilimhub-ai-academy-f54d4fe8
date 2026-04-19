@@ -886,10 +886,31 @@ export default function Practice() {
               </div>
 
               {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
-              <div className="flex gap-3 justify-center mb-6">
-                <Button onClick={() => loadPractice(true)} variant="accent">
+              <div className="flex gap-3 justify-center mb-6 flex-wrap">
+                <Button
+                  onClick={() => {
+                    // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
+                    if (focusedTopic && weakTopics.length > 0) {
+                      const idx = weakTopics.findIndex(
+                        t => t.toLowerCase() === focusedTopic.toLowerCase(),
+                      );
+                      const next = weakTopics[(idx + 1) % weakTopics.length];
+                      if (next && next.toLowerCase() !== focusedTopic.toLowerCase()) {
+                        setSearchParams({ topic: next });
+                        return;
+                      }
+                    }
+                    // Otherwise: clear focus and start a fresh general session
+                    if (focusedTopic) {
+                      setSearchParams({});
+                      return;
+                    }
+                    loadPractice(true);
+                  }}
+                  variant="accent"
+                >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Новая практика
+                  {focusedTopic ? 'Следующая тема' : 'Новая практика'}
                 </Button>
                 {isAI && (
                   <Button onClick={() => navigate('/learning-plan')} variant="outline">
