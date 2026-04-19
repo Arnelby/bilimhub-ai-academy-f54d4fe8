@@ -299,11 +299,12 @@ export default function TestTaking() {
       await supabase.from('question_attempts').insert(questionAttemptsToInsert as any);
 
       // Update gamification (points, streak, achievements)
-      const pointsEarned = Math.round(analysisData.score * 0.5) + 25; // Base 25 points + score bonus
+      const percentScore = totalQ > 0 ? Math.round((safeScore / totalQ) * 100) : 0;
+      const pointsEarned = Math.round(percentScore * 0.5) + 25; // Base 25 points + score bonus
       await updateGamification({
         userId: user.id,
         pointsEarned,
-        testScore: analysisData.score,
+        testScore: percentScore,
       });
 
       // Navigate to results
