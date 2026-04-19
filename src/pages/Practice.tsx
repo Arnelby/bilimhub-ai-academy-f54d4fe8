@@ -115,7 +115,7 @@ export default function Practice() {
           .not('correct_answer', 'is', null)
           // STRICT quality gate: ONLY 'keep' questions are served to students.
           // 'review' / 'unknown' / 'remove' are excluded — no exceptions.
-          .in('quality_status', ['keep']),
+          .in('quality_status', ['keep', 'approved']),
         supabase
           .from('math_questions')
           .select('test_id, question_number, instruction, column_a, column_b'),
@@ -231,6 +231,15 @@ export default function Practice() {
       const isQualityOk = (b: Bank): boolean => {
         const q = b.q;
         const ans = (q.correct_answer || '').trim().toUpperCase();
+
+        const hasFullReview =
+          !!q.correct_explanation &&
+          !!q.explanation_a &&
+          !!q.explanation_b &&
+          !!q.explanation_c &&
+          !!q.explanation_d &&
+          (q.type === 'comparison' || !!q.explanation_e);
+        if (!hasFullReview) { bump('missing_review_explanations'); return false; }
 
         if (q.type === 'comparison') {
           // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
@@ -613,8 +622,8 @@ export default function Practice() {
     questionStartRef.current = Date.now();
   };
 
-  // Always load the static solution from question_explanations.
-  // Only call AI for a SHORT mistake hint when user_answer != correct_answer (and cache it).
+  // Legacy helper kept only for compatibility with old UI branches.
+  // Runtime is DB-only; QuestionReview reads explanations directly from question rows.
   const loadMistakeExplanation = async (q: PracticeQuestion, userAnswer: string | null) => {
     const key = qKey(q);
     const questionId = `${q.type}_${q.id}`;

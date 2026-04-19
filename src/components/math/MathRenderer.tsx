@@ -72,7 +72,11 @@ function normalizeMath(raw: string): string {
   // Step 3: Multi-digit subscripts
   text = text.replace(/_([A-Za-z0-9]{2,})/g, '_{$1}');
 
-  const hasMath = /\\frac|\\sqrt|\^|_\{|(?<![a-zA-Z:\/])\d+\s*\/\s*\d+(?![a-zA-Z\/])/.test(text);
+  const hasLatexCommand = /\\frac|\\sqrt|\\cdot|\\times|\\div|\\leq|\\geq|\\neq|\\pm|\\mp|\\left|\\right|\\begin\{|\\end\{/.test(text);
+  const hasStandaloneExponent = /(^|[^\p{L}])(?:[A-Za-z]\w*|\d+)\^[-(]?[A-Za-z0-9]+/u.test(text);
+  const hasStandaloneSubscript = /(^|[^\p{L}])[A-Za-z]\w*_[A-Za-z0-9]+/u.test(text);
+  const hasSimpleFraction = /(^|[^\p{L}:\/])\(?-?\d+(?:[.,]\d+)?\)?\s*\/\s*\(?-?\d+(?:[.,]\d+)?\)?(?![\p{L}\/])/u.test(text);
+  const hasMath = hasLatexCommand || hasStandaloneExponent || hasStandaloneSubscript || hasSimpleFraction;
 
   if (hasMath) {
     text = text.replace(/(?<![a-zA-Z:\/\\])(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)(?![a-zA-Z\/])/g, '\\frac{$1}{$2}');
