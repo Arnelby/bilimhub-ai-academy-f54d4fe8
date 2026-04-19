@@ -1,30 +1,25 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useUserGroup } from "@/hooks/useUserGroup";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "@/hooks/use-toast";
 import {
-  RefreshCw, Loader2, AlertTriangle, CheckCircle, ArrowRight,
-  BookOpen, Trophy, Clock, XCircle, Target, TrendingUp, TrendingDown, Sparkles, Video, Play, BrainCircuit
+  Loader2, AlertTriangle, CheckCircle, BookOpen, Trophy, Clock, XCircle,
+  Target, TrendingUp, TrendingDown, Video, Play, Dumbbell,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { TEST_CONFIG, toCyrillicKey } from "@/lib/mathTestConfig";
-import { Link } from "react-router-dom";
+import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
-import { MathRenderer } from "@/components/math/MathRenderer";
+import { buildDeterministicPlan, type DeterministicPlan } from "@/lib/deterministicPlan";
 
 interface RecommendedLesson {
   id: string;
   title_ru: string | null;
   title: string;
-  youtube_url: string;
   topicTitle: string;
 }
 
@@ -34,13 +29,6 @@ interface MistakeQuestion {
   testId: string;
 }
 
-interface TopicStat {
-  topic: string;
-  total: number;
-  correct: number;
-  accuracy: number;
-}
-
 interface TestAnalysis {
   testName: string;
   completedAt: string;
@@ -48,58 +36,45 @@ interface TestAnalysis {
   totalQuestions: number;
   percentage: number;
   timeTakenSeconds: number;
-  strongTopics: TopicStat[];
-  mediumTopics: TopicStat[];
-  weakTopics: TopicStat[];
+  plan: DeterministicPlan;
 }
 
-interface AnswerDetail {
-  questionNumber: number;
-  answer: string | null;
-  correctAnswer: string;
-  isCorrect: boolean;
-  topic: string;
-  type: 'comparison' | 'mcq';
-  instruction?: string;
-  column_a?: string;
-  column_b?: string;
-  options?: Record<string, string>;
-}
-
+/**
+ * Learning Plan — fully deterministic and data-driven.
+ * NO AI runtime calls. Topics are classified by raw accuracy from
+ * question_attempts + practice_responses.
+ *
+ * The plan is persisted in `ai_learning_plans_v2` (legacy table name kept;
+ * `plan_data` now stores the deterministic plan, not an AI response).
+ */
 export default function LearningPlanV2() {
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const { language } = useLanguage();
-  const { isAI } = useUserGroup();
 
   const [analysis, setAnalysis] = useState<TestAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [aiRecommendations, setAiRecommendations] = useState<string[] | null>(null);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
   const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
-  const [answerDetails, setAnswerDetails] = useState<AnswerDetail[]>([]);
-  const [showAllQuestions, setShowAllQuestions] = useState(false);
-  const [latestVariantNum, setLatestVariantNum] = useState<string>('');
-  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
-  const [aiExplLoading, setAiExplLoading] = useState(false);
-  const [aiExplQuestion, setAiExplQuestion] = useState<AnswerDetail | null>(null);
+  const [latestVariantNum, setLatestVariantNum] = useState<string>("");
 
   useEffect(() => {
     if (user) loadAnalysis();
     else setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadAnalysis = async () => {
     if (!user) return;
     setLoading(true);
     try {
+      // 1) Latest completed test
       const { data: latestAttempt } = await supabase
-        .from('user_tests')
-        .select('id, test_id, score, total_questions, time_taken_seconds, completed_at, answers')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: false })
+        .from("user_tests")
+        .select("id, test_id, score, total_questions, time_taken_seconds, completed_at, participant_id")
+        .eq("user_id", user.id)
+        .not("completed_at", "is", null)
+        .order("completed_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -108,149 +83,116 @@ export default function LearningPlanV2() {
         return;
       }
 
-      const matchedConfig = Object.entries(TEST_CONFIG).find(([, c]) => c.uuid === latestAttempt.test_id);
-      const testName = matchedConfig ? matchedConfig[1].name : 'Тест';
-      const varNum = matchedConfig ? matchedConfig[0] : '';
+      const matchedConfig = Object.entries(TEST_CONFIG).find(
+        ([, c]) => c.uuid === latestAttempt.test_id,
+      );
+      const testName = matchedConfig ? matchedConfig[1].name : "Тест";
+      const varNum = matchedConfig ? matchedConfig[0] : "";
       setLatestVariantNum(varNum);
 
-      const { data: attempts } = await supabase
-        .from('question_attempts')
-        .select('topic, is_correct')
-        .eq('user_id', user.id)
-        .eq('test_attempt_id', latestAttempt.id);
+      // 2) Pull ALL accuracy signals: question_attempts + practice_responses
+      const [{ data: attempts }, { data: practice }] = await Promise.all([
+        supabase
+          .from("question_attempts")
+          .select("topic, is_correct")
+          .eq("user_id", user.id),
+        supabase
+          .from("practice_responses")
+          .select("topic, is_correct")
+          .eq("user_id", user.id),
+      ]);
 
-      let topicData: { topic: string | null; is_correct: boolean }[] = attempts || [];
+      const plan = buildDeterministicPlan([
+        ...(attempts || []),
+        ...(practice || []),
+      ]);
 
-      if (topicData.length === 0) {
-        const testIdStr = matchedConfig ? `math_test_${matchedConfig[0]}` : '';
-        if (testIdStr) {
-          const { data: userAnswers } = await supabase
-            .from('user_answers')
-            .select('topic, is_correct')
-            .eq('user_id', user.id)
-            .eq('test_id', testIdStr);
-          topicData = userAnswers || [];
-        }
+      // 3) Persist plan (overwrite previous active row, no AI involved)
+      try {
+        await supabase
+          .from("ai_learning_plans_v2")
+          .update({ is_active: false })
+          .eq("user_id", user.id);
+        await supabase.from("ai_learning_plans_v2").insert({
+          user_id: user.id,
+          participant_id: latestAttempt.participant_id,
+          plan_data: plan as any,
+          target_topics: plan.weakTopics.map((t) => t.topic) as any,
+          learning_strategy: "deterministic_v1",
+          is_active: true,
+        });
+      } catch (e) {
+        console.warn("[PLAN] persist failed (non-blocking):", e);
       }
 
-      const topicMap = new Map<string, { correct: number; total: number }>();
-      for (const a of topicData) {
-        const t = a.topic;
-        if (!t) continue;
-        const entry = topicMap.get(t) || { correct: 0, total: 0 };
-        entry.total++;
-        if (a.is_correct) entry.correct++;
-        topicMap.set(t, entry);
-      }
-
-      const strong: TopicStat[] = [];
-      const medium: TopicStat[] = [];
-      const weak: TopicStat[] = [];
-
-      topicMap.forEach((data, topic) => {
-        const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
-        const stat: TopicStat = { topic, total: data.total, correct: data.correct, accuracy };
-        if (accuracy >= 80) strong.push(stat);
-        else if (accuracy >= 50) medium.push(stat);
-        else weak.push(stat);
-      });
-
-      weak.sort((a, b) => a.accuracy - b.accuracy);
-      strong.sort((a, b) => b.accuracy - a.accuracy);
-
-      const total = latestAttempt.total_questions || topicData.length;
-      const correctCount = topicData.filter(a => a.is_correct).length;
-      const percentage = total > 0 ? Math.round((correctCount / total) * 100) : (latestAttempt.score || 0);
+      // 4) Score: prefer attempts-based count
+      const total =
+        latestAttempt.total_questions ||
+        (attempts || []).filter((a) =>
+          plan.weakTopics
+            .concat(plan.mediumTopics)
+            .concat(plan.strongTopics)
+            .some((t) => t.topic === a.topic),
+        ).length;
+      const correctCount = (attempts || []).filter((a) => a.is_correct).length;
+      const percentage =
+        total > 0 ? Math.round((correctCount / total) * 100) : latestAttempt.score || 0;
 
       setAnalysis({
         testName,
-        completedAt: latestAttempt.completed_at || '',
+        completedAt: latestAttempt.completed_at || "",
         score: correctCount,
         totalQuestions: total,
         percentage,
         timeTakenSeconds: latestAttempt.time_taken_seconds || 0,
-        strongTopics: strong,
-        mediumTopics: medium,
-        weakTopics: weak,
+        plan,
       });
 
-      const { data: savedPlan } = await supabase
-        .from('ai_learning_plans_v2')
-        .select('plan_data')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('generated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (savedPlan?.plan_data) {
-        const pd = savedPlan.plan_data as any;
-        if (pd?.plan?.actions) {
-          setAiRecommendations(pd.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
-        }
-      }
-
-      const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : '';
+      // 5) Mistakes from latest test for video review
+      const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : "";
       if (latestTestId) {
         const { data: wrongAnswers } = await supabase
-          .from('user_answers')
-          .select('question_id, topic, test_id')
-          .eq('user_id', user.id)
-          .eq('test_id', latestTestId)
-          .eq('is_correct', false)
+          .from("user_answers")
+          .select("question_id, topic, test_id")
+          .eq("user_id", user.id)
+          .eq("test_id", latestTestId)
+          .eq("is_correct", false)
           .limit(10);
 
         if (wrongAnswers) {
-          setMistakes(wrongAnswers.map(a => ({
-            questionNumber: a.question_id,
-            topic: a.topic,
-            testId: a.test_id,
-          })));
+          setMistakes(
+            wrongAnswers.map((a) => ({
+              questionNumber: a.question_id,
+              topic: a.topic,
+              testId: a.test_id,
+            })),
+          );
         }
       }
 
-      const rawAnswers = (latestAttempt as any).answers;
-      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
-        const parsed: AnswerDetail[] = rawAnswers
-          .filter((a: any) => a.correctAnswer !== undefined)
-          .map((a: any) => ({
-            questionNumber: a.questionNumber || 0,
-            answer: a.answer || null,
-            correctAnswer: a.correctAnswer || '',
-            isCorrect: !!a.isCorrect,
-            topic: a.topic || '',
-            type: a.type || 'comparison',
-            instruction: a.instruction,
-            column_a: a.column_a,
-            column_b: a.column_b,
-            options: a.options,
-          }));
-        setAnswerDetails(parsed);
-      }
-
-      if (weak.length > 0) {
-        const weakTopicNames = weak.map(w => w.topic);
+      // 6) Recommended lessons for weak topics
+      if (plan.weakTopics.length > 0) {
+        const weakNames = plan.weakTopics.map((w) => w.topic);
         const { data: matchingTopics } = await supabase
-          .from('topics')
-          .select('id, title, title_ru')
-          .in('title', weakTopicNames);
+          .from("topics")
+          .select("id, title, title_ru")
+          .in("title", weakNames);
 
         if (matchingTopics && matchingTopics.length > 0) {
-          const topicIds = matchingTopics.map(t => t.id);
+          const topicIds = matchingTopics.map((t) => t.id);
           const { data: lessonsData } = await supabase
-            .from('lessons')
-            .select('id, title, title_ru, topic_id, content')
-            .in('topic_id', topicIds);
+            .from("lessons")
+            .select("id, title, title_ru, topic_id")
+            .in("topic_id", topicIds);
 
           if (lessonsData) {
-            const recLessons: RecommendedLesson[] = lessonsData.map(l => {
-              const topic = matchingTopics.find(t => t.id === l.topic_id);
+            const recLessons: RecommendedLesson[] = lessonsData.map((l) => {
+              const topic = matchingTopics.find((t) => t.id === l.topic_id);
               return {
                 id: l.id,
                 title: l.title,
                 title_ru: l.title_ru,
-                youtube_url: (l.content as any)?.youtube_url || '',
-                topicTitle: topic?.title_ru || topic?.title || '',
+                topicTitle: topic?.title_ru || topic?.title || "",
               };
             });
             setRecommendedLessons(recLessons);
@@ -258,185 +200,9 @@ export default function LearningPlanV2() {
         }
       }
     } catch (e) {
-      console.error('Error loading analysis:', e);
+      console.error("Error loading analysis:", e);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generateAiPlan = async () => {
-    if (!user || !session || !analysis) return;
-    
-    const lastGenKey = 'lastAiPlanGenerated';
-    const lastGen = localStorage.getItem(lastGenKey);
-    if (lastGen) {
-      const elapsed = Date.now() - parseInt(lastGen, 10);
-      if (elapsed < 60000) {
-        const remaining = Math.ceil((60000 - elapsed) / 1000);
-        toast({ title: "Подождите", description: `Повторная генерация через ${remaining} сек.`, variant: "destructive" });
-        return;
-      }
-    }
-    
-    setGenerating(true);
-    const startTime = Date.now();
-    
-    await supabase.from('ai_request_logs').insert({
-      user_id: user.id,
-      function_name: 'ai-learning-plan-v2',
-      status: 'pending',
-    });
-    
-    try {
-      const diagnosticAnswers = [
-        ...analysis.weakTopics.map(t => ({ topic: t.topic, isCorrect: false })),
-        ...analysis.mediumTopics.map(t => ({ topic: t.topic, isCorrect: t.accuracy >= 60 })),
-        ...analysis.strongTopics.map(t => ({ topic: t.topic, isCorrect: true })),
-      ];
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-learning-plan-v2`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ diagnosticAnswers, language }),
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed');
-      const planResult = await response.json();
-
-      await supabase.from('ai_learning_plans_v2').update({ is_active: false }).eq('user_id', user.id);
-      await supabase.from('ai_learning_plans_v2').insert({
-        user_id: user.id,
-        plan_data: planResult,
-        is_active: true,
-      });
-
-      if (planResult?.plan?.actions) {
-        setAiRecommendations(planResult.plan.actions.map((a: any) => typeof a === 'string' ? a : a?.text || JSON.stringify(a)));
-      }
-
-      localStorage.setItem(lastGenKey, Date.now().toString());
-      await supabase.from('ai_request_logs').insert({
-        user_id: user.id,
-        function_name: 'ai-learning-plan-v2',
-        status: 'success',
-        response_time_ms: Date.now() - startTime,
-      });
-
-      toast({ title: "Рекомендации обновлены!" });
-    } catch (e) {
-      console.error('Error generating plan:', e);
-      
-      await supabase.from('ai_request_logs').insert({
-        user_id: user.id,
-        function_name: 'ai-learning-plan-v2',
-        status: 'error',
-        response_time_ms: Date.now() - startTime,
-        error_message: e instanceof Error ? e.message : 'Unknown error',
-      });
-      
-      toast({ title: "Ошибка", description: "Не удалось создать рекомендации", variant: "destructive" });
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const requestAiExplanation = async (detail: AnswerDetail) => {
-    if (!session) return;
-    setAiExplQuestion(detail);
-    setAiExplanation(null);
-    setAiExplLoading(true);
-
-    try {
-      const questionDesc = detail.type === 'comparison'
-        ? `Условие: ${detail.instruction || ''}\nСтолбец А: ${detail.column_a || ''}\nСтолбец Б: ${detail.column_b || ''}`
-        : `Условие: ${detail.instruction || ''}${detail.options ? '\nВарианты: ' + Object.entries(detail.options).map(([k, v]) => `${k}) ${v}`).join(', ') : ''}`;
-
-      const prompt = `Вопрос ${detail.questionNumber} (тема: ${detail.topic || 'неизвестна'}).
-${questionDesc}
-Ответ ученика: ${detail.answer ? toCyrillicKey(detail.answer) : 'не ответил'}
-Правильный ответ: ${toCyrillicKey(detail.correctAnswer)}
-
-Дай разбор СТРОГО по формату:
-
-❌ Твоя ошибка:
-(что именно сделал неправильно)
-
-✅ Правильная логика:
-(краткое правильное решение с вычислениями)
-
-📌 Ключевая идея:
-(правило / концепт)
-
-⚠️ Как не ошибаться:
-(конкретный совет)
-
-🔁 Мини-практика:
-(1 аналогичный вопрос для закрепления)`;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat-tutor`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            messages: [{ role: 'user', content: prompt }],
-            context: { topic: detail.topic },
-            action: 'explain_mistake',
-            language: 'ru',
-          }),
-        }
-      );
-
-      if (!response.ok) throw new Error('AI error');
-
-      // ai-chat-tutor returns SSE stream — parse it token by token
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIdx: number;
-        while ((newlineIdx = buffer.indexOf('\n')) !== -1) {
-          let line = buffer.slice(0, newlineIdx);
-          buffer = buffer.slice(newlineIdx + 1);
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (!line.startsWith('data: ')) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              fullContent += delta;
-              setAiExplanation(fullContent);
-            }
-          } catch { /* partial JSON, skip */ }
-        }
-      }
-
-      if (!fullContent) {
-        setAiExplanation('Не удалось получить объяснение.');
-      }
-    } catch (e) {
-      console.error('AI explanation error:', e);
-      setAiExplanation('Ошибка при получении объяснения. Попробуйте позже.');
-    } finally {
-      setAiExplLoading(false);
     }
   };
 
@@ -446,7 +212,7 @@ ${questionDesc}
         <div className="container py-12 text-center">
           <h1 className="text-2xl font-bold mb-4">Мой план</h1>
           <p className="text-muted-foreground mb-6">Войдите, чтобы увидеть план.</p>
-          <Button onClick={() => navigate('/login')}>Войти</Button>
+          <Button onClick={() => navigate("/login")}>Войти</Button>
         </div>
       </Layout>
     );
@@ -468,8 +234,10 @@ ${questionDesc}
         <div className="container py-12 text-center max-w-lg mx-auto">
           <Target className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <h1 className="text-2xl font-bold mb-2">Нет данных</h1>
-          <p className="text-muted-foreground mb-6">Сначала пройдите тест, чтобы система проанализировала ваши знания.</p>
-          <Button onClick={() => navigate('/tests')}>
+          <p className="text-muted-foreground mb-6">
+            Сначала пройдите тест, чтобы система проанализировала ваши знания.
+          </p>
+          <Button onClick={() => navigate("/tests")}>
             <Target className="mr-2 h-4 w-4" />
             Перейти к тестам
           </Button>
@@ -478,22 +246,31 @@ ${questionDesc}
     );
   }
 
-  const { percentage, score, totalQuestions, timeTakenSeconds, testName, completedAt, strongTopics, weakTopics, mediumTopics } = analysis;
+  const {
+    percentage,
+    score,
+    totalQuestions,
+    timeTakenSeconds,
+    testName,
+    completedAt,
+    plan,
+  } = analysis;
+  const { weakTopics, mediumTopics, strongTopics } = plan;
 
   const getScoreColor = () => {
-    if (percentage >= 80) return 'text-success';
-    if (percentage >= 60) return 'text-warning';
-    return 'text-destructive';
+    if (percentage >= 80) return "text-success";
+    if (percentage >= 60) return "text-warning";
+    return "text-destructive";
   };
 
-  const getScoreBadge = () => {
-    if (percentage >= 90) return { label: 'Отлично!', variant: 'success' as const };
-    if (percentage >= 80) return { label: 'Хорошо', variant: 'success' as const };
-    if (percentage >= 60) return { label: 'Удовлетворительно', variant: 'warning' as const };
-    return { label: 'Требуется улучшение', variant: 'destructive' as const };
-  };
-
-  const scoreBadge = getScoreBadge();
+  const scoreBadge =
+    percentage >= 90
+      ? { label: "Отлично!", variant: "success" as const }
+      : percentage >= 80
+      ? { label: "Хорошо", variant: "success" as const }
+      : percentage >= 60
+      ? { label: "Удовлетворительно", variant: "warning" as const }
+      : { label: "Требуется улучшение", variant: "destructive" as const };
 
   return (
     <Layout>
@@ -506,7 +283,7 @@ ${questionDesc}
           </Badge>
           <h1 className="text-3xl font-bold mb-2">{testName}</h1>
           <p className="text-muted-foreground">
-            Завершен {completedAt ? new Date(completedAt).toLocaleDateString('ru-RU') : ''}
+            Завершен {completedAt ? new Date(completedAt).toLocaleDateString("ru-RU") : ""}
           </p>
         </div>
 
@@ -514,9 +291,7 @@ ${questionDesc}
         <div className="mb-8 grid gap-4 md:grid-cols-3">
           <Card variant="elevated" className="text-center">
             <CardContent className="p-6">
-              <div className={`text-5xl font-bold ${getScoreColor()}`}>
-                {percentage}%
-              </div>
+              <div className={`text-5xl font-bold ${getScoreColor()}`}>{percentage}%</div>
               <p className="text-muted-foreground mt-2">Общий результат</p>
               <Progress value={percentage} className="mt-4 h-2" />
             </CardContent>
@@ -549,13 +324,35 @@ ${questionDesc}
               <div className="flex items-center justify-center gap-2 text-accent">
                 <Clock className="h-6 w-6" />
                 <span className="text-3xl font-bold">
-                  {Math.floor(timeTakenSeconds / 60)}:{(timeTakenSeconds % 60).toString().padStart(2, '0')}
+                  {Math.floor(timeTakenSeconds / 60)}:
+                  {(timeTakenSeconds % 60).toString().padStart(2, "0")}
                 </span>
               </div>
               <p className="text-muted-foreground mt-2">Время выполнения</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Action — practice on weak topics */}
+        {weakTopics.length > 0 && (
+          <Card className="mb-6 border-accent/30 bg-accent/5">
+            <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Dumbbell className="w-5 h-5 text-accent" />
+                  Работа над ошибками
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Тренировка по {weakTopics.length} слабым темам — задачи берутся из банка
+                  practice_questions без участия AI.
+                </p>
+              </div>
+              <Button onClick={() => navigate("/practice")} variant="accent">
+                Начать практику
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Weak Topics */}
         {weakTopics.length > 0 && (
@@ -565,15 +362,18 @@ ${questionDesc}
                 <AlertTriangle className="w-5 h-5 text-destructive" />
                 Слабые темы ({weakTopics.length})
               </CardTitle>
+              <CardDescription>Точность ниже 50% (минимум 3 попытки)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {weakTopics.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between">
+                  <div key={i} className="flex items-center justify-between gap-3">
                     <span className="text-sm">{translateTopic(t.topic, language)}</span>
                     <div className="flex items-center gap-3 w-48">
                       <Progress value={t.accuracy} className="h-2 flex-1" />
-                      <span className="text-sm font-mono text-destructive w-12 text-right">{t.accuracy}%</span>
+                      <span className="text-sm font-mono text-destructive w-16 text-right">
+                        {t.accuracy}% ({t.correct}/{t.total})
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -590,15 +390,18 @@ ${questionDesc}
                 <TrendingDown className="w-5 h-5 text-warning" />
                 Средние темы ({mediumTopics.length})
               </CardTitle>
+              <CardDescription>Точность от 50% до 75%</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {mediumTopics.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between">
+                  <div key={i} className="flex items-center justify-between gap-3">
                     <span className="text-sm">{translateTopic(t.topic, language)}</span>
                     <div className="flex items-center gap-3 w-48">
                       <Progress value={t.accuracy} className="h-2 flex-1" />
-                      <span className="text-sm font-mono text-warning w-12 text-right">{t.accuracy}%</span>
+                      <span className="text-sm font-mono text-warning w-16 text-right">
+                        {t.accuracy}% ({t.correct}/{t.total})
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -615,6 +418,7 @@ ${questionDesc}
                 <TrendingUp className="w-5 h-5 text-success" />
                 Сильные темы ({strongTopics.length})
               </CardTitle>
+              <CardDescription>Точность 75% и выше</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -628,182 +432,7 @@ ${questionDesc}
           </Card>
         )}
 
-        {/* Per-Question Breakdown — AI group only */}
-        {isAI && answerDetails.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="w-5 h-5 text-accent" />
-                Разбор по вопросам
-              </CardTitle>
-              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {(showAllQuestions ? answerDetails : answerDetails.slice(0, 10)).map((a, idx) => {
-                  const variantKey = latestVariantNum ? `variant${latestVariantNum}` : '';
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-start gap-3 rounded-lg border p-3 ${
-                        a.isCorrect
-                          ? 'border-success/30 bg-success/5'
-                          : 'border-destructive/30 bg-destructive/5'
-                      }`}
-                    >
-                      <div className="flex-shrink-0 mt-0.5">
-                        {a.isCorrect ? (
-                          <CheckCircle className="h-5 w-5 text-success" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-destructive" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-sm">
-                            Вопрос {a.questionNumber}
-                          </span>
-                          {a.topic && (
-                            <Badge variant="outline" className="text-xs">
-                              {translateTopic(a.topic, "ru")}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Question content */}
-                        {a.type === 'comparison' && a.column_a && a.column_b && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            {a.instruction && (
-                              <div className="mb-1"><MathRenderer content={a.instruction} /></div>
-                            )}
-                            <span>Столбец А: </span>
-                            <MathRenderer content={a.column_a} inline />
-                            <span className="mx-2">vs</span>
-                            <span>Столбец Б: </span>
-                            <MathRenderer content={a.column_b} inline />
-                          </div>
-                        )}
-                        {a.type === 'mcq' && a.instruction && (
-                          <div className="text-sm text-muted-foreground mb-1">
-                            <MathRenderer content={a.instruction} />
-                          </div>
-                        )}
-
-                        {/* Answer details */}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                          <span>
-                            Ваш ответ:{' '}
-                            <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
-                              {a.answer ? toCyrillicKey(a.answer) : '—'}
-                            </span>
-                          </span>
-                          {!a.isCorrect && (
-                            <span>
-                              Правильный:{' '}
-                              <span className="font-medium text-success">
-                                {toCyrillicKey(a.correctAnswer)}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Action buttons for wrong answers */}
-                        {!a.isCorrect && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" asChild>
-                              <Link to={`/lessons/video/${variantKey}?question=${a.questionNumber}`}>
-                                <Video className="mr-1 h-3 w-3" />
-                                Видеоразбор
-                              </Link>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-accent/50 text-accent hover:bg-accent/10"
-                              onClick={() => requestAiExplanation(a)}
-                            >
-                              <BrainCircuit className="mr-1 h-3 w-3" />
-                              Разбор с AI
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {answerDetails.length > 10 && !showAllQuestions && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => setShowAllQuestions(true)}
-                >
-                  Показать все {answerDetails.length} вопросов
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AI Explanation Dialog */}
-        <Dialog open={!!aiExplQuestion} onOpenChange={(open) => { if (!open) setAiExplQuestion(null); }}>
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <BrainCircuit className="h-5 w-5 text-accent" />
-                Разбор с AI — Вопрос {aiExplQuestion?.questionNumber}
-              </DialogTitle>
-            </DialogHeader>
-            {aiExplLoading ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <p className="text-sm text-muted-foreground">AI анализирует вашу ошибку...</p>
-              </div>
-            ) : aiExplanation ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <MathRenderer content={aiExplanation} />
-              </div>
-            ) : null}
-          </DialogContent>
-        </Dialog>
-
-        {/* AI Recommendations */}
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-accent" />
-                Рекомендации AI
-              </CardTitle>
-              <Button onClick={generateAiPlan} disabled={generating} size="sm" variant="outline">
-                {generating ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Генерация...</>
-                ) : (
-                  <><RefreshCw className="mr-2 h-4 w-4" />{aiRecommendations ? 'Обновить' : 'Создать'}</>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {aiRecommendations && aiRecommendations.length > 0 ? (
-              <ul className="space-y-2">
-                {aiRecommendations.map((rec, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <ArrowRight className="w-4 h-4 mt-0.5 text-accent shrink-0" />
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Нажмите «Создать» для получения персональных рекомендаций на основе ваших результатов.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Mistake Review */}
+        {/* Mistake Review (video) */}
         {mistakes.length > 0 && (
           <Card className="mb-6 border-destructive/20">
             <CardHeader className="pb-3">
@@ -811,22 +440,32 @@ ${questionDesc}
                 <Video className="w-5 h-5 text-accent" />
                 Видеоразбор задач
               </CardTitle>
-              <CardDescription>Посмотрите видеоразбор задач, в которых были допущены ошибки</CardDescription>
+              <CardDescription>
+                Видеоразбор задач, в которых были допущены ошибки
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {mistakes.map((m, i) => {
                   const variantMatch = m.testId.match(/math_test_(\d+)/);
-                  const variantNum = variantMatch ? variantMatch[1] : '';
-                  const variantKey = variantNum ? `variant${variantNum}` : '';
+                  const variantNum = variantMatch ? variantMatch[1] : "";
+                  const variantKey = variantNum ? `variant${variantNum}` : "";
                   const parsed = parseQuestionId(m.questionNumber);
                   const displayNum = parsed ? parsed.questionNumber : m.questionNumber;
-                  const displayVariant = parsed ? parsed.variant : (variantNum ? parseInt(variantNum) : null);
+                  const displayVariant = parsed
+                    ? parsed.variant
+                    : variantNum
+                    ? parseInt(variantNum)
+                    : null;
                   return (
-                    <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between py-2 border-b last:border-0"
+                    >
                       <div>
                         <span className="text-sm font-medium">
-                          Задача {displayNum}{displayVariant ? ` — Тест вариант ${displayVariant}` : ''}
+                          Задача {displayNum}
+                          {displayVariant ? ` — Тест вариант ${displayVariant}` : ""}
                         </span>
                         {m.topic && (
                           <p className="text-xs text-muted-foreground">
@@ -835,7 +474,9 @@ ${questionDesc}
                         )}
                       </div>
                       <Button size="sm" variant="outline" asChild>
-                        <Link to={`/lessons/video/${variantKey}?question=${displayNum}`}>
+                        <Link
+                          to={`/lessons/video/${variantKey}?question=${displayNum}`}
+                        >
                           <Video className="mr-1 h-3 w-3" />
                           Смотреть видеоразбор
                         </Link>
@@ -861,15 +502,22 @@ ${questionDesc}
             <CardContent>
               <div className="space-y-3">
                 {recommendedLessons.map((lesson) => (
-                  <div key={lesson.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div
+                    key={lesson.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
                     <div>
-                      <span className="text-sm font-medium">{lesson.title_ru || lesson.title}</span>
-                      <p className="text-xs text-muted-foreground">Тема: {lesson.topicTitle}</p>
+                      <span className="text-sm font-medium">
+                        {lesson.title_ru || lesson.title}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        Тема: {lesson.topicTitle}
+                      </p>
                     </div>
                     <Button size="sm" variant="outline" asChild>
                       <Link to="/lessons">
                         <Play className="mr-1 h-3 w-3" />
-                        Смотреть базовый урок
+                        Смотреть
                       </Link>
                     </Button>
                   </div>
@@ -879,27 +527,24 @@ ${questionDesc}
           </Card>
         )}
 
-        {weakTopics.length > 0 && (
-          <Card className="mb-6 border-accent bg-accent/5">
-            <CardContent className="flex items-center justify-between py-5">
-              <div>
-                <h3 className="font-semibold text-lg">Работа над ошибками</h3>
-                <p className="text-sm text-muted-foreground">
-                  Практикуйтесь по слабым темам в формате ОРТ — задачи подбираются автоматически
-                </p>
-              </div>
-              <Button variant="accent" size="lg" onClick={() => navigate('/practice')}>
-                <Target className="mr-2 h-5 w-5" />
-                Начать практику
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="flex flex-wrap justify-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/tests')}>
-            Все тесты
+        {/* Footer actions */}
+        <div className="flex flex-wrap gap-3 justify-center mt-8">
+          <Button onClick={() => navigate("/practice")} variant="accent">
+            <Dumbbell className="mr-2 h-4 w-4" />
+            Практика
           </Button>
+          <Button onClick={() => navigate("/tests")} variant="outline">
+            <Target className="mr-2 h-4 w-4" />
+            К тестам
+          </Button>
+          {latestVariantNum && (
+            <Button asChild variant="outline">
+              <Link to={`/lessons/video/variant${latestVariantNum}`}>
+                <Video className="mr-2 h-4 w-4" />
+                Видеоразборы варианта
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </Layout>

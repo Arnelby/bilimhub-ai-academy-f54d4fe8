@@ -1,45 +1,20 @@
 project_id = "lsisqkrzhtpxyhfmwnhq"
 
-[functions.ai-chat]
-verify_jwt = false
-
-[functions.ai-analyze-test]
-verify_jwt = false
+# Only AI functions remaining in runtime are user-triggered:
+#   - ai-chat-tutor: manual chat with student (no autostart)
+#   - ai-generate-lesson: admin-only, offline content authoring
+#   - ai-generate-ort-test: admin-only, offline test authoring
+#   - ai-practice-generate: admin-only, offline practice question authoring
+#   - ai-classify-review-questions: admin-only, offline quality review
+# All analytics / planning / recommendations are now deterministic (no AI runtime).
 
 [functions.ai-generate-lesson]
-verify_jwt = false
-
-[functions.ai-learning-path]
-verify_jwt = false
-
-[functions.ai-recommendations-v2]
-verify_jwt = false
-
-[functions.ai-learning-plan-v2]
-verify_jwt = false
-
-[functions.ai-mini-test]
 verify_jwt = false
 
 [functions.ai-chat-tutor]
 verify_jwt = false
 
 [functions.ai-generate-ort-test]
-verify_jwt = false
-
-[functions.ai-homework-review]
-verify_jwt = false
-
-[functions.ai-diagnostic-analysis]
-verify_jwt = false
-
-[functions.ai-deep-analysis]
-verify_jwt = false
-
-[functions.ai-mastery-update]
-verify_jwt = false
-
-[functions.ai-orchestrator]
 verify_jwt = false
 
 [functions.ai-practice-generate]

@@ -13,6 +13,7 @@ import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
+import { QuestionReview } from '@/components/review/QuestionReview';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -26,6 +27,12 @@ interface ComparisonPractice {
   option_d: string | null;
   correct_answer: string;
   variantId?: number;
+  correct_explanation?: string | null;
+  explanation_a?: string | null;
+  explanation_b?: string | null;
+  explanation_c?: string | null;
+  explanation_d?: string | null;
+  explanation_e?: string | null;
 }
 
 interface McqPractice {
@@ -37,6 +44,12 @@ interface McqPractice {
   options: Record<string, string>;
   correct_answer: string;
   variantId?: number;
+  correct_explanation?: string | null;
+  explanation_a?: string | null;
+  explanation_b?: string | null;
+  explanation_c?: string | null;
+  explanation_d?: string | null;
+  explanation_e?: string | null;
 }
 
 type PracticeQuestion = ComparisonPractice | McqPractice;
@@ -98,7 +111,7 @@ export default function Practice() {
       const [{ data: practiceRows }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
         supabase
           .from('practice_questions')
-          .select('id, topic, question_type, correct_answer, question_data, quality_status')
+          .select('id, topic, question_type, correct_answer, question_data, quality_status, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e')
           .not('correct_answer', 'is', null)
           // STRICT quality gate: ONLY 'keep' questions are served to students.
           // 'review' / 'unknown' / 'remove' are excluded — no exceptions.
@@ -173,6 +186,12 @@ export default function Practice() {
               option_c: null,
               option_d: null,
               correct_answer: ans,
+              correct_explanation: (r as any).correct_explanation ?? null,
+              explanation_a: (r as any).explanation_a ?? null,
+              explanation_b: (r as any).explanation_b ?? null,
+              explanation_c: (r as any).explanation_c ?? null,
+              explanation_d: (r as any).explanation_d ?? null,
+              explanation_e: (r as any).explanation_e ?? null,
             } as ComparisonPractice,
           });
         } else if (qtype === 'mcq') {
@@ -187,6 +206,12 @@ export default function Practice() {
               instruction: data.instruction || '',
               options: data.options || {},
               correct_answer: ans,
+              correct_explanation: (r as any).correct_explanation ?? null,
+              explanation_a: (r as any).explanation_a ?? null,
+              explanation_b: (r as any).explanation_b ?? null,
+              explanation_c: (r as any).explanation_c ?? null,
+              explanation_d: (r as any).explanation_d ?? null,
+              explanation_e: (r as any).explanation_e ?? null,
             } as McqPractice,
           });
         }
@@ -830,7 +855,7 @@ export default function Practice() {
             </CardContent>
           </Card>
 
-          {/* Show all questions with correct/incorrect for both groups */}
+          {/* Unified data-driven review (no AI) — uses QuestionReview component */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
@@ -838,96 +863,29 @@ export default function Practice() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {allResults.map(({ q, userAnswer, isCorrect }, idx) => {
-                const key = qKey(q);
-                const explanation = mistakeExplanations[key];
-                return (
-                  <div key={key} className="rounded-lg border border-border p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">#{idx + 1}</span>
-                        {isCorrect ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Правильно</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Неправильно</Badge>
-                        )}
-                      </div>
-                      {/* Control: NO topic display to avoid personalization hints */}
-                      {isAI && (
-                        <Badge variant="outline">{translateTopic(q.topic, 'ru')}</Badge>
-                      )}
-                    </div>
-
-                    {q.type === 'comparison' ? (
-                      <div className="text-sm mb-2">
-                        {q.instruction && <p className="mb-1"><MathRenderer content={q.instruction} /></p>}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded bg-muted/50 p-2 text-center">
-                            <span className="text-xs text-muted-foreground">A:</span> <MathRenderer content={q.column_a} inline />
-                          </div>
-                          <div className="rounded bg-muted/50 p-2 text-center">
-                            <span className="text-xs text-muted-foreground">B:</span> <MathRenderer content={q.column_b} inline />
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm mb-2"><MathRenderer content={q.instruction} /></p>
-                    )}
-
-                    <div className="flex gap-4 text-sm">
-                      <span className={isCorrect ? 'text-success' : 'text-destructive'}>
-                        Ваш ответ: {userAnswer ? toCyrillicKey(userAnswer) : '—'}
-                      </span>
-                      <span className="text-success">Верный: {toCyrillicKey(q.correct_answer)}</span>
-                    </div>
-
-                    {/* Static solution always available; AI mistake hint only when wrong */}
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 text-accent hover:text-accent"
-                        onClick={() => loadMistakeExplanation(q, userAnswer)}
-                      >
-                        {(explanation?.loadingStatic || explanation?.loadingHint) ? (
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        ) : (
-                          <Lightbulb className="mr-1 h-3 w-3" />
-                        )}
-                        {expandedMistake === key
-                          ? 'Скрыть разбор'
-                          : (isCorrect ? 'Показать решение' : 'Разбор ошибки')}
-                      </Button>
-
-                      {expandedMistake === key && explanation && (
-                        <div className="mt-2 space-y-3">
-                          {explanation.staticSolution && (
-                            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm leading-relaxed">
-                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Решение
-                              </div>
-                              <MathRenderer content={explanation.staticSolution} />
-                            </div>
-                          )}
-                          {!isCorrect && userAnswer && (
-                            <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 text-sm leading-relaxed">
-                              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-accent">
-                                Разбор ошибки {explanation.loadingHint ? '(загрузка…)' : ''}
-                              </div>
-                              {explanation.mistakeHint
-                                ? <MathRenderer content={explanation.mistakeHint} />
-                                : (explanation.loadingHint
-                                    ? <span className="text-muted-foreground">Готовим короткий разбор…</span>
-                                    : null)
-                              }
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  </div>
-                );
-              })}
+              {allResults.map(({ q, userAnswer, isCorrect }, idx) => (
+                <QuestionReview
+                  key={qKey(q)}
+                  data={{
+                    questionNumber: idx + 1,
+                    topic: isAI ? q.topic : null,
+                    type: q.type,
+                    instruction: q.instruction ?? null,
+                    column_a: q.type === 'comparison' ? q.column_a : null,
+                    column_b: q.type === 'comparison' ? q.column_b : null,
+                    options: q.type === 'mcq' ? q.options : null,
+                    userAnswer,
+                    correctAnswer: q.correct_answer,
+                    isCorrect,
+                    correctExplanation: q.correct_explanation ?? null,
+                    explanationA: q.explanation_a ?? null,
+                    explanationB: q.explanation_b ?? null,
+                    explanationC: q.explanation_c ?? null,
+                    explanationD: q.explanation_d ?? null,
+                    explanationE: q.explanation_e ?? null,
+                  }}
+                />
+              ))}
             </CardContent>
           </Card>
         </div>
