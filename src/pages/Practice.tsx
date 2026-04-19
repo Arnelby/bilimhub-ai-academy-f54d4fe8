@@ -26,6 +26,12 @@ interface ComparisonPractice {
   option_d: string | null;
   correct_answer: string;
   variantId?: number;
+  correct_explanation?: string | null;
+  explanation_a?: string | null;
+  explanation_b?: string | null;
+  explanation_c?: string | null;
+  explanation_d?: string | null;
+  explanation_e?: string | null;
 }
 
 interface McqPractice {
@@ -37,6 +43,12 @@ interface McqPractice {
   options: Record<string, string>;
   correct_answer: string;
   variantId?: number;
+  correct_explanation?: string | null;
+  explanation_a?: string | null;
+  explanation_b?: string | null;
+  explanation_c?: string | null;
+  explanation_d?: string | null;
+  explanation_e?: string | null;
 }
 
 type PracticeQuestion = ComparisonPractice | McqPractice;
