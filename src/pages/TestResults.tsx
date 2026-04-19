@@ -1,16 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  CheckCircle, 
-  XCircle, 
-  Trophy, 
-  TrendingUp, 
-  TrendingDown,
+import {
+  CheckCircle,
+  XCircle,
+  Trophy,
   ArrowRight,
   Loader2,
-  Target,
   Clock,
-  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,10 +18,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { useGamificationEvents } from '@/hooks/useGamificationEvents';
 import { Confetti } from '@/components/gamification/Confetti';
-import { MathRenderer } from '@/components/math/MathRenderer';
-import { toCyrillicKey } from '@/lib/mathTestConfig';
-import { translateTopic } from '@/lib/topicTranslations';
+import { TEST_CONFIG } from '@/lib/mathTestConfig';
 import { parseScore } from '@/lib/scoreUtils';
+import { QuestionReview, QuestionReviewData } from '@/components/review/QuestionReview';
 
 interface AnswerDetail {
   questionNumber: number;
