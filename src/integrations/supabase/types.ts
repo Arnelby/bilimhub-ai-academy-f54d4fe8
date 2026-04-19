@@ -468,6 +468,33 @@ export type Database = {
         }
         Relationships: []
       }
+      pq_explanation_staging: {
+        Row: {
+          correct_explanation: string | null
+          explanation_a: string | null
+          explanation_b: string | null
+          explanation_c: string | null
+          explanation_d: string | null
+          id: string
+        }
+        Insert: {
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          id: string
+        }
+        Update: {
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       practice_questions: {
         Row: {
           correct_answer: string
@@ -1721,6 +1748,7 @@ export type Database = {
       }
     }
     Functions: {
+      apply_pq_explanations: { Args: never; Returns: number }
       check_rate_limit: {
         Args: {
           _endpoint: string
