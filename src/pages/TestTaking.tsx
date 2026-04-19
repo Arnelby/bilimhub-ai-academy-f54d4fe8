@@ -228,22 +228,12 @@ export default function TestTaking() {
       const { getParticipantInfo } = await import('@/lib/getParticipantInfo');
       const { participantId, groupType } = await getParticipantInfo(user.id);
 
-      // Call AI analysis
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('ai-analyze-test', {
-        body: {
-          testAttemptId,
-          answers,
-          questions,
-        },
-      });
-
-      if (analysisError) throw analysisError;
-
-      // Score = raw correct count (NOT percentage)
-      const rawScore = typeof analysisData.correct === 'number' ? analysisData.correct : analysisData.score;
-      const totalQ = analysisData.total || questions.length;
-      // If rawScore > totalQ, it's already a percentage from AI — convert back to count
-      const safeScore = rawScore > totalQ ? Math.round((rawScore / 100) * totalQ) : rawScore;
+      // Deterministic scoring — no AI call. Just count correct answers.
+      const totalQ = questions.length;
+      const safeScore = questions.reduce(
+        (acc, q, idx) => (answers[idx] === q.correct_option ? acc + 1 : acc),
+        0,
+      );
 
       // Update test attempt with results
       await supabase
@@ -254,7 +244,8 @@ export default function TestTaking() {
           total_questions: totalQ,
           time_taken_seconds: timeTaken,
           completed_at: new Date().toISOString(),
-          ai_analysis: analysisData.analysis,
+          // ai_analysis is intentionally NOT set — analysis is now derived
+          // deterministically at view time in TestResults / LearningPlan.
           participant_id: participantId,
           group_type: groupType,
           data_version: 'v2',
