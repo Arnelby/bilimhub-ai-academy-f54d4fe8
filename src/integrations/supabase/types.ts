@@ -362,6 +362,11 @@ export type Database = {
           column_a: string
           column_b: string
           correct_answer: string
+          correct_explanation: string | null
+          explanation_a: string | null
+          explanation_b: string | null
+          explanation_c: string | null
+          explanation_d: string | null
           id: number
           instruction: string | null
           option_c: string | null
@@ -374,6 +379,11 @@ export type Database = {
           column_a: string
           column_b: string
           correct_answer: string
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
           id?: number
           instruction?: string | null
           option_c?: string | null
@@ -386,6 +396,11 @@ export type Database = {
           column_a?: string
           column_b?: string
           correct_answer?: string
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
           id?: number
           instruction?: string | null
           option_c?: string | null
@@ -401,6 +416,12 @@ export type Database = {
           column_a: string | null
           column_b: string | null
           correct_answer: string
+          correct_explanation: string | null
+          explanation_a: string | null
+          explanation_b: string | null
+          explanation_c: string | null
+          explanation_d: string | null
+          explanation_e: string | null
           id: number
           instruction: string | null
           options: Json | null
@@ -413,6 +434,12 @@ export type Database = {
           column_a?: string | null
           column_b?: string | null
           correct_answer: string
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
           id?: number
           instruction?: string | null
           options?: Json | null
@@ -425,6 +452,12 @@ export type Database = {
           column_a?: string | null
           column_b?: string | null
           correct_answer?: string
+          correct_explanation?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
           id?: number
           instruction?: string | null
           options?: Json | null
@@ -438,7 +471,13 @@ export type Database = {
       practice_questions: {
         Row: {
           correct_answer: string
+          correct_explanation: string | null
           created_at: string
+          explanation_a: string | null
+          explanation_b: string | null
+          explanation_c: string | null
+          explanation_d: string | null
+          explanation_e: string | null
           id: string
           quality_reason: string | null
           quality_status: string
@@ -450,7 +489,13 @@ export type Database = {
         }
         Insert: {
           correct_answer: string
+          correct_explanation?: string | null
           created_at?: string
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
           id?: string
           quality_reason?: string | null
           quality_status?: string
@@ -462,7 +507,13 @@ export type Database = {
         }
         Update: {
           correct_answer?: string
+          correct_explanation?: string | null
           created_at?: string
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
           id?: string
           quality_reason?: string | null
           quality_status?: string
