@@ -295,82 +295,37 @@ export default function TestResults() {
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Разбор по вопросам</CardTitle>
-              <CardDescription>Подробные результаты по каждому вопросу</CardDescription>
+              <CardDescription>Подробный разбор каждого ответа из базы данных</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {displayedAnswers.map((a, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-start gap-3 rounded-lg border p-3 ${
-                      a.isCorrect
-                        ? 'border-success/30 bg-success/5'
-                        : 'border-destructive/30 bg-destructive/5'
-                    }`}
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      {a.isCorrect ? (
-                        <CheckCircle className="h-5 w-5 text-success" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-destructive" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm">
-                          Вопрос {a.questionNumber}
-                        </span>
-                        {a.topic && (
-                          <Badge variant="outline" className="text-xs">
-                            {translateTopic(a.topic, "ru")}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Question content */}
-                      {a.type === 'comparison' && a.column_a && a.column_b && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          {a.instruction && (
-                            <div className="mb-1"><MathRenderer content={a.instruction} /></div>
-                          )}
-                          <span>Столбец А: </span>
-                          <MathRenderer content={a.column_a} />
-                          <span className="mx-2">vs</span>
-                          <span>Столбец Б: </span>
-                          <MathRenderer content={a.column_b} />
-                        </div>
-                      )}
-                      {a.type === 'mcq' && a.instruction && (
-                        <div className="text-sm text-muted-foreground mb-1">
-                          <MathRenderer content={a.instruction} />
-                        </div>
-                      )}
-
-                      {/* Answer details */}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                        <span>
-                          Ваш ответ:{' '}
-                          <span className={a.isCorrect ? 'font-medium text-success' : 'font-medium text-destructive'}>
-                            {a.answer ? toCyrillicKey(a.answer) : '—'}
-                          </span>
-                        </span>
-                        {!a.isCorrect && (
-                          <span>
-                            Правильный:{' '}
-                            <span className="font-medium text-success">
-                              {toCyrillicKey(a.correctAnswer)}
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {displayedAnswers.map((a, idx) => {
+                  const expl = explanationsByQNum[a.questionNumber] || {};
+                  const reviewData: QuestionReviewData = {
+                    questionNumber: a.questionNumber,
+                    topic: a.topic,
+                    type: a.type,
+                    instruction: a.instruction,
+                    column_a: a.column_a,
+                    column_b: a.column_b,
+                    options: a.options,
+                    userAnswer: a.answer,
+                    correctAnswer: a.correctAnswer,
+                    isCorrect: a.isCorrect,
+                    correctExplanation: expl.correct_explanation,
+                    explanationA: expl.explanation_a,
+                    explanationB: expl.explanation_b,
+                    explanationC: expl.explanation_c,
+                    explanationD: expl.explanation_d,
+                    explanationE: expl.explanation_e,
+                  };
+                  return <QuestionReview key={idx} data={reviewData} />;
+                })}
               </div>
-              
+
               {answerDetails.length > 10 && !showAllQuestions && (
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full mt-4"
                   onClick={() => setShowAllQuestions(true)}
                 >
@@ -379,93 +334,6 @@ export default function TestResults() {
               )}
             </CardContent>
           </Card>
-        )}
-
-        {/* AI Analysis — AI group only */}
-        {isAI && analysis && analysis.assessment && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card variant="accent" className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  AI Анализ
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-lg">{analysis.assessment}</p>
-              </CardContent>
-            </Card>
-
-            {analysis.strengths?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-success">
-                    <TrendingUp className="h-5 w-5" />
-                    Сильные стороны
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {analysis.strengths.map((s: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 mt-1 text-success shrink-0" />
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.weaknesses?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-warning">
-                    <TrendingDown className="h-5 w-5" />
-                    Области для улучшения
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {analysis.weaknesses.map((w: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <Target className="h-4 w-4 mt-1 text-warning shrink-0" />
-                        <span>{w}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.recommendations?.length > 0 && (
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Рекомендации</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {analysis.recommendations.map((rec: string, i: number) => (
-                      <div key={i} className="rounded-lg border border-border p-4">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-accent font-bold mb-3">
-                          {i + 1}
-                        </div>
-                        <p className="text-sm">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {analysis.motivation && (
-              <Card className="lg:col-span-2 bg-gradient-to-r from-accent/10 to-success/10 border-accent/20">
-                <CardContent className="p-6 text-center">
-                  <p className="text-lg font-medium">{analysis.motivation}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         )}
 
         {/* Actions */}
