@@ -98,7 +98,7 @@ export default function Practice() {
       const [{ data: practiceRows }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
         supabase
           .from('practice_questions')
-          .select('id, topic, question_type, correct_answer, question_data, quality_status')
+          .select('id, topic, question_type, correct_answer, question_data, quality_status, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e')
           .not('correct_answer', 'is', null)
           // STRICT quality gate: ONLY 'keep' questions are served to students.
           // 'review' / 'unknown' / 'remove' are excluded — no exceptions.
