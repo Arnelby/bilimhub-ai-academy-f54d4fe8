@@ -466,38 +466,57 @@ export default function Practice() {
         }
       } else {
         // AI: 10 total — strict 80/20 (8 weak + 2 other)
+        // + RULE-BASED REINFORCEMENT: re-inject up to 2 recently-wrong questions
+        // (rule: review wrong items 5-10 questions later; here we re-surface across sessions)
         const TOTAL = 10;
         const WEAK_N = 8;
+        const REINFORCE_N = 2; // slots reserved inside TOTAL for recent mistakes
         const weakSet = new Set(weak);
 
-        // Helper: pick by weak/other split from a pool
-        const pickFromPool = (pool: Bank[]) => {
-          const weakP = shuffle(pool.filter(b => weakSet.has(b.topic)));
-          const otherP = shuffle(pool.filter(b => !weakSet.has(b.topic)));
-          const weakPick = weakP.slice(0, WEAK_N);
-          const otherPick = otherP.slice(0, TOTAL - weakPick.length);
+        // Find recent wrong answers (last 30 responses) — keep ones whose qid is still in bank
+        const wrongQids = new Set<string>();
+        for (const p of (priorPractice || []).slice(-30)) {
+          const isWrongRow = (p as any).is_correct === false;
+          const qid = (p as any).question_id;
+          if (isWrongRow && qid && bankByQid.has(qid)) wrongQids.add(qid);
+        }
+        const reinforcePool = shuffle(Array.from(wrongQids).map(qid => bankByQid.get(qid)!).filter(Boolean));
+        const reinforcePick = reinforcePool.slice(0, REINFORCE_N);
+        const reinforceSet = new Set(reinforcePick.map(b => b.qid));
+        console.log(`[PRACTICE_REINFORCE] recent_wrong=${wrongQids.size} reinjected=${reinforcePick.length}`);
+
+        // Helper: pick by weak/other split from a pool, excluding already-chosen qids
+        const pickFromPool = (pool: Bank[], remaining: number) => {
+          const weakP = shuffle(pool.filter(b => weakSet.has(b.topic) && !reinforceSet.has(b.qid)));
+          const otherP = shuffle(pool.filter(b => !weakSet.has(b.topic) && !reinforceSet.has(b.qid)));
+          const weakSlots = Math.min(WEAK_N, remaining);
+          const weakPick = weakP.slice(0, weakSlots);
+          const otherPick = otherP.slice(0, remaining - weakPick.length);
           return [...weakPick, ...otherPick];
         };
 
+        const remainingSlots = TOTAL - reinforcePick.length;
+
         if (weak.length === 0) {
-          // No weak data → random sample from unseen (then bank)
-          chosen = shuffle(unseen).slice(0, TOTAL);
+          const newPicks = shuffle(unseen.filter(b => !reinforceSet.has(b.qid))).slice(0, remainingSlots);
+          chosen = [...reinforcePick, ...newPicks];
           if (chosen.length < TOTAL) {
             const reusable = shuffle(bank.filter(b => !chosen.includes(b)));
             chosen = chosen.concat(reusable.slice(0, TOTAL - chosen.length));
           }
         } else {
-          // 1) Try unseen pool with strict 80/20
-          chosen = pickFromPool(unseen);
+          // 1) Reinforcement first, then 80/20 from unseen
+          const fromUnseen = pickFromPool(unseen, remainingSlots);
+          chosen = [...reinforcePick, ...fromUnseen];
 
-          // 2) If short, backfill from seen pool — STILL respecting 80/20
+          // 2) Backfill from seen pool with 80/20
           if (chosen.length < TOTAL) {
             const seenAvail = bank.filter(b => !chosen.includes(b));
-            const fromSeen = pickFromPool(seenAvail);
-            chosen = chosen.concat(fromSeen.slice(0, TOTAL - chosen.length));
+            const fromSeen = pickFromPool(seenAvail, TOTAL - chosen.length);
+            chosen = chosen.concat(fromSeen);
           }
 
-          // 3) Last-resort: any remaining (shouldn't trigger normally)
+          // 3) Last-resort
           if (chosen.length < TOTAL) {
             const remaining = shuffle(bank.filter(b => !chosen.includes(b)));
             chosen = chosen.concat(remaining.slice(0, TOTAL - chosen.length));
@@ -505,9 +524,8 @@ export default function Practice() {
         }
         chosen = shuffle(chosen);
 
-        // Validate 80/20 distribution and log
         const weakInChosen = chosen.filter(b => weakSet.has(b.topic)).length;
-        console.log(`[PRACTICE_FRONTEND] AI distribution: ${weakInChosen}/${chosen.length} from weak topics. Topics: ${chosen.map(b => b.topic).join(', ')}`);
+        console.log(`[PRACTICE_FRONTEND] AI distribution: ${weakInChosen}/${chosen.length} from weak topics, ${reinforcePick.length} reinforced. Topics: ${chosen.map(b => b.topic).join(', ')}`);
       }
 
       console.log(`[PRACTICE_FRONTEND] Chosen ${chosen.length} questions. Weak topics: [${weak.join(', ')}]`);
