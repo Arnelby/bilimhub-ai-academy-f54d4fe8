@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useUserGroup } from "@/hooks/useUserGroup";
 import { supabase } from "@/integrations/supabase/client";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -10,24 +11,31 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Loader2, AlertTriangle, CheckCircle, BookOpen, Trophy, Clock, XCircle,
-  Target, TrendingUp, TrendingDown, Video, Play, Dumbbell,
+  Target, TrendingUp, TrendingDown, Video, Play, Dumbbell, Eye, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
 import { buildDeterministicPlan, type DeterministicPlan } from "@/lib/deterministicPlan";
 import { parseScore } from "@/lib/scoreUtils";
+import { QuestionReview, type QuestionReviewData } from "@/components/review/QuestionReview";
 
 interface RecommendedLesson {
   id: string;
   title_ru: string | null;
   title: string;
   topicTitle: string;
+  topicSlug: string;
 }
 
 interface MistakeQuestion {
   questionNumber: string;
   topic: string | null;
   testId: string;
+  variantNum: string;
+  displayNum: number;
+  videoLessonId: string;
+  // For per-question review (AI group only):
+  reviewData?: QuestionReviewData;
 }
 
 interface TestAnalysis {
@@ -44,20 +52,20 @@ interface TestAnalysis {
  * Learning Plan — fully deterministic and data-driven.
  * NO AI runtime calls. Topics are classified by raw accuracy from
  * question_attempts + practice_responses.
- *
- * The plan is persisted in `ai_learning_plans_v2` (legacy table name kept;
- * `plan_data` now stores the deterministic plan, not an AI response).
  */
 export default function LearningPlanV2() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { isAI } = useUserGroup();
 
   const [analysis, setAnalysis] = useState<TestAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [mistakes, setMistakes] = useState<MistakeQuestion[]>([]);
   const [recommendedLessons, setRecommendedLessons] = useState<RecommendedLesson[]>([]);
   const [latestVariantNum, setLatestVariantNum] = useState<string>("");
+  const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
+  const [openReview, setOpenReview] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) loadAnalysis();
@@ -108,7 +116,7 @@ export default function LearningPlanV2() {
         ...(practice || []),
       ]);
 
-      // 3) Persist plan (overwrite previous active row, no AI involved)
+      // 3) Persist plan
       try {
         await supabase
           .from("ai_learning_plans_v2")
@@ -126,10 +134,7 @@ export default function LearningPlanV2() {
         console.warn("[PLAN] persist failed (non-blocking):", e);
       }
 
-      // 4) Score: ONLY from the latest test attempt itself.
-      // Topics (weak/medium/strong) use full history, but the headline
-      // score must reflect ONLY this last test — otherwise we get nonsense
-      // like 217% when total_attempts > total_questions.
+      // 4) Score: ONLY from the latest test attempt
       const parsed = parseScore(latestAttempt.score, latestAttempt.total_questions);
 
       setAnalysis({
@@ -142,29 +147,112 @@ export default function LearningPlanV2() {
         plan,
       });
 
-      // 5) Mistakes from latest test for video review
+      // 5) ALL wrong answers from latest test (no limit) + DB explanations
       const latestTestId = matchedConfig ? `math_test_${matchedConfig[0]}` : "";
-      if (latestTestId) {
-        const { data: wrongAnswers } = await supabase
-          .from("user_answers")
-          .select("question_id, topic, test_id")
-          .eq("user_id", user.id)
-          .eq("test_id", latestTestId)
-          .eq("is_correct", false)
-          .limit(10);
+      if (latestTestId && matchedConfig) {
+        const cfg = matchedConfig[1];
+        const numericTestId = parseInt(matchedConfig[0]);
+
+        const [{ data: wrongAnswers }, { data: explRows }, { data: progressRows }] = await Promise.all([
+          supabase
+            .from("user_answers")
+            .select("question_id, topic, test_id, selected_option, correct_option")
+            .eq("user_id", user.id)
+            .eq("test_id", latestTestId)
+            .eq("is_correct", false),
+          supabase
+            .from(cfg.table)
+            .select(
+              "question_number, topic, instruction, column_a, column_b, " +
+                (cfg.table === "math_test_questions" ? "options, " : "") +
+                "correct_answer, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d" +
+                (cfg.table === "math_test_questions" ? ", explanation_e" : ""),
+            )
+            .eq("test_id", numericTestId),
+          supabase
+            .from("user_lesson_progress")
+            .select("lesson_id")
+            .eq("user_id", user.id)
+            .eq("completed", true)
+            .like("lesson_id", `video_variant${varNum}_%`),
+        ]);
+
+        // Build watched set
+        const watched = new Set<string>();
+        for (const p of progressRows || []) {
+          if (p.lesson_id) watched.add(p.lesson_id);
+        }
+        setWatchedVideos(watched);
+
+        // Index DB explanations by display question number
+        const explMap = new Map<number, any>();
+        for (const row of (explRows as any[]) || []) {
+          const displayNum =
+            cfg.table === "math_test_questions"
+              ? ((row.question_number - 1) % 30) + 1
+              : row.question_number;
+          explMap.set(displayNum, row);
+        }
+
+        // Letter mapping helper for option index → letter
+        const idxToLetter = (n: number | null): string | null => {
+          if (n === null || n === undefined) return null;
+          return ["A", "B", "C", "D", "E"][n] || null;
+        };
 
         if (wrongAnswers) {
-          setMistakes(
-            wrongAnswers.map((a) => ({
+          const items: MistakeQuestion[] = wrongAnswers.map((a) => {
+            const variantMatch = a.test_id.match(/math_test_(\d+)/);
+            const variantNum = variantMatch ? variantMatch[1] : varNum;
+            const parsedQ = parseQuestionId(a.question_id);
+            const displayNum = parsedQ
+              ? parsedQ.questionNumber
+              : parseInt(a.question_id) || 0;
+            const videoLessonId = `video_variant${variantNum}_${displayNum}`;
+
+            const explRow = explMap.get(displayNum);
+            const userLetter = idxToLetter(a.selected_option);
+            const correctLetter = explRow?.correct_answer || idxToLetter(a.correct_option) || "";
+
+            const reviewData: QuestionReviewData | undefined = explRow
+              ? {
+                  questionNumber: displayNum,
+                  topic: a.topic || explRow.topic,
+                  type: cfg.questionType,
+                  instruction: explRow.instruction,
+                  column_a: explRow.column_a,
+                  column_b: explRow.column_b,
+                  options: explRow.options,
+                  userAnswer: userLetter,
+                  correctAnswer: correctLetter,
+                  isCorrect: false,
+                  correctExplanation: explRow.correct_explanation,
+                  explanationA: explRow.explanation_a,
+                  explanationB: explRow.explanation_b,
+                  explanationC: explRow.explanation_c,
+                  explanationD: explRow.explanation_d,
+                  explanationE: explRow.explanation_e,
+                  questionCacheId: `${cfg.table === "math_test_questions" ? "mtq" : "mq"}_${numericTestId}_${displayNum}`,
+                }
+              : undefined;
+
+            return {
               questionNumber: a.question_id,
               topic: a.topic,
               testId: a.test_id,
-            })),
-          );
+              variantNum,
+              displayNum,
+              videoLessonId,
+              reviewData,
+            };
+          });
+          // sort by question number
+          items.sort((x, y) => x.displayNum - y.displayNum);
+          setMistakes(items);
         }
       }
 
-      // 6) Recommended lessons for weak topics
+      // 6) Recommended lessons for weak topics (kept)
       if (plan.weakTopics.length > 0) {
         const weakNames = plan.weakTopics.map((w) => w.topic);
         const { data: matchingTopics } = await supabase
@@ -187,6 +275,7 @@ export default function LearningPlanV2() {
                 title: l.title,
                 title_ru: l.title_ru,
                 topicTitle: topic?.title_ru || topic?.title || "",
+                topicSlug: topic?.title || "",
               };
             });
             setRecommendedLessons(recLessons);
@@ -266,6 +355,8 @@ export default function LearningPlanV2() {
       ? { label: "Удовлетворительно", variant: "warning" as const }
       : { label: "Требуется улучшение", variant: "destructive" as const };
 
+  const groupMode: "ai" | "control" = isAI ? "ai" : "control";
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -327,7 +418,7 @@ export default function LearningPlanV2() {
           </Card>
         </div>
 
-        {/* Action — practice on weak topics */}
+        {/* Action — practice on weak topics (queue + bulk) */}
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-accent/30 bg-accent/5">
             <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
@@ -338,17 +429,27 @@ export default function LearningPlanV2() {
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Тренировка по {weakTopics.length} слабым темам — задачи берутся из банка
-                  practice_questions без участия AI.
+                  practice_questions.
                 </p>
               </div>
-              <Button onClick={() => navigate("/practice")} variant="accent">
-                Начать практику
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() =>
+                    navigate(`/practice?topic=${encodeURIComponent(weakTopics[0].topic)}`)
+                  }
+                  variant="accent"
+                >
+                  Начать со слабой темы
+                </Button>
+                <Button onClick={() => navigate("/practice")} variant="outline">
+                  Все слабые темы
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Weak Topics */}
+        {/* Weak Topics — each with its own practice button */}
         {weakTopics.length > 0 && (
           <Card className="mb-6 border-destructive/30">
             <CardHeader className="pb-3">
@@ -361,13 +462,30 @@ export default function LearningPlanV2() {
             <CardContent>
               <div className="space-y-3">
                 {weakTopics.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3">
-                    <span className="text-sm">{translateTopic(t.topic, language)}</span>
-                    <div className="flex items-center gap-3 w-48">
-                      <Progress value={t.accuracy} className="h-2 flex-1" />
-                      <span className="text-sm font-mono text-destructive w-16 text-right">
-                        {t.accuracy}% ({t.correct}/{t.total})
-                      </span>
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 flex-wrap"
+                  >
+                    <span className="text-sm flex-1 min-w-[140px]">
+                      {translateTopic(t.topic, language)}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-40">
+                        <Progress value={t.accuracy} className="h-2 flex-1" />
+                        <span className="text-xs font-mono text-destructive w-14 text-right">
+                          {t.accuracy}% ({t.correct}/{t.total})
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          navigate(`/practice?topic=${encodeURIComponent(t.topic)}`)
+                        }
+                      >
+                        <Dumbbell className="mr-1 h-3 w-3" />
+                        Практика
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -376,7 +494,7 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
-        {/* Medium Topics */}
+        {/* Medium Topics — also with practice buttons */}
         {mediumTopics.length > 0 && (
           <Card className="mb-6 border-warning/30">
             <CardHeader className="pb-3">
@@ -389,13 +507,30 @@ export default function LearningPlanV2() {
             <CardContent>
               <div className="space-y-3">
                 {mediumTopics.map((t, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3">
-                    <span className="text-sm">{translateTopic(t.topic, language)}</span>
-                    <div className="flex items-center gap-3 w-48">
-                      <Progress value={t.accuracy} className="h-2 flex-1" />
-                      <span className="text-sm font-mono text-warning w-16 text-right">
-                        {t.accuracy}% ({t.correct}/{t.total})
-                      </span>
+                  <div
+                    key={i}
+                    className="flex items-center justify-between gap-3 flex-wrap"
+                  >
+                    <span className="text-sm flex-1 min-w-[140px]">
+                      {translateTopic(t.topic, language)}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-40">
+                        <Progress value={t.accuracy} className="h-2 flex-1" />
+                        <span className="text-xs font-mono text-warning w-14 text-right">
+                          {t.accuracy}% ({t.correct}/{t.total})
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          navigate(`/practice?topic=${encodeURIComponent(t.topic)}`)
+                        }
+                      >
+                        <Dumbbell className="mr-1 h-3 w-3" />
+                        Практика
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -426,55 +561,84 @@ export default function LearningPlanV2() {
           </Card>
         )}
 
-        {/* Mistake Review (video) */}
+        {/* Mistake Review — ALL wrong questions from latest test */}
         {mistakes.length > 0 && (
           <Card className="mb-6 border-destructive/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Video className="w-5 h-5 text-accent" />
-                Видеоразбор задач
+                Видеоразбор задач ({mistakes.length})
               </CardTitle>
               <CardDescription>
-                Видеоразбор задач, в которых были допущены ошибки
+                Все вопросы, в которых были допущены ошибки в последнем тесте
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 {mistakes.map((m, i) => {
-                  const variantMatch = m.testId.match(/math_test_(\d+)/);
-                  const variantNum = variantMatch ? variantMatch[1] : "";
-                  const variantKey = variantNum ? `variant${variantNum}` : "";
-                  const parsed = parseQuestionId(m.questionNumber);
-                  const displayNum = parsed ? parsed.questionNumber : m.questionNumber;
-                  const displayVariant = parsed
-                    ? parsed.variant
-                    : variantNum
-                    ? parseInt(variantNum)
-                    : null;
+                  const isWatched = watchedVideos.has(m.videoLessonId);
+                  const reviewKey = `${m.testId}_${m.displayNum}`;
+                  const isOpen = openReview === reviewKey;
                   return (
                     <div
                       key={i}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
+                      className="rounded-lg border bg-card overflow-hidden"
                     >
-                      <div>
-                        <span className="text-sm font-medium">
-                          Задача {displayNum}
-                          {displayVariant ? ` — Тест вариант ${displayVariant}` : ""}
-                        </span>
-                        {m.topic && (
-                          <p className="text-xs text-muted-foreground">
-                            Тема: {translateTopic(m.topic, language)}
-                          </p>
-                        )}
+                      <div className="flex items-center justify-between gap-3 py-3 px-3 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">
+                              Задача {m.displayNum}
+                              {m.variantNum ? ` — Вариант ${m.variantNum}` : ""}
+                            </span>
+                            {isWatched && (
+                              <Badge variant="success" className="text-[10px] py-0 h-5">
+                                <Eye className="mr-1 h-3 w-3" />
+                                Просмотрено
+                              </Badge>
+                            )}
+                          </div>
+                          {m.topic && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Тема: {translateTopic(m.topic, language)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {m.reviewData && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setOpenReview(isOpen ? null : reviewKey)
+                              }
+                            >
+                              {isOpen ? (
+                                <ChevronUp className="mr-1 h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="mr-1 h-3 w-3" />
+                              )}
+                              Разбор
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" asChild>
+                            <Link
+                              to={`/lessons/video/variant${m.variantNum}?question=${m.displayNum}`}
+                            >
+                              <Video className="mr-1 h-3 w-3" />
+                              Видеоразбор
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline" asChild>
-                        <Link
-                          to={`/lessons/video/${variantKey}?question=${displayNum}`}
-                        >
-                          <Video className="mr-1 h-3 w-3" />
-                          Смотреть видеоразбор
-                        </Link>
-                      </Button>
+                      {isOpen && m.reviewData && (
+                        <div className="border-t bg-muted/20 p-3">
+                          <QuestionReview
+                            data={m.reviewData}
+                            groupMode={groupMode}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -498,9 +662,9 @@ export default function LearningPlanV2() {
                 {recommendedLessons.map((lesson) => (
                   <div
                     key={lesson.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
+                    className="flex items-center justify-between py-2 border-b last:border-0 gap-3 flex-wrap"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="text-sm font-medium">
                         {lesson.title_ru || lesson.title}
                       </span>
