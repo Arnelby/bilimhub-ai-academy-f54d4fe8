@@ -53,12 +53,22 @@ interface TestResult {
 export default function TestResults() {
   const { testId, attemptId } = useParams();
   const { user } = useAuth();
-  const { isAI, isControl } = useUserGroup();
+  const { isAI } = useUserGroup();
   const { triggerEvent } = useGamificationEvents();
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [explanationsByQNum, setExplanationsByQNum] = useState<
+    Record<number, {
+      correct_explanation: string | null;
+      explanation_a: string | null;
+      explanation_b: string | null;
+      explanation_c: string | null;
+      explanation_d: string | null;
+      explanation_e: string | null;
+    }>
+  >({});
 
   useEffect(() => {
     async function fetchResults() {
