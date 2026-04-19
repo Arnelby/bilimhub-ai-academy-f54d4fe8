@@ -521,6 +521,8 @@ export default function Practice() {
         console.log(`[PRACTICE_DEBUG] session_id=${sessionData.id} loaded_questions_count=${chosen.length} loaded_answers_count=0 status=active(new)`);
       }
       setQuestions(finalQuestions);
+      console.log(`[PRACTICE_LOAD] loaded_questions_count=${finalQuestions.length}`);
+      console.log('[SCOPE_LOCKED] practice runtime: no AI generation, no runtime personalization beyond pre-built session.');
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
       setGenerationError('Ошибка загрузки практики');
@@ -532,6 +534,11 @@ export default function Practice() {
   useEffect(() => {
     if (user && !groupLoading) loadPractice();
   }, [user, groupLoading, loadPractice]);
+
+  // Reset per-question timer whenever the visible question changes
+  useEffect(() => {
+    questionStartRef.current = Date.now();
+  }, [currentIndex, questions.length]);
 
   const qKey = (q: PracticeQuestion) => `${q.type}_${q.id}`;
 
