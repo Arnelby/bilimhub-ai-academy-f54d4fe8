@@ -458,7 +458,25 @@ export default function Practice() {
 
       let chosen: Bank[] = [];
 
-      if (isControl) {
+      // 4a. TOPIC-FOCUSED MODE — overrides everything else.
+      // Triggered by ?topic=... from "My Plan". Strict filter, no weak/other split.
+      if (focusedTopic) {
+        const focusNorm = focusedTopic.trim().toLowerCase();
+        const topicBank = bank.filter(b => (b.topic || '').trim().toLowerCase() === focusNorm);
+        const unseenTopic = topicBank.filter(b => !seen.has(b.qid));
+        const TOPIC_TOTAL = 10;
+        chosen = shuffle(unseenTopic).slice(0, TOPIC_TOTAL);
+        if (chosen.length < TOPIC_TOTAL) {
+          // Topic pool exhausted — allow seen reuse so practice never blocks
+          const reusable = shuffle(topicBank.filter(b => !chosen.includes(b)));
+          chosen = chosen.concat(reusable.slice(0, TOPIC_TOTAL - chosen.length));
+        }
+        setLatestTestName(`Практика по теме: ${focusedTopic}`);
+        if (topicBank.length === 0) {
+          console.warn(`[PRACTICE_TOPIC] no questions found for topic="${focusedTopic}"`);
+        }
+        console.log(`[PRACTICE_TOPIC] focus="${focusedTopic}" topic_bank=${topicBank.length} chosen=${chosen.length}`);
+      } else if (isControl) {
         // CONTROL: 25 random across all topics, no weak-topic bias
         chosen = shuffle(unseen).slice(0, 25);
         if (chosen.length < 25) {
