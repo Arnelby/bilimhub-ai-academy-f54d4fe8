@@ -15,6 +15,7 @@ import {
 import { TEST_CONFIG } from "@/lib/mathTestConfig";
 import { translateTopic, parseQuestionId } from "@/lib/topicTranslations";
 import { buildDeterministicPlan, type DeterministicPlan } from "@/lib/deterministicPlan";
+import { parseScore } from "@/lib/scoreUtils";
 
 interface RecommendedLesson {
   id: string;
@@ -125,25 +126,18 @@ export default function LearningPlanV2() {
         console.warn("[PLAN] persist failed (non-blocking):", e);
       }
 
-      // 4) Score: prefer attempts-based count
-      const total =
-        latestAttempt.total_questions ||
-        (attempts || []).filter((a) =>
-          plan.weakTopics
-            .concat(plan.mediumTopics)
-            .concat(plan.strongTopics)
-            .some((t) => t.topic === a.topic),
-        ).length;
-      const correctCount = (attempts || []).filter((a) => a.is_correct).length;
-      const percentage =
-        total > 0 ? Math.round((correctCount / total) * 100) : latestAttempt.score || 0;
+      // 4) Score: ONLY from the latest test attempt itself.
+      // Topics (weak/medium/strong) use full history, but the headline
+      // score must reflect ONLY this last test — otherwise we get nonsense
+      // like 217% when total_attempts > total_questions.
+      const parsed = parseScore(latestAttempt.score, latestAttempt.total_questions);
 
       setAnalysis({
         testName,
         completedAt: latestAttempt.completed_at || "",
-        score: correctCount,
-        totalQuestions: total,
-        percentage,
+        score: parsed.correct,
+        totalQuestions: parsed.total,
+        percentage: parsed.percentage,
         timeTakenSeconds: latestAttempt.time_taken_seconds || 0,
         plan,
       });

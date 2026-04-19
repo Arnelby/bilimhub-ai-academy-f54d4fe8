@@ -39,6 +39,11 @@ function normalizeMath(raw: string): string {
   // 0b. Drop stray ``` fences around math blocks
   text = text.replace(/```(?:math|latex)?\s*\n?([\s\S]*?)```/gi, (_m, inner) => String(inner));
 
+  // 0b2. Repair a common AI failure mode: bare "/N" floating in prose (e.g. "дробь /2 означает")
+  // and bare "a/b" with empty numerator. We can't recover the missing numerator, so we mark
+  // it visually rather than letting KaTeX explode silently.
+  text = text.replace(/(\s|^)\/(\d+)(\s|[.,;:!?)]|$)/g, '$1?/$2$3');
+
   // 0c. If number of unescaped $ is odd, escape the last lonely one so KaTeX doesn't eat the rest
   const dollarCount = (text.match(/(?<!\\)\$/g) || []).length;
   if (dollarCount % 2 === 1) {
