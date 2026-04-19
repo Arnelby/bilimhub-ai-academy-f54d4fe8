@@ -13,6 +13,7 @@ import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
+import { QuestionReview } from '@/components/review/QuestionReview';
 
 interface ComparisonPractice {
   type: 'comparison';
