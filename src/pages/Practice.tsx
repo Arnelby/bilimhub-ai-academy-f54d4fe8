@@ -234,13 +234,9 @@ export default function Practice() {
         const q = b.q;
         const ans = (q.correct_answer || '').trim().toUpperCase();
 
-        // Require ONLY a correct solution. Per-distractor explanations are nice-to-have:
-        // when missing, QuestionReview falls back to "Объяснение отсутствует".
-        // This keeps the practice pool large enough for non-repeating sessions.
-        if (!q.correct_explanation || !q.correct_explanation.trim()) {
-          bump('missing_correct_explanation');
-          return false;
-        }
+        // EXPLANATIONS ARE OPTIONAL — many DB rows lack them.
+        // Without this relaxation the pool collapses to ~18/topic and sessions repeat.
+        // QuestionReview gracefully shows "Объяснение отсутствует" when missing.
 
         if (q.type === 'comparison') {
           // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
