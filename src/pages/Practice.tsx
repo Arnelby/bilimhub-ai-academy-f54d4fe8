@@ -19,6 +19,8 @@ import { TopicSummary } from '@/components/practice/TopicSummary';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
+import { useMotivation } from '@/hooks/useMotivation';
+import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 
 interface ComparisonPractice {
   type: 'comparison';
