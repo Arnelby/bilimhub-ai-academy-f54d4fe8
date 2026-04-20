@@ -1122,6 +1122,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity: {
+        Row: {
+          created_at: string
+          daily_goal: number
+          last_active_date: string | null
+          streak: number
+          tasks_completed_today: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_goal?: number
+          last_active_date?: string | null
+          streak?: number
+          tasks_completed_today?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_goal?: number
+          last_active_date?: string | null
+          streak?: number
+          tasks_completed_today?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_answers: {
         Row: {
           answered_at: string

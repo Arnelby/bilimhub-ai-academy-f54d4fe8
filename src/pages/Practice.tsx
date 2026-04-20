@@ -19,6 +19,8 @@ import { TopicSummary } from '@/components/practice/TopicSummary';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
+import { useMotivation } from '@/hooks/useMotivation';
+import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -75,6 +77,7 @@ export default function Practice() {
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const { user } = useAuth();
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
+  const motivation = useMotivation(user?.id);
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -616,6 +619,8 @@ export default function Practice() {
 
       if (sessionData) {
         setSessionId(sessionData.id);
+        // Motivation: daily check-in fires once on session start (idempotent per day).
+        void motivation.checkIn();
         const sessQRows = chosen.map((b, idx) => ({
           session_id: sessionData.id,
           question_id: b.qid,
@@ -707,7 +712,15 @@ export default function Practice() {
     } catch (e) {
       console.error('[TOPIC_STATS_HOOK] failed', e);
     }
-  }, [user, sessionId, participantId]);
+
+    // Motivation: count this answer toward the daily goal (also performs
+    // daily-reset + streak update if it's the first action of the day).
+    try {
+      await motivation.recordTask();
+    } catch (e) {
+      console.error('[MOTIVATION_HOOK] failed', e);
+    }
+  }, [user, sessionId, participantId, motivation]);
 
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
@@ -1061,7 +1074,19 @@ export default function Practice() {
           <Badge variant="accent">{answeredCount}/{questions.length}</Badge>
         </div>
 
-        <Progress value={(answeredCount / questions.length) * 100} className="mb-6 h-2" />
+        <Progress value={(answeredCount / questions.length) * 100} className="mb-4 h-2" />
+
+        {!motivation.loading && (
+          <MotivationWidget
+            streak={motivation.streak}
+            tasksCompletedToday={motivation.tasksCompletedToday}
+            dailyGoal={motivation.dailyGoal}
+            goalCompleted={motivation.goalCompleted}
+            activeDaysLast7={motivation.activeDaysLast7}
+            warningLevel={motivation.warningLevel}
+            className="mb-6"
+          />
+        )}
 
         <Card className="mb-6">
           <CardContent className="p-6">
