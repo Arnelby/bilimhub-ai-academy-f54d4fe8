@@ -64,7 +64,7 @@ export default function Lessons() {
       .order('title_ru');
 
     const allLessons = (lessonsData as LessonRow[]) || [];
-    setLessons(allLessons);
+    // (final ordering is applied below once we know weak topics)
 
     if (!user) {
       setLoading(false);
