@@ -10,6 +10,8 @@ import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
 
 const MIN_ATTEMPTS_FOR_WEAK = 5;
 const WEAK_ACCURACY_THRESHOLD = 0.6;
+const STRONG_ACCURACY_THRESHOLD = 0.8;
+const MIN_ATTEMPTS_FOR_STRONG = 3;
 
 export interface WeakTopicRow {
   topic: string;
