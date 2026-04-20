@@ -1762,6 +1762,27 @@ export type Database = {
         Args: { expires_in?: number; video_path: string }
         Returns: string
       }
+      get_practice_question_pool: {
+        Args: {
+          max_rows?: number
+          recent_question_ids?: string[]
+          requested_topic?: string
+        }
+        Returns: {
+          correct_answer: string
+          correct_explanation: string
+          explanation_a: string
+          explanation_b: string
+          explanation_c: string
+          explanation_d: string
+          explanation_e: string
+          id: string
+          quality_status: string
+          question_data: Json
+          question_type: string
+          topic: string
+        }[]
+      }
       has_beta_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
