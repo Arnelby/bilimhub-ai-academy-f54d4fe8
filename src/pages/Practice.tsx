@@ -847,7 +847,17 @@ export default function Practice() {
         .eq('id', sessionId)
         .neq('status', 'completed'); // never overwrite an already-completed session
       if (sessErr) console.error('[PRACTICE_SESSION] complete failed:', sessErr);
-      else console.log(`[PRACTICE_RESULTS] saved session_id=${sessionId} db_correct=${finalCorrect}/${questions.length}`);
+      else {
+        const accuracy = questions.length > 0 ? finalCorrect / questions.length : 0;
+        console.log(`[PRACTICE_RESULTS] saved session_id=${sessionId} db_correct=${finalCorrect}/${questions.length}`);
+        console.log('[SESSION_COMPLETED]', {
+          user_id: user.id,
+          session_id: sessionId,
+          num_tasks: questions.length,
+          num_correct: finalCorrect,
+          accuracy,
+        });
+      }
     } catch (err) {
       console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
