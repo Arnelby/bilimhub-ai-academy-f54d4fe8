@@ -234,14 +234,9 @@ export default function Practice() {
         const q = b.q;
         const ans = (q.correct_answer || '').trim().toUpperCase();
 
-        const hasFullReview =
-          !!q.correct_explanation &&
-          !!q.explanation_a &&
-          !!q.explanation_b &&
-          !!q.explanation_c &&
-          !!q.explanation_d &&
-          (q.type === 'comparison' || !!q.explanation_e);
-        if (!hasFullReview) { bump('missing_review_explanations'); return false; }
+        // EXPLANATIONS ARE OPTIONAL — many DB rows lack them.
+        // Without this relaxation the pool collapses to ~18/topic and sessions repeat.
+        // QuestionReview gracefully shows "Объяснение отсутствует" when missing.
 
         if (q.type === 'comparison') {
           // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
