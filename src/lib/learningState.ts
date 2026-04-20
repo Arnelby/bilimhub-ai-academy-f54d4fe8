@@ -102,6 +102,8 @@ interface Snapshot {
   daily_progress: number;
   daily_goal: number;
   topic_to_lesson: Record<string, string>; // normalized topic title → lesson_id
+  /** Topic of the most recent unresolved mistakes (≤24h) — drives "watch lesson" priority. */
+  recent_mistake_topic: string | null;
 }
 
 async function buildTopicLessonMap(): Promise<Record<string, string>> {
@@ -126,10 +128,12 @@ async function buildTopicLessonMap(): Promise<Record<string, string>> {
 }
 
 async function computeSnapshot(userId: string): Promise<Snapshot> {
+  const last24hISO = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const [
     testsTodayRes,
     testsTotalRes,
     responsesRes,
+    recentMistakesRes,
     spacedRes,
     lessonProgressRes,
     activityRow,
@@ -151,6 +155,13 @@ async function computeSnapshot(userId: string): Promise<Snapshot> {
       .from('practice_responses')
       .select('topic, is_correct')
       .eq('user_id', userId),
+    // Recent (≤24h) wrong answers — used to prioritise "watch lesson" CTA
+    supabase
+      .from('practice_responses')
+      .select('topic, created_at')
+      .eq('user_id', userId)
+      .eq('is_correct', false)
+      .gte('created_at', last24hISO),
     supabase
       .from('spaced_repetition' as any)
       .select('id, next_review_date')
@@ -177,6 +188,19 @@ async function computeSnapshot(userId: string): Promise<Snapshot> {
     cur.accuracy = cur.total_attempts > 0 ? cur.correct_answers / cur.total_attempts : 0;
     stats[t] = cur;
     if (r.is_correct === false) errors_count += 1;
+  }
+
+  // Top recent-mistake topic (last 24h) → highest priority for "watch lesson" CTA.
+  const recentByTopic: Record<string, number> = {};
+  for (const r of (recentMistakesRes.data ?? []) as any[]) {
+    const t = normalizeAnalyticsTopic(r.topic || '');
+    if (!t) continue;
+    recentByTopic[t] = (recentByTopic[t] || 0) + 1;
+  }
+  let recent_mistake_topic: string | null = null;
+  let recentMax = 0;
+  for (const [t, n] of Object.entries(recentByTopic)) {
+    if (n > recentMax) { recentMax = n; recent_mistake_topic = t; }
   }
 
   const weak_topics: string[] = [];
@@ -214,6 +238,7 @@ async function computeSnapshot(userId: string): Promise<Snapshot> {
     daily_progress: activityRow?.tasks_completed_today ?? 0,
     daily_goal: activityRow?.daily_goal ?? DEFAULT_DAILY_GOAL,
     topic_to_lesson: topicLessonMap,
+    recent_mistake_topic,
   };
 }
 
@@ -233,7 +258,38 @@ function topicHasWatchedLesson(topic: string, snap: Snapshot): boolean {
 }
 
 function resolveNext(snap: Snapshot): NextResolved {
-  // 1. Spaced repetition due → повторить ошибки
+  // 1. СВЕЖИЕ ОШИБКИ (≤24ч) → СНАЧАЛА УРОК ПО СЛАБОЙ ТЕМЕ.
+  // Это критический приоритет: пользователь только что ошибся → его нельзя
+  // отправлять обратно в практику без видео.
+  if (snap.recent_mistake_topic) {
+    const topic = snap.recent_mistake_topic;
+    const acc = snap.topic_stats[topic]?.accuracy ?? 0;
+    const pct = Math.round(acc * 100);
+    const lessonId = snap.topic_to_lesson[topic] || null;
+    if (lessonId && !snap.completed_lessons.includes(lessonId)) {
+      return {
+        next_action: 'practice',
+        next_action_type: 'watch_lesson',
+        next_target: lessonId,
+        next_reason: `Ты ошибся в теме «${topic}» (точность ${pct}%). Сначала посмотри урок.`,
+        current_step: 'practice',
+        current_topic: topic,
+      };
+    }
+    // Урок уже посмотрен → закрепи практикой
+    if (lessonId) {
+      return {
+        next_action: 'practice',
+        next_action_type: 'practice',
+        next_target: topic,
+        next_reason: `Закрепи тему «${topic}» практикой (точность ${pct}%)`,
+        current_step: 'practice',
+        current_topic: topic,
+      };
+    }
+  }
+
+  // 2. Spaced repetition due → повторить ошибки
   if (snap.due_review_count > 0) {
     return {
       next_action: 'review_errors',
@@ -245,7 +301,7 @@ function resolveNext(snap: Snapshot): NextResolved {
     };
   }
 
-  // 2. Слабые темы → видео или практика
+  // 3. Слабые темы (исторические) → видео или практика
   if (snap.weak_topics.length > 0) {
     const topic = snap.weak_topics[0];
     const acc = snap.topic_stats[topic]?.accuracy ?? 0;
@@ -271,7 +327,7 @@ function resolveNext(snap: Snapshot): NextResolved {
     };
   }
 
-  // 3. Тест сегодня?
+  // 4. Тест сегодня? (запрет: НЕ показывать тест если уже проходил сегодня)
   if (!snap.test_done_today) {
     return {
       next_action: 'test',
@@ -283,7 +339,7 @@ function resolveNext(snap: Snapshot): NextResolved {
     };
   }
 
-  // 4. Всё сделано
+  // 5. Всё сделано
   return {
     next_action: 'completed',
     next_action_type: 'done',

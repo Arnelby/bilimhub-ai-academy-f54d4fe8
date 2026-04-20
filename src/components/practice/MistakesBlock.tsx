@@ -46,6 +46,7 @@ export function MistakesBlock({
 }: Props) {
   const navigate = useNavigate();
   const percentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const lowAccuracy = percentage < 60 && totalQuestions > 0;
 
   // === No mistakes — celebrate, then push to next step ===
   if (mistakes.length === 0) {
@@ -77,8 +78,48 @@ export function MistakesBlock({
     );
   }
 
+  // Resolve a single CTA target for "Watch lesson now" — first mistake's lesson, else next_target from state.
+  const ctaLessonId =
+    mistakes.find(m => m.linkedLessonId)?.linkedLessonId ||
+    (state?.next_action_type === 'watch_lesson' ? state?.next_target ?? null : null);
+  const ctaTopic = mistakes[0]?.topic || state?.current_topic || null;
+
   return (
     <div className="mb-6 space-y-4">
+      {/* Low-accuracy alert — pushes user to lesson immediately */}
+      {lowAccuracy && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-destructive">Ты не освоил тему</p>
+              <p className="text-sm text-muted-foreground">
+                Точность {percentage}%. Прежде чем пробовать снова — посмотри урок.
+              </p>
+            </div>
+            {ctaLessonId ? (
+              <Button
+                variant="accent"
+                onClick={() => navigate(`/lessons/${ctaLessonId}`)}
+                className="shrink-0"
+              >
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Смотреть урок
+              </Button>
+            ) : ctaTopic ? (
+              <Button
+                variant="accent"
+                onClick={() => navigate(`/lessons?topic=${encodeURIComponent(ctaTopic)}`)}
+                className="shrink-0"
+              >
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Смотреть урок
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Block 1 — Mistakes */}
       <Card className="border-destructive/40">
         <CardHeader>
