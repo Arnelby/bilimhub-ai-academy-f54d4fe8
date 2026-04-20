@@ -28,5 +28,15 @@ export function sanitizeReviewText(raw: string | null | undefined): string | nul
   text = text.replace(/([А-Яа-яA-Za-z0-9)])\$(?=\S)/g, '$1 $');
   text = text.replace(/(?<=\S)\$([А-Яа-яA-Za-z0-9(])/g, '$ $1');
 
+  // Repair AI-generated text with missing spaces between glued Cyrillic words.
+  // Pattern: lowercase letter immediately followed by uppercase letter (e.g. "ОтветАбудет" → "Ответ А будет")
+  text = text.replace(/([а-яё])([А-ЯЁ])/g, '$1 $2');
+  // Also: punctuation glued to next word (e.g. ".Это" → ". Это")
+  text = text.replace(/([.,;:!?])([А-ЯЁA-Z])/g, '$1 $2');
+  // Number glued to following Cyrillic letter (e.g. "84градуса" → "84 градуса")
+  text = text.replace(/(\d)([А-Яа-яЁё])/g, '$1 $2');
+  // Cyrillic letter glued to a following number (e.g. "ответ48" → "ответ 48")
+  text = text.replace(/([А-Яа-яЁё])(\d)/g, '$1 $2');
+
   return text;
 }
