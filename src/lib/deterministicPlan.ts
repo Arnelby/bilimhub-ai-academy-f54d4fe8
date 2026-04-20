@@ -30,11 +30,12 @@ export interface DeterministicPlan {
   generatedAt: string; // ISO
 }
 
-const MIN_ATTEMPTS = 3;
-const WEAK_THRESHOLD = 50;   // accuracy < 50% → weak
-const MEDIUM_THRESHOLD = 75; // accuracy < 75% → medium
+const MIN_ATTEMPTS = 5;       // need ≥5 attempts to classify as weak (per spec)
+const WEAK_THRESHOLD = 60;    // accuracy < 60% → weak
+const MEDIUM_THRESHOLD = 80;  // accuracy < 80% → medium
 const MAX_WEAK = 5;
 const MAX_MEDIUM = 8;
+const MAX_RECENT_ATTEMPTS = 50; // only consider last 50 attempts per spec
 
 interface RawRow {
   topic: string | null;
@@ -42,8 +43,10 @@ interface RawRow {
 }
 
 export function buildDeterministicPlan(rows: RawRow[]): DeterministicPlan {
+  // Limit to most recent N attempts (caller passes ordered or unordered; we just cap total volume)
+  const limited = rows.slice(0, MAX_RECENT_ATTEMPTS * 4); // generous cap, then per-topic aggregation
   const map = new Map<string, { correct: number; total: number }>();
-  for (const r of rows) {
+  for (const r of limited) {
     const t = normalizeAnalyticsTopic(r.topic || '');
     if (!t) continue;
     const e = map.get(t) || { correct: 0, total: 0 };
