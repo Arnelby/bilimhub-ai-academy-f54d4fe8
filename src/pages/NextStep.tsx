@@ -20,7 +20,7 @@ export default function NextStep() {
   const navigate = useNavigate();
   const [step, setStep] = useState<NextStepResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const motivation = useMotivation();
+  const motivation = useMotivation(user?.id);
 
   useEffect(() => {
     if (!user?.id) return;
