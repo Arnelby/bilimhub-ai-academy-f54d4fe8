@@ -234,14 +234,13 @@ export default function Practice() {
         const q = b.q;
         const ans = (q.correct_answer || '').trim().toUpperCase();
 
-        const hasFullReview =
-          !!q.correct_explanation &&
-          !!q.explanation_a &&
-          !!q.explanation_b &&
-          !!q.explanation_c &&
-          !!q.explanation_d &&
-          (q.type === 'comparison' || !!q.explanation_e);
-        if (!hasFullReview) { bump('missing_review_explanations'); return false; }
+        // Require ONLY a correct solution. Per-distractor explanations are nice-to-have:
+        // when missing, QuestionReview falls back to "Объяснение отсутствует".
+        // This keeps the practice pool large enough for non-repeating sessions.
+        if (!q.correct_explanation || !q.correct_explanation.trim()) {
+          bump('missing_correct_explanation');
+          return false;
+        }
 
         if (q.type === 'comparison') {
           // STRICT FORMAT: must have Column A + Column B + correct_answer in {A,B,C,D}
