@@ -733,11 +733,18 @@ export default function Practice() {
 
     // Unified Learning State refresh — recompute next_action / weak topics / progress.
     try {
-      await updateLearningState(user.id);
+      const newState = await updateLearningState(user.id);
+      if (newState) setLearningState(newState);
     } catch (e) {
       console.error('[LEARNING_STATE_HOOK] failed', e);
     }
   }, [user, sessionId, participantId, motivation]);
+
+  // Load latest learning state once on mount so the results screen has it ready.
+  useEffect(() => {
+    if (!user) return;
+    void getLearningState(user.id).then(s => s && setLearningState(s));
+  }, [user]);
 
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
