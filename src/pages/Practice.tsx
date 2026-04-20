@@ -753,12 +753,12 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl, focusedTopic]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams]);
 
   useEffect(() => {
-    // When user navigates with ?topic=..., always start a fresh session for that topic.
-    if (user && !groupLoading) loadPractice(!!focusedTopic);
-  }, [user, groupLoading, loadPractice, focusedTopic]);
+    // When user navigates with ?topic=... or ?mode=review, always start a fresh session.
+    if (user && !groupLoading) loadPractice(!!focusedTopic || reviewMode);
+  }, [user, groupLoading, loadPractice, focusedTopic, reviewMode]);
 
   // Reset per-question timer whenever the visible question changes
   useEffect(() => {
