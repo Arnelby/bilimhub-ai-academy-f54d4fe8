@@ -15,6 +15,7 @@ import { normalizeAnalyticsTopic, normalizePracticeTopic, translateTopic } from 
 import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
+import { TopicSummary } from '@/components/practice/TopicSummary';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
@@ -846,7 +847,17 @@ export default function Practice() {
         .eq('id', sessionId)
         .neq('status', 'completed'); // never overwrite an already-completed session
       if (sessErr) console.error('[PRACTICE_SESSION] complete failed:', sessErr);
-      else console.log(`[PRACTICE_RESULTS] saved session_id=${sessionId} db_correct=${finalCorrect}/${questions.length}`);
+      else {
+        const accuracy = questions.length > 0 ? finalCorrect / questions.length : 0;
+        console.log(`[PRACTICE_RESULTS] saved session_id=${sessionId} db_correct=${finalCorrect}/${questions.length}`);
+        console.log('[SESSION_COMPLETED]', {
+          user_id: user.id,
+          session_id: sessionId,
+          num_tasks: questions.length,
+          num_correct: finalCorrect,
+          accuracy,
+        });
+      }
     } catch (err) {
       console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
@@ -924,6 +935,15 @@ export default function Practice() {
 
     const mistakes = allResults.filter(r => !r.isCorrect && r.userAnswer);
     const percentage = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    const incorrectCount = questions.length - correctCount;
+    console.log('[RESULT_RENDER]', {
+      user_id: user?.id,
+      session_id: sessionId,
+      questions_count: questions.length,
+      correct: correctCount,
+      incorrect: incorrectCount,
+      accuracy_pct: percentage,
+    });
 
     return (
       <Layout>
@@ -980,6 +1000,9 @@ export default function Practice() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Deterministic per-topic summary from user_topic_stats (NO AI) */}
+          {user && <TopicSummary userId={user.id} />}
 
           {/* Unified data-driven review (no AI) — uses QuestionReview component */}
           <Card>
