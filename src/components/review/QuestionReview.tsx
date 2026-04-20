@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MathRenderer } from "@/components/math/MathRenderer";
+import { SafeMath } from "@/components/review/SafeMath";
 import { translateTopic } from "@/lib/topicTranslations";
 import { formatAnswerKey, sanitizeReviewText } from "@/lib/reviewFormatting";
 import { supabase } from "@/integrations/supabase/client";
