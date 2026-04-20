@@ -170,6 +170,10 @@ export default function LessonViewer() {
         topicId: lesson?.topic_id,
       });
 
+      // Single source of truth — recompute next action / plan
+      const { updateLearningState } = await import('@/lib/learningState');
+      await updateLearningState(user.id);
+
       toast({
         title: 'Урок завершен! 🎉',
         description: `Вы получили 50 XP! Результат: ${score}%`,
