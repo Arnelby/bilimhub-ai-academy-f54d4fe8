@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
-import { translateTopic, TOPIC_RU } from '@/lib/topicTranslations';
+import { normalizeAnalyticsTopic, normalizePracticeTopic, translateTopic } from '@/lib/topicTranslations';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
 
@@ -424,7 +424,7 @@ export default function Practice() {
           const tmap = new Map<string, { c: number; t: number }>();
           const ingest = (rows: { topic: string | null; is_correct: boolean | null }[] | null) => {
             for (const a of rows || []) {
-              const t = (a.topic || '').trim();
+              const t = normalizeAnalyticsTopic(a.topic || '');
               if (!t) continue;
               const e = tmap.get(t) || { c: 0, t: 0 };
               e.t++;
@@ -459,51 +459,45 @@ export default function Practice() {
       let chosen: Bank[] = [];
 
       // 4a. TOPIC-FOCUSED MODE — overrides everything else.
-      // Triggered by ?topic=... from "My Plan". 80% from this topic, 20% mixed.
-      // Topic strings come in English (e.g. "Number Theory") but practice_questions
-      // store Russian topic names (e.g. "Теория чисел"), so we match both forms.
+      // Triggered by ?topic=... from "My Plan".
+      // Requirement: 10 questions and all of them must be about the tapped topic.
       if (focusedTopic) {
-        const focusEn = focusedTopic.trim();
-        const focusRu = (TOPIC_RU[focusEn] || TOPIC_RU[focusEn.toLowerCase()] || focusEn).trim().toLowerCase();
-        const focusEnLc = focusEn.toLowerCase();
+        const focusEn = normalizeAnalyticsTopic(focusedTopic);
+        const focusRu = normalizePracticeTopic(focusedTopic);
         const matchesFocus = (t: string) => {
-          const tn = (t || '').trim().toLowerCase();
-          return tn === focusEnLc || tn === focusRu;
+          return normalizePracticeTopic(t) === focusRu;
         };
 
         const topicBank = bank.filter(b => matchesFocus(b.topic));
-        const otherBank = bank.filter(b => !matchesFocus(b.topic));
         const TOPIC_TOTAL = 10;
-        const FOCUS_N = 8;  // 80% on the chosen topic
-        const MIXED_N = 2;  // 20% mixed
         const shuffleArr = <T,>(arr: T[]) => arr.map(v => [Math.random(), v] as const).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
 
         const unseenTopic = topicBank.filter(b => !seen.has(b.qid));
         const seenTopic = topicBank.filter(b => seen.has(b.qid));
-        // Topic-first: prefer unseen, then reuse seen so practice never blocks.
-        let focusPick = shuffleArr(unseenTopic).slice(0, FOCUS_N);
-        if (focusPick.length < FOCUS_N) {
-          focusPick = focusPick.concat(shuffleArr(seenTopic).slice(0, FOCUS_N - focusPick.length));
+        let focusPick = shuffleArr(unseenTopic).slice(0, TOPIC_TOTAL);
+        if (focusPick.length < TOPIC_TOTAL) {
+          focusPick = focusPick.concat(shuffleArr(seenTopic).slice(0, TOPIC_TOTAL - focusPick.length));
         }
-        const mixedPick = shuffleArr(otherBank.filter(b => !seen.has(b.qid))).slice(0, MIXED_N);
-        const mixedFallback = mixedPick.length < MIXED_N
-          ? shuffleArr(otherBank).slice(0, MIXED_N - mixedPick.length)
-          : [];
-
-        chosen = [...focusPick, ...mixedPick, ...mixedFallback];
+        if (focusPick.length < TOPIC_TOTAL && topicBank.length > 0) {
+          const refillPool = shuffleArr(topicBank);
+          let refillIndex = 0;
+          while (focusPick.length < TOPIC_TOTAL) {
+            focusPick.push(refillPool[refillIndex % refillPool.length]);
+            refillIndex++;
+          }
+        }
+        chosen = focusPick;
 
         // GRACEFUL FALLBACK: if the topic has zero questions in the bank,
-        // serve a mixed set instead of crashing with "Ошибка генерации".
+        // show a clear topic-specific error instead of unrelated mixed tasks.
         if (chosen.length === 0) {
-          chosen = shuffleArr(unseen).slice(0, TOPIC_TOTAL);
-          if (chosen.length < TOPIC_TOTAL) {
-            chosen = chosen.concat(shuffleArr(bank.filter(b => !chosen.includes(b))).slice(0, TOPIC_TOTAL - chosen.length));
-          }
-          console.warn(`[PRACTICE_TOPIC] no questions for "${focusEn}" / "${focusRu}" — falling back to mixed set.`);
+          setGenerationError(`Нет готовых заданий по теме «${focusRu}».`);
+          setLoading(false);
+          return;
         }
 
-        setLatestTestName(`Практика: ${focusEn}`);
-        console.log(`[PRACTICE_TOPIC] focus_en="${focusEn}" focus_ru="${focusRu}" topic_bank=${topicBank.length} chosen=${chosen.length} (focus=${focusPick.length}, mixed=${mixedPick.length + mixedFallback.length})`);
+        setLatestTestName(`Практика: ${focusRu}`);
+        console.log(`[PRACTICE_TOPIC] focus_en="${focusEn}" focus_ru="${focusRu}" topic_bank=${topicBank.length} chosen=${chosen.length}`);
       } else if (isControl) {
         // CONTROL: 25 random across all topics, no weak-topic bias
         chosen = shuffle(unseen).slice(0, 25);
@@ -519,7 +513,7 @@ export default function Practice() {
         const TOTAL = 10;
         const WEAK_N = 8;
         const REINFORCE_N = 2; // slots reserved inside TOTAL for recent mistakes
-        const weakSet = new Set(weak);
+        const weakSet = new Set(weak.map(topic => normalizePracticeTopic(topic)));
 
         // Find recent wrong answers (last 30 responses) — keep ones whose qid is still in bank
         const wrongQids = new Set<string>();
@@ -535,8 +529,8 @@ export default function Practice() {
 
         // Helper: pick by weak/other split from a pool, excluding already-chosen qids
         const pickFromPool = (pool: Bank[], remaining: number) => {
-          const weakP = shuffle(pool.filter(b => weakSet.has(b.topic) && !reinforceSet.has(b.qid)));
-          const otherP = shuffle(pool.filter(b => !weakSet.has(b.topic) && !reinforceSet.has(b.qid)));
+          const weakP = shuffle(pool.filter(b => weakSet.has(normalizePracticeTopic(b.topic)) && !reinforceSet.has(b.qid)));
+          const otherP = shuffle(pool.filter(b => !weakSet.has(normalizePracticeTopic(b.topic)) && !reinforceSet.has(b.qid)));
           const weakSlots = Math.min(WEAK_N, remaining);
           const weakPick = weakP.slice(0, weakSlots);
           const otherPick = otherP.slice(0, remaining - weakPick.length);
@@ -572,7 +566,7 @@ export default function Practice() {
         }
         chosen = shuffle(chosen);
 
-        const weakInChosen = chosen.filter(b => weakSet.has(b.topic)).length;
+        const weakInChosen = chosen.filter(b => weakSet.has(normalizePracticeTopic(b.topic))).length;
         console.log(`[PRACTICE_FRONTEND] AI distribution: ${weakInChosen}/${chosen.length} from weak topics, ${reinforcePick.length} reinforced. Topics: ${chosen.map(b => b.topic).join(', ')}`);
       }
 
@@ -919,11 +913,12 @@ export default function Practice() {
                   onClick={() => {
                     // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
                     if (focusedTopic && weakTopics.length > 0) {
+                      const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
                       const idx = weakTopics.findIndex(
-                        t => t.toLowerCase() === focusedTopic.toLowerCase(),
+                        t => normalizeAnalyticsTopic(t) === normalizedFocused,
                       );
                       const next = weakTopics[(idx + 1) % weakTopics.length];
-                      if (next && next.toLowerCase() !== focusedTopic.toLowerCase()) {
+                      if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
                         setSearchParams({ topic: next });
                         return;
                       }

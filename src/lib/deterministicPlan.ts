@@ -1,3 +1,5 @@
+import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
+
 /**
  * Deterministic, rule-based learning plan.
  * NO AI runtime. All inputs come from the DB (question_attempts + practice_responses).
@@ -42,7 +44,7 @@ interface RawRow {
 export function buildDeterministicPlan(rows: RawRow[]): DeterministicPlan {
   const map = new Map<string, { correct: number; total: number }>();
   for (const r of rows) {
-    const t = (r.topic || '').trim();
+    const t = normalizeAnalyticsTopic(r.topic || '');
     if (!t) continue;
     const e = map.get(t) || { correct: 0, total: 0 };
     e.total++;
