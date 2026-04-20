@@ -157,22 +157,24 @@ export default function Lessons() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={activeTab === 'lessons' ? 'default' : 'outline'}
             onClick={() => setActiveTab('lessons')}
             className="gap-2"
+            size="sm"
           >
             <BookOpen className="h-4 w-4" />
-            Базовые уроки
+            <span className="truncate">Базовые уроки</span>
           </Button>
           <Button
             variant={activeTab === 'videos' ? 'default' : 'outline'}
             onClick={() => setActiveTab('videos')}
             className="gap-2"
+            size="sm"
           >
             <Video className="h-4 w-4" />
-            Видеоразборы тестов
+            <span className="truncate">Видеоразборы тестов</span>
           </Button>
         </div>
 
