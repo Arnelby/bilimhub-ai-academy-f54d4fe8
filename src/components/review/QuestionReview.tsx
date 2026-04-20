@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Sparkles, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MathRenderer } from "@/components/math/MathRenderer";
+import { SafeMath } from "@/components/review/SafeMath";
 import { translateTopic } from "@/lib/topicTranslations";
 import { formatAnswerKey, sanitizeReviewText } from "@/lib/reviewFormatting";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,12 +81,52 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  const wrongExpl = !data.isCorrect
-    ? pickDistractorExplanation(data.userAnswer, data)
+  // STEP 1 — diagnostic log of exactly what the UI uses
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[REVIEW_DATA]", {
+      questionNumber: data.questionNumber,
+      questionCacheId: data.questionCacheId,
+      userAnswer: data.userAnswer,
+      correctAnswer: data.correctAnswer,
+      isCorrect: data.isCorrect,
+      hasOptions: !!data.options,
+      optionsKeys: data.options ? Object.keys(data.options) : null,
+      explanation_a: data.explanationA,
+      explanation_b: data.explanationB,
+      explanation_c: data.explanationC,
+      explanation_d: data.explanationD,
+      explanation_e: data.explanationE,
+      explanation_correct: data.correctExplanation,
+    });
+  }
+
+  // STEP 4 — coerce types so comparisons / lookups never break
+  const safeUserAnswerRaw =
+    data.userAnswer != null ? String(data.userAnswer) : null;
+  const safeCorrectAnswerRaw =
+    data.correctAnswer != null ? String(data.correctAnswer) : "";
+
+  // STEP 5 — safe explanation map (Latin + Cyrillic keys both supported)
+  const explanationMap: Record<string, string | null | undefined> = {
+    A: data.explanationA, B: data.explanationB, C: data.explanationC,
+    D: data.explanationD, E: data.explanationE,
+    А: data.explanationA, Б: data.explanationB, В: data.explanationC,
+    Г: data.explanationD, Д: data.explanationE,
+  };
+
+  const wrongExpl = !data.isCorrect && safeUserAnswerRaw
+    ? explanationMap[safeUserAnswerRaw.toUpperCase()] ??
+      pickDistractorExplanation(safeUserAnswerRaw, data)
     : null;
   const correctExpl = data.correctExplanation;
-  const displayUserAnswer = formatAnswerKey(data.userAnswer);
-  const displayCorrectAnswer = formatAnswerKey(data.correctAnswer);
+
+  const displayUserAnswer = safeUserAnswerRaw
+    ? formatAnswerKey(safeUserAnswerRaw)
+    : "Нет ответа";
+  const displayCorrectAnswer = safeCorrectAnswerRaw
+    ? formatAnswerKey(safeCorrectAnswerRaw)
+    : "—";
   const wrongExplText = sanitizeReviewText(wrongExpl);
   const correctExplText = sanitizeReviewText(correctExpl);
 
@@ -163,21 +204,21 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
             <div className="text-sm text-muted-foreground break-words">
               {data.instruction && (
                 <div className="mb-1 break-words">
-                  <MathRenderer content={data.instruction} />
+                  <SafeMath content={data.instruction} />
                 </div>
               )}
               <div className="break-words">
                 <span>Столбец А: </span>
-                <MathRenderer content={data.column_a} inline />
+                <SafeMath content={data.column_a} inline />
                 <span className="mx-2">vs</span>
                 <span>Столбец Б: </span>
-                <MathRenderer content={data.column_b} inline />
+                <SafeMath content={data.column_b} inline />
               </div>
             </div>
           )}
           {data.type === "mcq" && data.instruction && (
             <div className="text-sm text-muted-foreground break-words">
-              <MathRenderer content={data.instruction} />
+              <SafeMath content={data.instruction} />
             </div>
           )}
 
@@ -213,7 +254,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
                 ❌ Почему «{displayUserAnswer}» неверно
               </div>
               <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
-                {wrongExplText ? <MathRenderer content={wrongExplText} /> : NO_EXPL}
+                {wrongExplText ? <SafeMath content={wrongExplText} /> : NO_EXPL}
               </div>
             </div>
           )}
@@ -224,7 +265,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
               ✅ Правильное решение
             </div>
             <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
-              {correctExplText ? <MathRenderer content={correctExplText} /> : NO_EXPL}
+              {correctExplText ? <SafeMath content={correctExplText} /> : NO_EXPL}
             </div>
           </div>
 
@@ -252,7 +293,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
                     <p className="text-muted-foreground">{aiError}</p>
                   ) : aiHint ? (
                     <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
-                      <MathRenderer content={aiHint} />
+                      <SafeMath content={aiHint} />
                     </div>
                   ) : null}
                 </div>
