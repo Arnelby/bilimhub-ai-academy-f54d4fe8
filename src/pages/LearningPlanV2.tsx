@@ -111,10 +111,29 @@ export default function LearningPlanV2() {
           .eq("user_id", user.id),
       ]);
 
-      const plan = buildDeterministicPlan([
+      const rawPlan = buildDeterministicPlan([
         ...(attempts || []),
         ...(practice || []),
       ]);
+
+      // Enforce uniqueness across topic groups (dedupe by topic key — case-insensitive)
+      const seen = new Set<string>();
+      const dedupe = <T extends { topic: string }>(arr: T[]): T[] => {
+        const out: T[] = [];
+        for (const item of arr) {
+          const key = (item.topic || '').trim().toLowerCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          out.push(item);
+        }
+        return out;
+      };
+      const plan = {
+        ...rawPlan,
+        weakTopics: dedupe(rawPlan.weakTopics),
+        mediumTopics: dedupe(rawPlan.mediumTopics),
+        strongTopics: dedupe(rawPlan.strongTopics),
+      };
 
       // 3) Persist plan
       try {
@@ -457,7 +476,7 @@ export default function LearningPlanV2() {
                 <AlertTriangle className="w-5 h-5 text-destructive" />
                 Слабые темы ({weakTopics.length})
               </CardTitle>
-              <CardDescription>Точность ниже 50% (минимум 3 попытки)</CardDescription>
+              <CardDescription>Точность ниже 60% (минимум 5 попыток)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -502,7 +521,7 @@ export default function LearningPlanV2() {
                 <TrendingDown className="w-5 h-5 text-warning" />
                 Средние темы ({mediumTopics.length})
               </CardTitle>
-              <CardDescription>Точность от 50% до 75%</CardDescription>
+              <CardDescription>Точность от 60% до 80%</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -547,7 +566,7 @@ export default function LearningPlanV2() {
                 <TrendingUp className="w-5 h-5 text-success" />
                 Сильные темы ({strongTopics.length})
               </CardTitle>
-              <CardDescription>Точность 75% и выше</CardDescription>
+              <CardDescription>Точность 80% и выше</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">

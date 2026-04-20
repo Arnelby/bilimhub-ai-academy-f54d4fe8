@@ -55,8 +55,8 @@ interface McqPractice {
 
 type PracticeQuestion = ComparisonPractice | McqPractice;
 
-const PRACTICE_RECENT_HISTORY_LIMIT = 100;
-const PRACTICE_SESSION_SIZE = 20;
+const PRACTICE_RECENT_HISTORY_LIMIT = 200;
+const PRACTICE_SESSION_SIZE = 10; // hard limit per spec — exactly 10 questions per session
 
 interface MistakeExplanation {
   staticSolution: string;     // full solution from question_explanations (no AI)

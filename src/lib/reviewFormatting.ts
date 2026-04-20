@@ -38,5 +38,11 @@ export function sanitizeReviewText(raw: string | null | undefined): string | nul
   // Cyrillic letter glued to a following number (e.g. "ответ48" → "ответ 48")
   text = text.replace(/([А-Яа-яЁё])(\d)/g, '$1 $2');
 
+  // Insert paragraph breaks after sentence-ending punctuation when followed by capital letter
+  // (improves readability of long AI/DB explanations that come as one wall of text)
+  text = text.replace(/([.!?])\s+([А-ЯЁA-Z])/g, '$1\n\n$2');
+  // Collapse 3+ newlines back to 2
+  text = text.replace(/\n{3,}/g, '\n\n');
+
   return text;
 }
