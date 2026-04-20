@@ -204,21 +204,21 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
             <div className="text-sm text-muted-foreground break-words">
               {data.instruction && (
                 <div className="mb-1 break-words">
-                  <MathRenderer content={data.instruction} />
+                  <SafeMath content={data.instruction} />
                 </div>
               )}
               <div className="break-words">
                 <span>Столбец А: </span>
-                <MathRenderer content={data.column_a} inline />
+                <SafeMath content={data.column_a} inline />
                 <span className="mx-2">vs</span>
                 <span>Столбец Б: </span>
-                <MathRenderer content={data.column_b} inline />
+                <SafeMath content={data.column_b} inline />
               </div>
             </div>
           )}
           {data.type === "mcq" && data.instruction && (
             <div className="text-sm text-muted-foreground break-words">
-              <MathRenderer content={data.instruction} />
+              <SafeMath content={data.instruction} />
             </div>
           )}
 
