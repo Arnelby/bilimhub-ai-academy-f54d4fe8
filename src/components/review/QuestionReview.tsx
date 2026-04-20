@@ -44,7 +44,8 @@ interface QuestionReviewProps {
   groupMode?: "ai" | "control";
 }
 
-const NO_EXPL = "Объяснение отсутствует";
+// All keep-questions now have explanations in DB; render nothing on the rare null.
+const NO_EXPL = "";
 
 function pickDistractorExplanation(
   letter: string | null,
