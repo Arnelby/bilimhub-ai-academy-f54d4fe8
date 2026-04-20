@@ -1468,6 +1468,39 @@ export type Database = {
           },
         ]
       }
+      user_topic_stats: {
+        Row: {
+          accuracy: number
+          correct_answers: number
+          created_at: string
+          id: string
+          topic: string
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          topic: string
+          total_attempts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          topic?: string
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_solutions: {
         Row: {
           created_at: string | null

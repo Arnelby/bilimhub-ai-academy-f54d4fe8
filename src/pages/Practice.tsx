@@ -16,6 +16,7 @@ import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
+import { updateTopicStats } from '@/lib/topicStats';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -692,6 +693,13 @@ export default function Practice() {
       await updateSpacedRepetition({ userId: user.id, questionId: qid, isCorrect });
     } catch (e) {
       console.error('[SPACED_HOOK] failed', e);
+    }
+
+    // Per-topic stats update (deterministic, NO AI)
+    try {
+      await updateTopicStats({ userId: user.id, topic: q.topic, isCorrect });
+    } catch (e) {
+      console.error('[TOPIC_STATS_HOOK] failed', e);
     }
   }, [user, sessionId, participantId]);
 
