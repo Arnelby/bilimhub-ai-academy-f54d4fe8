@@ -9,7 +9,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TEST_CONFIG } from '@/lib/mathTestConfig';
-import { getLearningState, markLessonWatched as markLessonWatchedState, type LearningState } from '@/lib/learningState';
+import { getLearningState, updateLearningState, markLessonWatched as markLessonWatchedState, type LearningState } from '@/lib/learningState';
+import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
 
 interface LessonRow {
   id: string;
@@ -63,7 +64,7 @@ export default function Lessons() {
       .order('title_ru');
 
     const allLessons = (lessonsData as LessonRow[]) || [];
-    setLessons(allLessons);
+    // (final ordering is applied below once we know weak topics)
 
     if (!user) {
       setLoading(false);
@@ -75,7 +76,8 @@ export default function Lessons() {
       supabase.from('user_tests').select('test_id').eq('user_id', user.id).not('completed_at', 'is', null),
       supabase.from('user_answers').select('test_id').eq('user_id', user.id),
       supabase.from('user_lesson_progress').select('lesson_id').eq('user_id', user.id).eq('completed', true),
-      getLearningState(user.id),
+      // Force recompute so the recommended lesson always reflects the latest practice/tests.
+      updateLearningState(user.id),
     ]);
 
     const counts: Record<string, number> = {};
@@ -110,12 +112,23 @@ export default function Lessons() {
     if (state?.next_action_type === 'watch_lesson' && state.next_target) {
       recommended = allLessons.find(l => l.id === state.next_target) || null;
     }
+    // Fallback: lesson of the first weak topic (worst-first, already sorted in state)
+    const weakTopics: string[] = Array.isArray((state as any)?.weak_topics)
+      ? ((state as any).weak_topics as string[])
+      : [];
+    if (!recommended && weakTopics.length > 0) {
+      const weakNorm = weakTopics.map(t => normalizeAnalyticsTopic(t));
+      recommended = allLessons.find(l => {
+        const t = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        return t && weakNorm.includes(t);
+      }) || null;
+    }
     // Fallback: first lesson of current_topic
     if (!recommended && state?.current_topic) {
+      const cur = normalizeAnalyticsTopic(state.current_topic);
       recommended = allLessons.find(l => {
-        const t = (l.topic?.title_ru || l.topic?.title || '').toLowerCase();
-        return t.includes(state.current_topic!.toLowerCase()) ||
-               state.current_topic!.toLowerCase().includes(t);
+        const t = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        return t && cur && (t.includes(cur) || cur.includes(t));
       }) || null;
     }
     // Fallback: first non-watched lesson
@@ -123,6 +136,17 @@ export default function Lessons() {
       recommended = allLessons.find(l => !completedSet.has(l.id)) || null;
     }
     setRecommendedLesson(recommended);
+
+    // Reorder the global list: weak-topic lessons first (worst topic first),
+    // then everything else. This makes the page visibly “lead” the student.
+    const weakTopicsForSort: string[] = weakTopics.map(t => normalizeAnalyticsTopic(t));
+    const lessonWeakRank = (l: LessonRow) => {
+      const t = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+      const idx = weakTopicsForSort.indexOf(t);
+      return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+    };
+    const sorted = [...allLessons].sort((a, b) => lessonWeakRank(a) - lessonWeakRank(b));
+    setLessons(sorted);
 
     setLoading(false);
   }
