@@ -153,7 +153,7 @@ export default function Practice() {
       const answeredQids = new Set<string>();
       const incorrectQids = new Set<string>();
       const recentQidsOrdered: string[] = [];
-      for (const p of priorPractice || []) {
+      for (const p of (priorPractice || []) as any[]) {
         const qid: string | undefined = p.question_id || p.question_data?.question_id;
         if (typeof qid !== 'string' || !qid.startsWith('pq_')) continue;
         if (!answeredQids.has(qid)) recentQidsOrdered.push(qid);
