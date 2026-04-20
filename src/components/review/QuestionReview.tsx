@@ -293,7 +293,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
                     <p className="text-muted-foreground">{aiError}</p>
                   ) : aiHint ? (
                     <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
-                      <MathRenderer content={aiHint} />
+                      <SafeMath content={aiHint} />
                     </div>
                   ) : null}
                 </div>
