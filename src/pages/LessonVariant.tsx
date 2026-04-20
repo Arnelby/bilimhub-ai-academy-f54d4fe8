@@ -138,6 +138,8 @@ export default function LessonVariant() {
 
       if (!error) {
         setWatchedVideos(prev => new Set(prev).add(lessonId));
+        const { updateLearningState } = await import('@/lib/learningState');
+        await updateLearningState(user.id);
       } else {
         console.error('Failed to save video progress:', error);
       }
