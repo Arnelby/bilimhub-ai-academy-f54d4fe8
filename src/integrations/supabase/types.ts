@@ -1307,51 +1307,69 @@ export type Database = {
       }
       user_learning_state: {
         Row: {
+          completed_lessons: Json
+          completed_tests: number
           created_at: string
+          current_plan: Json
           current_step: string
           current_topic: string | null
           daily_goal: number
           daily_progress: number
           errors_count: number
+          last_activity_at: string | null
           last_activity_date: string | null
           next_action: string
           next_reason: string | null
           streak: number
           strong_topics: Json
+          topic_stats: Json
           updated_at: string
           user_id: string
+          watched_videos: Json
           weak_topics: Json
         }
         Insert: {
+          completed_lessons?: Json
+          completed_tests?: number
           created_at?: string
+          current_plan?: Json
           current_step?: string
           current_topic?: string | null
           daily_goal?: number
           daily_progress?: number
           errors_count?: number
+          last_activity_at?: string | null
           last_activity_date?: string | null
           next_action?: string
           next_reason?: string | null
           streak?: number
           strong_topics?: Json
+          topic_stats?: Json
           updated_at?: string
           user_id: string
+          watched_videos?: Json
           weak_topics?: Json
         }
         Update: {
+          completed_lessons?: Json
+          completed_tests?: number
           created_at?: string
+          current_plan?: Json
           current_step?: string
           current_topic?: string | null
           daily_goal?: number
           daily_progress?: number
           errors_count?: number
+          last_activity_at?: string | null
           last_activity_date?: string | null
           next_action?: string
           next_reason?: string | null
           streak?: number
           strong_topics?: Json
+          topic_stats?: Json
           updated_at?: string
           user_id?: string
+          watched_videos?: Json
           weak_topics?: Json
         }
         Relationships: []
