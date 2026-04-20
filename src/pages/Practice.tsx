@@ -17,6 +17,7 @@ import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
+import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -554,22 +555,26 @@ export default function Practice() {
         chosen = pickBalancedByTopic(bank, requestedCount);
         selectionDebug = { tier: 'control', final_count: chosen.length };
       } else {
-        const weakSet = new Set(weak.map(topic => normalizePracticeTopic(topic)));
-        const weakPool = bank.filter(b => weakSet.has(normalizePracticeTopic(b.topic)));
-        const otherPool = bank.filter(b => !weakSet.has(normalizePracticeTopic(b.topic)));
-        const targetWeakCount = weak.length > 0 ? Math.min(Math.round(requestedCount * 0.8), weakPool.length) : 0;
-
-        const weakPick = pickBalancedByTopic(weakPool, targetWeakCount);
-        const pickedIds = new Set(weakPick.map(b => b.qid));
-        const otherPick = pickBalancedByTopic(otherPool.filter(b => !pickedIds.has(b.qid)), requestedCount - weakPick.length);
-        chosen = [...weakPick, ...otherPick];
-
-        if (chosen.length < requestedCount) {
-          const chosenIds = new Set(chosen.map(b => b.qid));
-          const topUp = pickBalancedByTopic(bank.filter(b => !chosenIds.has(b.qid)), requestedCount - chosen.length);
-          chosen = [...chosen, ...topUp];
-        }
-        selectionDebug = { tier: 'ai-personalized', final_count: chosen.length };
+        // STAGE 3: deterministic plan + selection (NO AI).
+        // Replaces previous weak/other split. Strict repeat-prevention is enforced inside.
+        const answeredQidSet = new Set(Array.from(answeredQids));
+        const sel = await selectPracticeQuestions({
+          userId: user.id,
+          bank,
+          answeredQids: answeredQidSet,
+        });
+        chosen = sel.selected;
+        // Keep weakTopics in sync with what the deterministic planner produced.
+        weak = sel.plan.weakTopics;
+        setWeakTopics(weak);
+        selectionDebug = {
+          tier: 'deterministic-stage3',
+          weak_topics: sel.plan.weakTopics,
+          strong_topics: sel.plan.strongTopics,
+          insufficient_data: sel.plan.insufficientData,
+          sources: sel.sources,
+          final_count: chosen.length,
+        };
       }
 
       chosen = uniqueByQid(chosen);
