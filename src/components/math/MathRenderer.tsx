@@ -50,6 +50,18 @@ function normalizeMath(raw: string): string {
     text = text.replace(/(?<!\\)\$(?=[^$]*$)/, '\\$');
   }
 
+  // 0d. AI often emits raw LaTeX commands (\frac{a}{b}, \sqrt{x}, x^{n}) without
+  //     any $ delimiters. remark-math will then render them as literal text.
+  //     Wrap each contiguous LaTeX-command run in $...$ so KaTeX picks it up.
+  if (!/\$/.test(text) && /\\(?:frac|sqrt|cdot|times|div|leq|geq|neq|pm|mp|sum|int|infty|alpha|beta|gamma|theta|pi|sigma|approx|le|ge)\b|[A-Za-z0-9)\]]\s*\^\{[^}]*\}|[A-Za-z0-9)\]]\s*_\{[^}]*\}/.test(text)) {
+    // Match a LaTeX expression: a leading command/sub/sup with all braced groups attached,
+    // optionally followed by simple operators and more LaTeX/atoms. Conservative — keeps
+    // surrounding prose untouched.
+    const ATOM = String.raw`(?:\\[a-zA-Z]+(?:\{[^{}]*\})*|[A-Za-z0-9]+(?:\^\{[^{}]*\}|_\{[^{}]*\})+)`;
+    const EXPR = new RegExp(`(${ATOM}(?:\\s*(?:[+\\-*/=<>]|\\\\(?:cdot|times|div|leq|geq|neq|pm|approx))\\s*${ATOM})*)`, 'g');
+    text = text.replace(EXPR, (m) => `$${m}$`);
+  }
+
   // If we now have proper LaTeX delimiters, fix multi-digit exponents/subscripts inside them
   if (/\$/.test(text)) {
     text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_match, inner: string) => {
