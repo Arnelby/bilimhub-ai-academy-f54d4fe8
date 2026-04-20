@@ -935,6 +935,15 @@ export default function Practice() {
 
     const mistakes = allResults.filter(r => !r.isCorrect && r.userAnswer);
     const percentage = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    const incorrectCount = questions.length - correctCount;
+    console.log('[RESULT_RENDER]', {
+      user_id: user?.id,
+      session_id: sessionId,
+      questions_count: questions.length,
+      correct: correctCount,
+      incorrect: incorrectCount,
+      accuracy_pct: percentage,
+    });
 
     return (
       <Layout>
