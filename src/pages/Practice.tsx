@@ -686,6 +686,13 @@ export default function Practice() {
       .upsert(row, { onConflict: 'session_id,question_id' });
     if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
     else console.log(`[TRACKING_ENABLED] is_correct=${isCorrect} time_spent_s=${timeSpentSeconds} topic="${q.topic}" session=${sessionId}`);
+
+    // Spaced repetition update (deterministic, NO AI)
+    try {
+      await updateSpacedRepetition({ userId: user.id, questionId: qid, isCorrect });
+    } catch (e) {
+      console.error('[SPACED_HOOK] failed', e);
+    }
   }, [user, sessionId, participantId]);
 
   const handleAnswer = (latinKey: string) => {
