@@ -459,23 +459,51 @@ export default function Practice() {
       let chosen: Bank[] = [];
 
       // 4a. TOPIC-FOCUSED MODE — overrides everything else.
-      // Triggered by ?topic=... from "My Plan". Strict filter, no weak/other split.
+      // Triggered by ?topic=... from "My Plan". 80% from this topic, 20% mixed.
+      // Topic strings come in English (e.g. "Number Theory") but practice_questions
+      // store Russian topic names (e.g. "Теория чисел"), so we match both forms.
       if (focusedTopic) {
-        const focusNorm = focusedTopic.trim().toLowerCase();
-        const topicBank = bank.filter(b => (b.topic || '').trim().toLowerCase() === focusNorm);
-        const unseenTopic = topicBank.filter(b => !seen.has(b.qid));
+        const focusEn = focusedTopic.trim();
+        const focusRu = (TOPIC_RU[focusEn] || TOPIC_RU[focusEn.toLowerCase()] || focusEn).trim().toLowerCase();
+        const focusEnLc = focusEn.toLowerCase();
+        const matchesFocus = (t: string) => {
+          const tn = (t || '').trim().toLowerCase();
+          return tn === focusEnLc || tn === focusRu;
+        };
+
+        const topicBank = bank.filter(b => matchesFocus(b.topic));
+        const otherBank = bank.filter(b => !matchesFocus(b.topic));
         const TOPIC_TOTAL = 10;
-        chosen = shuffle(unseenTopic).slice(0, TOPIC_TOTAL);
-        if (chosen.length < TOPIC_TOTAL) {
-          // Topic pool exhausted — allow seen reuse so practice never blocks
-          const reusable = shuffle(topicBank.filter(b => !chosen.includes(b)));
-          chosen = chosen.concat(reusable.slice(0, TOPIC_TOTAL - chosen.length));
+        const FOCUS_N = 8;  // 80% on the chosen topic
+        const MIXED_N = 2;  // 20% mixed
+        const shuffleArr = <T,>(arr: T[]) => arr.map(v => [Math.random(), v] as const).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+
+        const unseenTopic = topicBank.filter(b => !seen.has(b.qid));
+        const seenTopic = topicBank.filter(b => seen.has(b.qid));
+        // Topic-first: prefer unseen, then reuse seen so practice never blocks.
+        let focusPick = shuffleArr(unseenTopic).slice(0, FOCUS_N);
+        if (focusPick.length < FOCUS_N) {
+          focusPick = focusPick.concat(shuffleArr(seenTopic).slice(0, FOCUS_N - focusPick.length));
         }
-        setLatestTestName(`Практика по теме: ${focusedTopic}`);
-        if (topicBank.length === 0) {
-          console.warn(`[PRACTICE_TOPIC] no questions found for topic="${focusedTopic}"`);
+        const mixedPick = shuffleArr(otherBank.filter(b => !seen.has(b.qid))).slice(0, MIXED_N);
+        const mixedFallback = mixedPick.length < MIXED_N
+          ? shuffleArr(otherBank).slice(0, MIXED_N - mixedPick.length)
+          : [];
+
+        chosen = [...focusPick, ...mixedPick, ...mixedFallback];
+
+        // GRACEFUL FALLBACK: if the topic has zero questions in the bank,
+        // serve a mixed set instead of crashing with "Ошибка генерации".
+        if (chosen.length === 0) {
+          chosen = shuffleArr(unseen).slice(0, TOPIC_TOTAL);
+          if (chosen.length < TOPIC_TOTAL) {
+            chosen = chosen.concat(shuffleArr(bank.filter(b => !chosen.includes(b))).slice(0, TOPIC_TOTAL - chosen.length));
+          }
+          console.warn(`[PRACTICE_TOPIC] no questions for "${focusEn}" / "${focusRu}" — falling back to mixed set.`);
         }
-        console.log(`[PRACTICE_TOPIC] focus="${focusedTopic}" topic_bank=${topicBank.length} chosen=${chosen.length}`);
+
+        setLatestTestName(`Практика: ${focusEn}`);
+        console.log(`[PRACTICE_TOPIC] focus_en="${focusEn}" focus_ru="${focusRu}" topic_bank=${topicBank.length} chosen=${chosen.length} (focus=${focusPick.length}, mixed=${mixedPick.length + mixedFallback.length})`);
       } else if (isControl) {
         // CONTROL: 25 random across all topics, no weak-topic bias
         chosen = shuffle(unseen).slice(0, 25);
