@@ -16,12 +16,13 @@ import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
 import { TopicSummary } from '@/components/practice/TopicSummary';
-import { updateSpacedRepetition } from '@/lib/spacedRepetition';
+import { updateSpacedRepetition, getFailedQuestions } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
-import { updateLearningState } from '@/lib/learningState';
+import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
+import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -76,7 +77,9 @@ export default function Practice() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
+  const reviewMode = searchParams.get('mode') === 'review';
   const { user } = useAuth();
+  const [learningState, setLearningState] = useState<LearningState | null>(null);
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
   const motivation = useMotivation(user?.id);
   const [loading, setLoading] = useState(true);
@@ -105,6 +108,106 @@ export default function Practice() {
     setExpandedMistake(null);
     setGenerationError(null);
     sessionStartRef.current = Date.now();
+
+    // === REVIEW MODE — load only failed questions from spaced_repetition ===
+    if (reviewMode) {
+      try {
+        const failed = await getFailedQuestions(user.id);
+        const pqIds = failed
+          .map(f => f.question_id)
+          .filter(qid => typeof qid === 'string' && qid.startsWith('pq_'))
+          .map(qid => qid.slice(3));
+
+        if (pqIds.length === 0) {
+          console.log('[REVIEW_MODE] no failed questions — redirecting to general practice');
+          setSearchParams({});
+          return;
+        }
+
+        const { data: rows } = await supabase
+          .from('practice_questions')
+          .select('id, topic, question_type, correct_answer, question_data, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e')
+          .in('id', pqIds);
+
+        const reviewQs: PracticeQuestion[] = [];
+        for (const r of (rows ?? []) as any[]) {
+          const data = (r.question_data as any) || {};
+          const qtype = (r.question_type || data.type || '').toString().toLowerCase();
+          const ans = (r.correct_answer || data.correct_answer || 'A').toString().trim().toUpperCase();
+          const base = {
+            id: r.id as any,
+            question_number: 0,
+            topic: r.topic || data.topic || '',
+            correct_answer: ans,
+            correct_explanation: r.correct_explanation ?? null,
+            explanation_a: r.explanation_a ?? null,
+            explanation_b: r.explanation_b ?? null,
+            explanation_c: r.explanation_c ?? null,
+            explanation_d: r.explanation_d ?? null,
+            explanation_e: r.explanation_e ?? null,
+          };
+          if (qtype === 'comparison') {
+            reviewQs.push({
+              ...base,
+              type: 'comparison',
+              instruction: data.instruction ?? null,
+              column_a: data.column_a ?? '',
+              column_b: data.column_b ?? '',
+              option_c: null,
+              option_d: null,
+              _qid: `pq_${r.id}`,
+            } as any);
+          } else if (qtype === 'mcq') {
+            reviewQs.push({
+              ...base,
+              type: 'mcq',
+              instruction: data.instruction || '',
+              options: data.options || {},
+              _qid: `pq_${r.id}`,
+            } as any);
+          }
+        }
+
+        const { data: pid } = await supabase
+          .from('profiles').select('participant_id').eq('id', user.id).maybeSingle();
+        const participant = pid?.participant_id || null;
+        setParticipantId(participant);
+
+        const { data: sess } = await supabase
+          .from('practice_sessions')
+          .insert({
+            user_id: user.id,
+            participant_id: participant,
+            group_type: group,
+            practice_type: 'review_mistakes',
+            data_version: 'v2',
+            is_reliable: !!participant,
+            status: 'active',
+          })
+          .select('id')
+          .single();
+
+        if (sess) {
+          setSessionId(sess.id);
+          await supabase.from('practice_session_questions').insert(
+            reviewQs.map((q, idx) => ({
+              session_id: sess.id,
+              question_id: (q as any)._qid,
+              order_index: idx,
+            })),
+          );
+        }
+
+        setQuestions(reviewQs);
+        setLatestTestName('Повторение ошибок');
+        setLatestTestType(reviewQs[0]?.type || 'comparison');
+        setLoading(false);
+        console.log('[REVIEW_MODE] loaded', { count: reviewQs.length });
+        return;
+      } catch (e) {
+        console.error('[REVIEW_MODE] failed', e);
+      }
+    }
 
     try {
       console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}, forceNew: ${forceNew}`);
@@ -650,12 +753,12 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl, focusedTopic]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams]);
 
   useEffect(() => {
-    // When user navigates with ?topic=..., always start a fresh session for that topic.
-    if (user && !groupLoading) loadPractice(!!focusedTopic);
-  }, [user, groupLoading, loadPractice, focusedTopic]);
+    // When user navigates with ?topic=... or ?mode=review, always start a fresh session.
+    if (user && !groupLoading) loadPractice(!!focusedTopic || reviewMode);
+  }, [user, groupLoading, loadPractice, focusedTopic, reviewMode]);
 
   // Reset per-question timer whenever the visible question changes
   useEffect(() => {
@@ -700,9 +803,15 @@ export default function Practice() {
     if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
     else console.log(`[TRACKING_ENABLED] is_correct=${isCorrect} time_spent_s=${timeSpentSeconds} topic="${q.topic}" session=${sessionId}`);
 
-    // Spaced repetition update (deterministic, NO AI)
+    // Spaced repetition / per-question learning state update (deterministic, NO AI).
+    // Pass topic so we can attach linked_lesson_id for the recovery flow.
     try {
-      await updateSpacedRepetition({ userId: user.id, questionId: qid, isCorrect });
+      await updateSpacedRepetition({
+        userId: user.id,
+        questionId: qid,
+        isCorrect,
+        topic: q.topic ?? null,
+      });
     } catch (e) {
       console.error('[SPACED_HOOK] failed', e);
     }
@@ -724,11 +833,18 @@ export default function Practice() {
 
     // Unified Learning State refresh — recompute next_action / weak topics / progress.
     try {
-      await updateLearningState(user.id);
+      const newState = await updateLearningState(user.id);
+      if (newState) setLearningState(newState);
     } catch (e) {
       console.error('[LEARNING_STATE_HOOK] failed', e);
     }
   }, [user, sessionId, participantId, motivation]);
+
+  // Load latest learning state once on mount so the results screen has it ready.
+  useEffect(() => {
+    if (!user) return;
+    void getLearningState(user.id).then(s => s && setLearningState(s));
+  }, [user]);
 
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
@@ -966,61 +1082,65 @@ export default function Practice() {
       accuracy_pct: percentage,
     });
 
+    // Build mistake items for the new MistakesBlock (linked_lesson_id resolved client-side from learningState topic mapping is not needed — MistakesBlock falls back to /lessons?topic=...).
+    const mistakeItems: MistakeItem[] = mistakes.map(({ q, userAnswer }) => ({
+      questionId: (q as any)._qid || `${q.type}_${q.id}`,
+      topic: q.topic ?? null,
+      type: q.type,
+      instruction: q.instruction ?? null,
+      columnA: q.type === 'comparison' ? q.column_a : null,
+      columnB: q.type === 'comparison' ? q.column_b : null,
+      options: q.type === 'mcq' ? q.options : null,
+      userAnswer,
+      correctAnswer: q.correct_answer,
+      linkedLessonId: null,
+    }));
+
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-3xl">
-          <Card className="mb-6">
-            <CardHeader className="text-center">
-              <CheckCircle className={`mx-auto h-12 w-12 mb-2 ${percentage >= 80 ? 'text-success' : percentage >= 50 ? 'text-warning' : 'text-destructive'}`} />
-              <CardTitle className="text-2xl">Результаты практики</CardTitle>
-              <CardDescription>{latestTestName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-6">
-                <div className="text-5xl font-bold mb-2">{percentage}%</div>
-                <p className="text-muted-foreground">{correctCount} из {questions.length} правильно</p>
-                <Progress value={percentage} className="mt-4 h-3" />
-              </div>
+          {/* === LEARNING LOOP HEADER (Block 1 + 2 + 3) === */}
+          <MistakesBlock
+            mistakes={mistakeItems}
+            totalQuestions={questions.length}
+            correctCount={correctCount}
+            state={learningState}
+            onRepeatMistakes={() => {
+              // Route to /practice?mode=review which loads only failed questions.
+              setSearchParams({ mode: 'review' });
+            }}
+          />
 
-              {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
-              <div className="flex gap-3 justify-center mb-6 flex-wrap">
-                <Button
-                  onClick={() => {
-                    // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
-                    if (focusedTopic && weakTopics.length > 0) {
-                      const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
-                      const idx = weakTopics.findIndex(
-                        t => normalizeAnalyticsTopic(t) === normalizedFocused,
-                      );
-                      const next = weakTopics[(idx + 1) % weakTopics.length];
-                      if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
-                        setSearchParams({ topic: next });
-                        return;
-                      }
-                    }
-                    // Otherwise: clear focus and start a fresh general session
-                    if (focusedTopic) {
-                      setSearchParams({});
-                      return;
-                    }
-                    loadPractice(true);
-                  }}
-                  variant="accent"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {focusedTopic ? 'Следующая тема' : 'Новая практика'}
-                </Button>
-                {isAI && (
-                  <Button onClick={() => navigate('/learning-plan')} variant="outline">
-                    Мой план
-                  </Button>
-                )}
-                <Button onClick={() => navigate('/tests')} variant="outline">
-                  К тестам
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Secondary actions */}
+          <div className="flex gap-3 justify-center mb-6 flex-wrap">
+            <Button
+              onClick={() => {
+                if (focusedTopic && weakTopics.length > 0) {
+                  const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
+                  const idx = weakTopics.findIndex(
+                    t => normalizeAnalyticsTopic(t) === normalizedFocused,
+                  );
+                  const next = weakTopics[(idx + 1) % weakTopics.length];
+                  if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
+                    setSearchParams({ topic: next });
+                    return;
+                  }
+                }
+                if (focusedTopic) {
+                  setSearchParams({});
+                  return;
+                }
+                loadPractice(true);
+              }}
+              variant="outline"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {focusedTopic ? 'Следующая тема' : 'Новая практика'}
+            </Button>
+            <Button onClick={() => navigate('/tests')} variant="outline">
+              К тестам
+            </Button>
+          </div>
 
           {/* Deterministic per-topic summary from user_topic_stats (NO AI) */}
           {user && <TopicSummary userId={user.id} />}
@@ -1034,29 +1154,30 @@ export default function Practice() {
             </CardHeader>
             <CardContent className="space-y-4">
               {allResults.map(({ q, userAnswer, isCorrect }, idx) => (
-                <QuestionReview
-                  key={qKey(q)}
-                  groupMode={isAI ? 'ai' : 'control'}
-                  data={{
-                    questionNumber: idx + 1,
-                    topic: isAI ? q.topic : null,
-                    type: q.type,
-                    instruction: q.instruction ?? null,
-                    column_a: q.type === 'comparison' ? q.column_a : null,
-                    column_b: q.type === 'comparison' ? q.column_b : null,
-                    options: q.type === 'mcq' ? q.options : null,
-                    userAnswer,
-                    correctAnswer: q.correct_answer,
-                    isCorrect,
-                    correctExplanation: q.correct_explanation ?? null,
-                    explanationA: q.explanation_a ?? null,
-                    explanationB: q.explanation_b ?? null,
-                    explanationC: q.explanation_c ?? null,
-                    explanationD: q.explanation_d ?? null,
-                    explanationE: q.explanation_e ?? null,
-                    questionCacheId: (q as any)._qid ?? null,
-                  }}
-                />
+                <div key={qKey(q)} id={`review-${(q as any)._qid || `${q.type}_${q.id}`}`}>
+                  <QuestionReview
+                    groupMode={isAI ? 'ai' : 'control'}
+                    data={{
+                      questionNumber: idx + 1,
+                      topic: isAI ? q.topic : null,
+                      type: q.type,
+                      instruction: q.instruction ?? null,
+                      column_a: q.type === 'comparison' ? q.column_a : null,
+                      column_b: q.type === 'comparison' ? q.column_b : null,
+                      options: q.type === 'mcq' ? q.options : null,
+                      userAnswer,
+                      correctAnswer: q.correct_answer,
+                      isCorrect,
+                      correctExplanation: q.correct_explanation ?? null,
+                      explanationA: q.explanation_a ?? null,
+                      explanationB: q.explanation_b ?? null,
+                      explanationC: q.explanation_c ?? null,
+                      explanationD: q.explanation_d ?? null,
+                      explanationE: q.explanation_e ?? null,
+                      questionCacheId: (q as any)._qid ?? null,
+                    }}
+                  />
+                </div>
               ))}
             </CardContent>
           </Card>

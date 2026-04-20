@@ -1,38 +1,70 @@
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
 
 /**
- * Deterministic spaced repetition (NO AI).
+ * Per-question Learning State (deterministic, NO AI).
  *
- * Rules:
- *  - No row yet + WRONG  → create row {status:'learning', streak:0, +1 day}
- *  - No row yet + CORRECT → create row {status:'new', streak:1, +2 days}
- *      (so a single correct first attempt still gets one short review;
- *       a second correct removes it. Matches spec: streak>=2 → DELETE.)
- *  - Existing row + WRONG → status='learning', streak=0, next=+1 day
- *  - Existing row + CORRECT:
- *      streak += 1
- *      if streak == 1 → status='review', next=+2 days
- *      if streak >= 2 → DELETE row (mastered)
+ * Backed by `spaced_repetition` (extended in-place).
+ * Status lifecycle:
+ *   - new       → first time seen
+ *   - failed    → wrong answer, scheduled +1 day, fail_count++
+ *   - learning  → correct after a fail, scheduled +2 days
+ *   - mastered  → success_streak >= 2, no further reviews
+ *
+ * Linked recovery resources:
+ *   - linked_lesson_id  → first lesson for the question's topic
+ *   - linked_video_id   → optional, set elsewhere (kept nullable here)
+ *
+ * Logs (per spec):
+ *   [LEARNING_STATE_UPDATE] question_id status next_review_at
+ *   [LEARNING_LOOP] event: fail | learn | retry | master
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function inDays(n: number): string {
+function inDays(n: number | null): string | null {
+  if (n === null) return null;
   return new Date(Date.now() + n * DAY_MS).toISOString();
+}
+
+// Cache topic→lesson_id map for the session to avoid hammering the DB.
+let topicLessonCache: Record<string, string> | null = null;
+async function topicToLesson(topicRaw: string | null | undefined): Promise<string | null> {
+  if (!topicRaw) return null;
+  if (!topicLessonCache) {
+    const { data } = await supabase
+      .from('lessons')
+      .select('id, topics:topic_id (title, title_ru)');
+    const map: Record<string, string> = {};
+    for (const l of (data ?? []) as any[]) {
+      const lid = l.id;
+      if (!lid) continue;
+      for (const t of [l.topics?.title, l.topics?.title_ru]) {
+        if (!t) continue;
+        const key = normalizeAnalyticsTopic(t);
+        if (key && !map[key]) map[key] = lid;
+      }
+    }
+    topicLessonCache = map;
+  }
+  const key = normalizeAnalyticsTopic(topicRaw);
+  return topicLessonCache[key] ?? null;
 }
 
 export async function updateSpacedRepetition(params: {
   userId: string;
   questionId: string;
   isCorrect: boolean;
+  topic?: string | null;
 }): Promise<void> {
-  const { userId, questionId, isCorrect } = params;
+  const { userId, questionId, isCorrect, topic } = params;
   if (!userId || !questionId) return;
 
-  // Read current row (if any)
+  const linkedLessonId = await topicToLesson(topic ?? null);
+
   const { data: existing, error: selErr } = await supabase
     .from('spaced_repetition' as any)
-    .select('id, status, correct_streak')
+    .select('id, status, correct_streak, fail_count, success_streak')
     .eq('user_id', userId)
     .eq('question_id', questionId)
     .maybeSingle();
@@ -42,98 +74,115 @@ export async function updateSpacedRepetition(params: {
     return;
   }
 
-  // No existing record → create
-  if (!existing) {
-    if (isCorrect) {
-      // First-time correct: schedule one review then it will be deleted on streak>=2
-      const row = {
-        user_id: userId,
-        question_id: questionId,
-        status: 'review',
-        correct_streak: 1,
-        next_review_date: inDays(2),
-      };
-      const { error } = await supabase.from('spaced_repetition' as any).insert(row);
-      if (error) console.error('[SPACED_CREATE] failed', error);
-      else console.log('[SPACED_CREATE]', { user_id: userId, question_id: questionId, ...row });
-      return;
-    }
-    const row = {
+  const nowIso = new Date().toISOString();
+  const row = existing as any;
+
+  // === WRONG ANSWER → status='failed', schedule +1 day ===
+  if (!isCorrect) {
+    const failCount = ((row?.fail_count as number) ?? 0) + 1;
+    const next = inDays(1)!;
+    const patch: any = {
       user_id: userId,
       question_id: questionId,
-      status: 'learning',
+      status: 'failed',
       correct_streak: 0,
-      next_review_date: inDays(1),
-    };
-    const { error } = await supabase.from('spaced_repetition' as any).insert(row);
-    if (error) console.error('[SPACED_CREATE] failed', error);
-    else console.log('[SPACED_CREATE]', { user_id: userId, question_id: questionId, ...row });
-    return;
-  }
-
-  const row = existing as unknown as { id: string; status: string; correct_streak: number };
-
-  // Existing + WRONG → reset to learning
-  if (!isCorrect) {
-    const patch = {
-      status: 'learning',
-      correct_streak: 0,
-      next_review_date: inDays(1),
+      success_streak: 0,
+      fail_count: failCount,
+      last_attempt_at: nowIso,
+      next_review_date: next,
+      topic: topic ?? row?.topic ?? null,
+      linked_lesson_id: linkedLessonId ?? row?.linked_lesson_id ?? null,
     };
     const { error } = await supabase
       .from('spaced_repetition' as any)
-      .update(patch)
-      .eq('id', row.id);
-    if (error) console.error('[SPACED_UPDATE] failed', error);
-    else
-      console.log('[SPACED_UPDATE]', {
-        question_id: questionId,
-        ...patch,
-      });
+      .upsert(patch, { onConflict: 'user_id,question_id' });
+    if (error) {
+      console.error('[SPACED_UPSERT_FAIL]', error);
+      return;
+    }
+    console.log('[LEARNING_STATE_UPDATE]', {
+      question_id: questionId,
+      status: 'failed',
+      next_review_at: next,
+    });
+    console.log('[LEARNING_LOOP]', { event: 'fail', question_id: questionId, topic });
     return;
   }
 
-  // Existing + CORRECT
-  const newStreak = (row.correct_streak ?? 0) + 1;
+  // === CORRECT ANSWER ===
+  const prevStreak = (row?.success_streak as number) ?? (row?.correct_streak as number) ?? 0;
+  const newStreak = prevStreak + 1;
 
   if (newStreak >= 2) {
+    // Mastered — keep row but mark mastered with no next review
+    const patch: any = {
+      user_id: userId,
+      question_id: questionId,
+      status: 'mastered',
+      success_streak: newStreak,
+      correct_streak: newStreak,
+      last_attempt_at: nowIso,
+      // next_review_date is NOT NULL in schema — push far into the future to mean "no review"
+      next_review_date: inDays(3650)!,
+      topic: topic ?? row?.topic ?? null,
+      linked_lesson_id: linkedLessonId ?? row?.linked_lesson_id ?? null,
+    };
     const { error } = await supabase
       .from('spaced_repetition' as any)
-      .delete()
-      .eq('id', row.id);
-    if (error) console.error('[SPACED_DELETE] failed', error);
-    else console.log('[SPACED_DELETE]', { question_id: questionId });
+      .upsert(patch, { onConflict: 'user_id,question_id' });
+    if (error) {
+      console.error('[SPACED_UPSERT_MASTER]', error);
+      return;
+    }
+    console.log('[LEARNING_STATE_UPDATE]', {
+      question_id: questionId,
+      status: 'mastered',
+      next_review_at: null,
+    });
+    console.log('[LEARNING_LOOP]', { event: 'master', question_id: questionId, topic });
     return;
   }
 
-  // newStreak === 1 → schedule a review in 2 days
-  const patch = {
-    status: 'review',
+  // First correct after a previous attempt → 'learning', schedule +2 days
+  const next = inDays(2)!;
+  const patch: any = {
+    user_id: userId,
+    question_id: questionId,
+    status: 'learning',
+    success_streak: newStreak,
     correct_streak: newStreak,
-    next_review_date: inDays(2),
+    last_attempt_at: nowIso,
+    next_review_date: next,
+    topic: topic ?? row?.topic ?? null,
+    linked_lesson_id: linkedLessonId ?? row?.linked_lesson_id ?? null,
   };
   const { error } = await supabase
     .from('spaced_repetition' as any)
-    .update(patch)
-    .eq('id', row.id);
-  if (error) console.error('[SPACED_UPDATE] failed', error);
-  else
-    console.log('[SPACED_UPDATE]', {
-      question_id: questionId,
-      ...patch,
-    });
+    .upsert(patch, { onConflict: 'user_id,question_id' });
+  if (error) {
+    console.error('[SPACED_UPSERT_LEARN]', error);
+    return;
+  }
+  console.log('[LEARNING_STATE_UPDATE]', {
+    question_id: questionId,
+    status: 'learning',
+    next_review_at: next,
+  });
+  const event = (row?.status === 'failed' || (row?.fail_count ?? 0) > 0) ? 'retry' : 'learn';
+  console.log('[LEARNING_LOOP]', { event, question_id: questionId, topic });
 }
 
 /**
- * Returns the list of question_ids that are due for review for this user
- * (next_review_date <= now). Caller can use these to prioritize selection.
+ * Returns the question_ids that are due for review:
+ *   status in (failed, learning) AND next_review_date <= now
  */
 export async function getDueRepetitionQuestions(userId: string): Promise<string[]> {
   if (!userId) return [];
   const { data, error } = await supabase
     .from('spaced_repetition' as any)
-    .select('question_id, next_review_date')
+    .select('question_id, next_review_date, status')
     .eq('user_id', userId)
+    .in('status', ['failed', 'learning'])
     .lte('next_review_date', new Date().toISOString());
 
   if (error) {
@@ -141,4 +190,29 @@ export async function getDueRepetitionQuestions(userId: string): Promise<string[
     return [];
   }
   return (data ?? []).map((r: any) => r.question_id as string);
+}
+
+/**
+ * All currently failed question_ids for a user (ordered by most recent failure first).
+ * Used by the "Repeat mistakes" flow on the practice results screen.
+ */
+export async function getFailedQuestions(userId: string): Promise<
+  { question_id: string; topic: string | null; linked_lesson_id: string | null }[]
+> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('spaced_repetition' as any)
+    .select('question_id, topic, linked_lesson_id, last_attempt_at, status')
+    .eq('user_id', userId)
+    .eq('status', 'failed')
+    .order('last_attempt_at', { ascending: false });
+  if (error) {
+    console.error('[SPACED_FETCH_FAILED] failed', error);
+    return [];
+  }
+  return (data ?? []).map((r: any) => ({
+    question_id: r.question_id,
+    topic: r.topic ?? null,
+    linked_lesson_id: r.linked_lesson_id ?? null,
+  }));
 }
