@@ -177,8 +177,8 @@ export default function Index() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardContent className="p-5 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Flame className="h-5 w-5 text-orange-500" />
+              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-accent" />
               </div>
               <div>
                 <div className="text-2xl font-bold">{state.streak}</div>
