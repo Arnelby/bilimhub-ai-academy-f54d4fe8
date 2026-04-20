@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserGroup } from '@/hooks/useUserGroup';
 import { useLearningState } from '@/hooks/useLearningState';
 import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
 
@@ -67,14 +68,60 @@ function GuestHero() {
   );
 }
 
+/**
+ * CONTROL group home — strictly minimal.
+ * No next_action, no weak topics, no plan, no streak, no daily goal,
+ * no motivation, no AI navigation. Only the four allowed sections.
+ */
+function ControlHome() {
+  return (
+    <Layout>
+      <div className="container max-w-3xl mx-auto py-12 px-4 space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">BilimHub</h1>
+          <p className="text-muted-foreground">Подготовка к ОРТ. Выбери раздел.</p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
+            <Link to="/tests">
+              <ClipboardList className="mr-3 h-6 w-6" />
+              Тесты
+            </Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
+            <Link to="/lessons">
+              <BookOpen className="mr-3 h-6 w-6" />
+              Уроки
+            </Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
+            <Link to="/practice">
+              <Target className="mr-3 h-6 w-6" />
+              Практика
+            </Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
+            <Link to="/profile">
+              <CheckCircle2 className="mr-3 h-6 w-6" />
+              Профиль
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isControl, loading: groupLoading } = useUserGroup();
   const { state, loading } = useLearningState(user?.id);
 
   if (!user) return <GuestHero />;
 
-  if (loading || !state) {
+  if (loading || groupLoading || !state) {
     return (
       <Layout>
         <div className="container max-w-2xl mx-auto py-24 flex items-center justify-center">
@@ -83,6 +130,9 @@ export default function Index() {
       </Layout>
     );
   }
+
+  // CONTROL group → strictly basic view, no personalization signals.
+  if (isControl) return <ControlHome />;
 
   const actionType: NextActionType = (state as any).next_action_type ?? 'take_test';
   const isCompleted = actionType === 'done';
