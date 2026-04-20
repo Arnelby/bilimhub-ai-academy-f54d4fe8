@@ -77,6 +77,7 @@ export default function Practice() {
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const { user } = useAuth();
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
+  const motivation = useMotivation(user?.id);
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -618,6 +619,8 @@ export default function Practice() {
 
       if (sessionData) {
         setSessionId(sessionData.id);
+        // Motivation: daily check-in fires once on session start (idempotent per day).
+        void motivation.checkIn();
         const sessQRows = chosen.map((b, idx) => ({
           session_id: sessionData.id,
           question_id: b.qid,
