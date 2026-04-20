@@ -35,6 +35,7 @@ import FractionsLesson from "./pages/FractionsLesson";
 import DynamicLessonViewer from "./pages/DynamicLessonViewer";
 import MathTestTaking from "./pages/MathTestTaking";
 import Practice from "./pages/Practice";
+import NextStep from "./pages/NextStep";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -79,6 +80,7 @@ const App = () => (
                   <Route path="/tests/testing58" element={<ProtectedRoute><Testing58Viewer /></ProtectedRoute>} />
                   <Route path="/tests/math-test/:testId" element={<ProtectedRoute skipDiagnosticCheck><MathTestTaking /></ProtectedRoute>} />
                   <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
+                  <Route path="/next" element={<ProtectedRoute><NextStep /></ProtectedRoute>} />
                   <Route path="/math-lessons" element={<ProtectedRoute requireAI><MathLessons /></ProtectedRoute>} />
                   <Route path="/lessons/fractions" element={<ProtectedRoute requireAI><FractionsLesson /></ProtectedRoute>} />
                   <Route path="/lessons/topic/:topicId" element={<ProtectedRoute requireAI><DynamicLessonViewer /></ProtectedRoute>} />
