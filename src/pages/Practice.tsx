@@ -109,6 +109,106 @@ export default function Practice() {
     setGenerationError(null);
     sessionStartRef.current = Date.now();
 
+    // === REVIEW MODE — load only failed questions from spaced_repetition ===
+    if (reviewMode) {
+      try {
+        const failed = await getFailedQuestions(user.id);
+        const pqIds = failed
+          .map(f => f.question_id)
+          .filter(qid => typeof qid === 'string' && qid.startsWith('pq_'))
+          .map(qid => qid.slice(3));
+
+        if (pqIds.length === 0) {
+          console.log('[REVIEW_MODE] no failed questions — redirecting to general practice');
+          setSearchParams({});
+          return;
+        }
+
+        const { data: rows } = await supabase
+          .from('practice_questions')
+          .select('id, topic, question_type, correct_answer, question_data, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e')
+          .in('id', pqIds);
+
+        const reviewQs: PracticeQuestion[] = [];
+        for (const r of (rows ?? []) as any[]) {
+          const data = (r.question_data as any) || {};
+          const qtype = (r.question_type || data.type || '').toString().toLowerCase();
+          const ans = (r.correct_answer || data.correct_answer || 'A').toString().trim().toUpperCase();
+          const base = {
+            id: r.id as any,
+            question_number: 0,
+            topic: r.topic || data.topic || '',
+            correct_answer: ans,
+            correct_explanation: r.correct_explanation ?? null,
+            explanation_a: r.explanation_a ?? null,
+            explanation_b: r.explanation_b ?? null,
+            explanation_c: r.explanation_c ?? null,
+            explanation_d: r.explanation_d ?? null,
+            explanation_e: r.explanation_e ?? null,
+          };
+          if (qtype === 'comparison') {
+            reviewQs.push({
+              ...base,
+              type: 'comparison',
+              instruction: data.instruction ?? null,
+              column_a: data.column_a ?? '',
+              column_b: data.column_b ?? '',
+              option_c: null,
+              option_d: null,
+              _qid: `pq_${r.id}`,
+            } as any);
+          } else if (qtype === 'mcq') {
+            reviewQs.push({
+              ...base,
+              type: 'mcq',
+              instruction: data.instruction || '',
+              options: data.options || {},
+              _qid: `pq_${r.id}`,
+            } as any);
+          }
+        }
+
+        const { data: pid } = await supabase
+          .from('profiles').select('participant_id').eq('id', user.id).maybeSingle();
+        const participant = pid?.participant_id || null;
+        setParticipantId(participant);
+
+        const { data: sess } = await supabase
+          .from('practice_sessions')
+          .insert({
+            user_id: user.id,
+            participant_id: participant,
+            group_type: group,
+            practice_type: 'review_mistakes',
+            data_version: 'v2',
+            is_reliable: !!participant,
+            status: 'active',
+          })
+          .select('id')
+          .single();
+
+        if (sess) {
+          setSessionId(sess.id);
+          await supabase.from('practice_session_questions').insert(
+            reviewQs.map((q, idx) => ({
+              session_id: sess.id,
+              question_id: (q as any)._qid,
+              order_index: idx,
+            })),
+          );
+        }
+
+        setQuestions(reviewQs);
+        setLatestTestName('Повторение ошибок');
+        setLatestTestType(reviewQs[0]?.type || 'comparison');
+        setLoading(false);
+        console.log('[REVIEW_MODE] loaded', { count: reviewQs.length });
+        return;
+      } catch (e) {
+        console.error('[REVIEW_MODE] failed', e);
+      }
+    }
+
     try {
       console.log(`[PRACTICE_FRONTEND] DB-driven practice for user: ${user.id}, group: ${group}, forceNew: ${forceNew}`);
 
