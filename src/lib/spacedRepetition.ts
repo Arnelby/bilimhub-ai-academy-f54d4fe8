@@ -71,7 +71,7 @@ export async function updateSpacedRepetition(params: {
     return;
   }
 
-  const row = existing as { id: string; status: string; correct_streak: number };
+  const row = existing as unknown as { id: string; status: string; correct_streak: number };
 
   // Existing + WRONG → reset to learning
   if (!isCorrect) {
