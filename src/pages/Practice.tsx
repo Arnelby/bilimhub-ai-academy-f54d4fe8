@@ -15,6 +15,7 @@ import { normalizeAnalyticsTopic, normalizePracticeTopic, translateTopic } from 
 import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
+import { TopicSummary } from '@/components/practice/TopicSummary';
 import { updateSpacedRepetition } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
