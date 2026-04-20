@@ -147,3 +147,25 @@ export async function getWeakTopics(userId: string): Promise<WeakTopicsResult> {
   });
   return { topics: fallback, insufficient_data: true };
 }
+
+/**
+ * Returns "mastered" topics (accuracy >= 0.8 with at least a few attempts),
+ * sorted by accuracy DESC. Deterministic, no AI.
+ */
+export async function getStrongTopics(userId: string): Promise<WeakTopicRow[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('user_topic_stats' as any)
+    .select('topic, accuracy, total_attempts, correct_answers')
+    .eq('user_id', userId);
+  if (error) {
+    console.error('[STRONG_TOPICS] fetch failed', error);
+    return [];
+  }
+  const rows = (data ?? []) as unknown as WeakTopicRow[];
+  const strong = rows
+    .filter((r) => (r.total_attempts ?? 0) >= MIN_ATTEMPTS_FOR_STRONG && (r.accuracy ?? 0) >= STRONG_ACCURACY_THRESHOLD)
+    .sort((a, b) => (b.accuracy ?? 0) - (a.accuracy ?? 0));
+  console.log('[STRONG_TOPICS]', { user_id: userId, topics_list: strong.map((r) => r.topic) });
+  return strong;
+}
