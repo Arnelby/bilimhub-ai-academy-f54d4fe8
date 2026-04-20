@@ -1082,61 +1082,65 @@ export default function Practice() {
       accuracy_pct: percentage,
     });
 
+    // Build mistake items for the new MistakesBlock (linked_lesson_id resolved client-side from learningState topic mapping is not needed — MistakesBlock falls back to /lessons?topic=...).
+    const mistakeItems: MistakeItem[] = mistakes.map(({ q, userAnswer }) => ({
+      questionId: (q as any)._qid || `${q.type}_${q.id}`,
+      topic: q.topic ?? null,
+      type: q.type,
+      instruction: q.instruction ?? null,
+      columnA: q.type === 'comparison' ? q.column_a : null,
+      columnB: q.type === 'comparison' ? q.column_b : null,
+      options: q.type === 'mcq' ? q.options : null,
+      userAnswer,
+      correctAnswer: q.correct_answer,
+      linkedLessonId: null,
+    }));
+
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-3xl">
-          <Card className="mb-6">
-            <CardHeader className="text-center">
-              <CheckCircle className={`mx-auto h-12 w-12 mb-2 ${percentage >= 80 ? 'text-success' : percentage >= 50 ? 'text-warning' : 'text-destructive'}`} />
-              <CardTitle className="text-2xl">Результаты практики</CardTitle>
-              <CardDescription>{latestTestName}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-6">
-                <div className="text-5xl font-bold mb-2">{percentage}%</div>
-                <p className="text-muted-foreground">{correctCount} из {questions.length} правильно</p>
-                <Progress value={percentage} className="mt-4 h-3" />
-              </div>
+          {/* === LEARNING LOOP HEADER (Block 1 + 2 + 3) === */}
+          <MistakesBlock
+            mistakes={mistakeItems}
+            totalQuestions={questions.length}
+            correctCount={correctCount}
+            state={learningState}
+            onRepeatMistakes={() => {
+              // Route to /practice?mode=review which loads only failed questions.
+              setSearchParams({ mode: 'review' });
+            }}
+          />
 
-              {/* Control: show all questions with answers; AI: show weak topics + mistake analysis */}
-              <div className="flex gap-3 justify-center mb-6 flex-wrap">
-                <Button
-                  onClick={() => {
-                    // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
-                    if (focusedTopic && weakTopics.length > 0) {
-                      const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
-                      const idx = weakTopics.findIndex(
-                        t => normalizeAnalyticsTopic(t) === normalizedFocused,
-                      );
-                      const next = weakTopics[(idx + 1) % weakTopics.length];
-                      if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
-                        setSearchParams({ topic: next });
-                        return;
-                      }
-                    }
-                    // Otherwise: clear focus and start a fresh general session
-                    if (focusedTopic) {
-                      setSearchParams({});
-                      return;
-                    }
-                    loadPractice(true);
-                  }}
-                  variant="accent"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {focusedTopic ? 'Следующая тема' : 'Новая практика'}
-                </Button>
-                {isAI && (
-                  <Button onClick={() => navigate('/learning-plan')} variant="outline">
-                    Мой план
-                  </Button>
-                )}
-                <Button onClick={() => navigate('/tests')} variant="outline">
-                  К тестам
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Secondary actions */}
+          <div className="flex gap-3 justify-center mb-6 flex-wrap">
+            <Button
+              onClick={() => {
+                if (focusedTopic && weakTopics.length > 0) {
+                  const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
+                  const idx = weakTopics.findIndex(
+                    t => normalizeAnalyticsTopic(t) === normalizedFocused,
+                  );
+                  const next = weakTopics[(idx + 1) % weakTopics.length];
+                  if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
+                    setSearchParams({ topic: next });
+                    return;
+                  }
+                }
+                if (focusedTopic) {
+                  setSearchParams({});
+                  return;
+                }
+                loadPractice(true);
+              }}
+              variant="outline"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {focusedTopic ? 'Следующая тема' : 'Новая практика'}
+            </Button>
+            <Button onClick={() => navigate('/tests')} variant="outline">
+              К тестам
+            </Button>
+          </div>
 
           {/* Deterministic per-topic summary from user_topic_stats (NO AI) */}
           {user && <TopicSummary userId={user.id} />}
