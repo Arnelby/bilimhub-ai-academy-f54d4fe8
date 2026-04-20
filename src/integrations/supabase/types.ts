@@ -959,30 +959,48 @@ export type Database = {
         Row: {
           correct_streak: number
           created_at: string
+          fail_count: number
           id: string
+          last_attempt_at: string | null
+          linked_lesson_id: string | null
+          linked_video_id: string | null
           next_review_date: string
           question_id: string
           status: string
+          success_streak: number
+          topic: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           correct_streak?: number
           created_at?: string
+          fail_count?: number
           id?: string
+          last_attempt_at?: string | null
+          linked_lesson_id?: string | null
+          linked_video_id?: string | null
           next_review_date?: string
           question_id: string
           status?: string
+          success_streak?: number
+          topic?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           correct_streak?: number
           created_at?: string
+          fail_count?: number
           id?: string
+          last_attempt_at?: string | null
+          linked_lesson_id?: string | null
+          linked_video_id?: string | null
           next_review_date?: string
           question_id?: string
           status?: string
+          success_streak?: number
+          topic?: string | null
           updated_at?: string
           user_id?: string
         }
