@@ -13,6 +13,7 @@ import { saveUserAnswer } from '@/lib/saveUserAnswer';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { QuestionImage } from '@/components/math/QuestionImage';
 import { TEST_CONFIG, toCyrillicKey, toLatinKey } from '@/lib/mathTestConfig';
+import { updateLearningState } from '@/lib/learningState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -384,6 +385,13 @@ export default function MathTestTaking() {
           };
         });
         await supabase.from('question_attempts').insert(attemptsToInsert as any);
+      }
+
+      // Unified Learning State refresh after test completion
+      try {
+        await updateLearningState(user.id);
+      } catch (e) {
+        console.error('[LEARNING_STATE_HOOK] test finalize failed', e);
       }
 
       // Mark diagnostic as completed if this is the user's first test

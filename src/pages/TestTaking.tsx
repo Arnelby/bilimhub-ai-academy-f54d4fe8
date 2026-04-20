@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { updateGamification } from '@/hooks/useGamification';
 import { saveUserAnswer } from '@/lib/saveUserAnswer';
+import { updateLearningState } from '@/lib/learningState';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -252,6 +253,13 @@ export default function TestTaking() {
           is_reliable: !!participantId,
         } as any)
         .eq('id', testAttemptId);
+
+      // Unified Learning State refresh after test completion
+      try {
+        await updateLearningState(user.id);
+      } catch (e) {
+        console.error('[LEARNING_STATE_HOOK] test finalize failed', e);
+      }
 
       // Save per-question attempts for research tracking
       // answers[] stores 0-based option index; convert to Latin letter for research
