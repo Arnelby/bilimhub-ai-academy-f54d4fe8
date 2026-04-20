@@ -211,7 +211,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
               <div className="mb-1 font-medium text-destructive">
                 ❌ Почему «{displayUserAnswer}» неверно
               </div>
-              <div className="text-foreground/90 break-words [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
+              <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
                 {wrongExplText ? <MathRenderer content={wrongExplText} /> : NO_EXPL}
               </div>
             </div>
@@ -222,7 +222,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
             <div className="mb-1 font-medium text-success">
               ✅ Правильное решение
             </div>
-            <div className="text-foreground/90 break-words [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
+            <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
               {correctExplText ? <MathRenderer content={correctExplText} /> : NO_EXPL}
             </div>
           </div>
