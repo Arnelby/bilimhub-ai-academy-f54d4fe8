@@ -109,7 +109,12 @@ export default function Practice() {
     setGenerationError(null);
     sessionStartRef.current = Date.now();
 
-    // === REVIEW MODE — load only failed questions from spaced_repetition ===
+    // === REVIEW MODE — AI group only. Control must never see mistake-review flow. ===
+    if (reviewMode && !isAI) {
+      console.log('[REVIEW_MODE] blocked for non-AI group — redirecting to general practice');
+      setSearchParams({});
+      return;
+    }
     if (reviewMode) {
       try {
         const failed = await getFailedQuestions(user.id);
@@ -1099,23 +1104,34 @@ export default function Practice() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-3xl">
-          {/* === LEARNING LOOP HEADER (Block 1 + 2 + 3) === */}
-          <MistakesBlock
-            mistakes={mistakeItems}
-            totalQuestions={questions.length}
-            correctCount={correctCount}
-            state={learningState}
-            onRepeatMistakes={() => {
-              // Route to /practice?mode=review which loads only failed questions.
-              setSearchParams({ mode: 'review' });
-            }}
-          />
+          {/* === Header — AI group sees full Learning Loop; control sees plain score only === */}
+          {isAI ? (
+            <MistakesBlock
+              mistakes={mistakeItems}
+              totalQuestions={questions.length}
+              correctCount={correctCount}
+              state={learningState}
+              onRepeatMistakes={() => {
+                // Route to /practice?mode=review which loads only failed questions.
+                setSearchParams({ mode: 'review' });
+              }}
+            />
+          ) : (
+            <Card className="mb-6">
+              <CardContent className="p-6 text-center space-y-3">
+                <div className="text-5xl font-bold">{percentage}%</div>
+                <p className="text-muted-foreground">
+                  {correctCount} из {questions.length} правильно
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Secondary actions */}
           <div className="flex gap-3 justify-center mb-6 flex-wrap">
             <Button
               onClick={() => {
-                if (focusedTopic && weakTopics.length > 0) {
+                if (isAI && focusedTopic && weakTopics.length > 0) {
                   const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
                   const idx = weakTopics.findIndex(
                     t => normalizeAnalyticsTopic(t) === normalizedFocused,
@@ -1135,15 +1151,15 @@ export default function Practice() {
               variant="outline"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              {focusedTopic ? 'Следующая тема' : 'Новая практика'}
+              {isAI && focusedTopic ? 'Следующая тема' : 'Новая практика'}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
               К тестам
             </Button>
           </div>
 
-          {/* Deterministic per-topic summary from user_topic_stats (NO AI) */}
-          {user && <TopicSummary userId={user.id} />}
+          {/* AI-only: per-topic summary (reveals weak topics — hidden for control) */}
+          {isAI && user && <TopicSummary userId={user.id} />}
 
           {/* Unified data-driven review (no AI) — uses QuestionReview component */}
           <Card>
@@ -1205,7 +1221,8 @@ export default function Practice() {
 
         <Progress value={(answeredCount / questions.length) * 100} className="mb-4 h-2" />
 
-        {!motivation.loading && (
+        {/* Motivation widget — AI group only (control gets no retention/streak signals) */}
+        {isAI && !motivation.loading && (
           <MotivationWidget
             streak={motivation.streak}
             tasksCompletedToday={motivation.tasksCompletedToday}
