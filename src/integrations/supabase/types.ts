@@ -1749,6 +1749,7 @@ export type Database = {
     }
     Functions: {
       apply_pq_explanations: { Args: never; Returns: number }
+      apply_practice_explanations: { Args: { _payload: Json }; Returns: number }
       check_rate_limit: {
         Args: {
           _endpoint: string
