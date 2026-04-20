@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, Lock, Loader2, ChevronRight, BookOpen, CheckCircle, Play } from 'lucide-react';
+import { Video, Lock, Loader2, ChevronRight, BookOpen, CheckCircle, Play, Sparkles, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TEST_CONFIG } from '@/lib/mathTestConfig';
+import { getLearningState, markLessonWatched as markLessonWatchedState, type LearningState } from '@/lib/learningState';
 
 interface LessonRow {
   id: string;
@@ -46,6 +47,8 @@ export default function Lessons() {
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'videos' | 'lessons'>('lessons');
   const [playingLesson, setPlayingLesson] = useState<string | null>(null);
+  const [learningState, setLearningState] = useState<LearningState | null>(null);
+  const [recommendedLesson, setRecommendedLesson] = useState<LessonRow | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -54,34 +57,33 @@ export default function Lessons() {
   async function fetchData() {
     setLoading(true);
 
-    // Fetch lessons (always)
     const { data: lessonsData } = await supabase
       .from('lessons')
-      .select('id, title, title_ru, topic_id, content')
+      .select('id, title, title_ru, topic_id, content, topic:topics(title, title_ru)')
       .order('title_ru');
 
-    setLessons((lessonsData as LessonRow[]) || []);
+    const allLessons = (lessonsData as LessonRow[]) || [];
+    setLessons(allLessons);
 
     if (!user) {
       setLoading(false);
       return;
     }
 
-    const [videosRes, testsRes, answersRes, progressRes] = await Promise.all([
+    const [videosRes, testsRes, answersRes, progressRes, state] = await Promise.all([
       supabase.from('video_solutions').select('test_id'),
       supabase.from('user_tests').select('test_id').eq('user_id', user.id).not('completed_at', 'is', null),
       supabase.from('user_answers').select('test_id').eq('user_id', user.id),
       supabase.from('user_lesson_progress').select('lesson_id').eq('user_id', user.id).eq('completed', true),
+      getLearningState(user.id),
     ]);
 
-    // Video counts
     const counts: Record<string, number> = {};
     for (const v of (videosRes.data || [])) {
       counts[v.test_id] = (counts[v.test_id] || 0) + 1;
     }
     setVideoCounts(counts);
 
-    // Completed test variants
     const completed = new Set<string>();
     for (const t of (testsRes.data || [])) {
       const vk = testIdToVariantKey(t.test_id);
@@ -94,31 +96,45 @@ export default function Lessons() {
     }
     setCompletedVariants(completed);
 
-    // Completed lessons
     const completedSet = new Set<string>();
     for (const p of (progressRes.data || [])) {
       completedSet.add(p.lesson_id);
     }
     setCompletedLessons(completedSet);
 
+    setLearningState(state);
+
+    // Resolve recommended lesson from learning state.
+    // Priority: next_action_type === 'watch_lesson' AND next_target is a lesson_id.
+    let recommended: LessonRow | null = null;
+    if (state?.next_action_type === 'watch_lesson' && state.next_target) {
+      recommended = allLessons.find(l => l.id === state.next_target) || null;
+    }
+    // Fallback: first lesson of current_topic
+    if (!recommended && state?.current_topic) {
+      recommended = allLessons.find(l => {
+        const t = (l.topic?.title_ru || l.topic?.title || '').toLowerCase();
+        return t.includes(state.current_topic!.toLowerCase()) ||
+               state.current_topic!.toLowerCase().includes(t);
+      }) || null;
+    }
+    // Fallback: first non-watched lesson
+    if (!recommended) {
+      recommended = allLessons.find(l => !completedSet.has(l.id)) || null;
+    }
+    setRecommendedLesson(recommended);
+
     setLoading(false);
   }
 
   const markLessonWatched = async (lessonId: string) => {
     if (!user) return;
-    const { error } = await supabase.from('user_lesson_progress').upsert({
-      user_id: user.id,
-      lesson_id: lessonId,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      progress_percentage: 100,
-    }, { onConflict: 'user_id,lesson_id' });
-
-    if (!error) {
-      setCompletedLessons(prev => new Set(prev).add(lessonId));
-      const { updateLearningState } = await import('@/lib/learningState');
-      await updateLearningState(user.id);
-    }
+    // Single source of truth — markLessonWatchedState handles upsert + state recompute.
+    const newState = await markLessonWatchedState({ userId: user.id, lessonId });
+    setCompletedLessons(prev => new Set(prev).add(lessonId));
+    if (newState) setLearningState(newState);
+    // After watching, the engine should have moved next_action to 'practice:<topic>'.
+    // Surface a clear toast-like CTA via state — refetch lessons mapping is unnecessary.
   };
 
   const getYoutubeId = (url: string) => {
@@ -143,6 +159,98 @@ export default function Lessons() {
       </Layout>
     );
   }
+
+  // Lessons of the same topic as the recommended one (excluding the recommended itself)
+  const otherSameTopic = recommendedLesson
+    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id === recommendedLesson.topic_id)
+    : [];
+  // Other topics (everything else)
+  const otherLessons = recommendedLesson
+    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id !== recommendedLesson.topic_id)
+    : lessons;
+
+  const renderLessonCard = (lesson: LessonRow, opts?: { highlight?: boolean }) => {
+    const youtubeUrl = lesson.content?.youtube_url || '';
+    const isWatched = completedLessons.has(lesson.id);
+    const title = language === 'ru' ? (lesson.title_ru || lesson.title) : lesson.title;
+    const topicName = language === 'ru'
+      ? (lesson.topic?.title_ru || lesson.topic?.title || '')
+      : (lesson.topic?.title || '');
+
+    return (
+      <Card key={lesson.id} className={`overflow-hidden ${opts?.highlight ? 'border-2 border-accent shadow-lg' : ''}`}>
+        <CardContent className="p-0">
+          <div className="flex flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-4">
+              <div className="flex items-center gap-3 min-w-0">
+                {isWatched ? (
+                  <CheckCircle className="h-5 w-5 text-success shrink-0" />
+                ) : (
+                  <Play className="h-5 w-5 text-accent shrink-0" />
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold break-words">{title}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    {topicName && (
+                      <Badge variant="outline" className="text-xs">{topicName}</Badge>
+                    )}
+                    {isWatched && (
+                      <Badge variant="secondary" className="text-xs">✔ Просмотрено</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {!isWatched && user && (
+                <Button
+                  size="sm"
+                  variant={opts?.highlight ? 'accent' : 'outline'}
+                  className="shrink-0"
+                  onClick={() => markLessonWatched(lesson.id)}
+                >
+                  <CheckCircle className="mr-1 h-4 w-4" />
+                  Я посмотрел
+                </Button>
+              )}
+            </div>
+            {youtubeUrl && (
+              playingLesson === lesson.id ? (
+                <div className="aspect-video w-full bg-muted">
+                  <iframe
+                    src={getYoutubeEmbedUrl(youtubeUrl)}
+                    className="w-full h-full"
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={title}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPlayingLesson(lesson.id)}
+                  className="relative aspect-video w-full bg-muted overflow-hidden group"
+                  aria-label={`Воспроизвести: ${title}`}
+                >
+                  <img
+                    src={getYoutubeThumbnail(youtubeUrl)}
+                    alt={title}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                    <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/90 shadow-lg">
+                      <Play className="h-8 w-8 text-accent-foreground ml-1" fill="currentColor" />
+                    </span>
+                  </span>
+                </button>
+              )
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <Layout>
@@ -182,86 +290,49 @@ export default function Lessons() {
 
         {/* Section 1: Basic Lessons */}
         {activeTab === 'lessons' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {lessons.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Уроки скоро появятся</p>
             ) : (
-              lessons.map((lesson) => {
-                const youtubeUrl = lesson.content?.youtube_url || '';
-                const isWatched = completedLessons.has(lesson.id);
-                const title = language === 'ru' ? (lesson.title_ru || lesson.title) : lesson.title;
+              <>
+                {/* Recommended lesson (driven by learning state) */}
+                {recommendedLesson && (
+                  <section>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="h-5 w-5 text-accent" />
+                      <h2 className="text-lg font-bold">Рекомендованный урок</h2>
+                    </div>
+                    {learningState?.next_reason && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {learningState.next_reason}
+                      </p>
+                    )}
+                    {renderLessonCard(recommendedLesson, { highlight: true })}
+                  </section>
+                )}
 
-                return (
-                  <Card key={lesson.id} className="overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="flex flex-col">
-                        <div className="flex flex-wrap items-center justify-between gap-2 p-4">
-                          <div className="flex items-center gap-3 min-w-0">
-                            {isWatched ? (
-                              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
-                            ) : (
-                              <Play className="h-5 w-5 text-accent shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <p className="font-semibold break-words">{title}</p>
-                              {isWatched && (
-                                <Badge variant="secondary" className="text-xs mt-1">
-                                  ✔ Просмотрено
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          {!isWatched && user && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="shrink-0"
-                              onClick={() => markLessonWatched(lesson.id)}
-                            >
-                              <span className="hidden sm:inline">Отметить просмотренным</span>
-                              <span className="sm:hidden">Просмотрено</span>
-                            </Button>
-                          )}
-                        </div>
-                        {youtubeUrl && (
-                          playingLesson === lesson.id ? (
-                            <div className="aspect-video w-full bg-muted">
-                              <iframe
-                                src={getYoutubeEmbedUrl(youtubeUrl)}
-                                className="w-full h-full"
-                                loading="lazy"
-                                referrerPolicy="strict-origin-when-cross-origin"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                title={title}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => setPlayingLesson(lesson.id)}
-                              className="relative aspect-video w-full bg-muted overflow-hidden group"
-                              aria-label={`Воспроизвести: ${title}`}
-                            >
-                              <img
-                                src={getYoutubeThumbnail(youtubeUrl)}
-                                alt={title}
-                                loading="lazy"
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              />
-                              <span className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/90 shadow-lg">
-                                  <Play className="h-8 w-8 text-accent-foreground ml-1" fill="currentColor" />
-                                </span>
-                              </span>
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+                {/* Other lessons of the same topic */}
+                {otherSameTopic.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-bold mb-3">Другие уроки по теме</h2>
+                    <div className="space-y-3">
+                      {otherSameTopic.map(l => renderLessonCard(l))}
+                    </div>
+                  </section>
+                )}
+
+                {/* All other lessons */}
+                {otherLessons.length > 0 && (
+                  <section>
+                    <h2 className="text-lg font-bold mb-3">
+                      {recommendedLesson ? 'Все остальные уроки' : 'Все уроки'}
+                    </h2>
+                    <div className="space-y-3">
+                      {otherLessons.map(l => renderLessonCard(l))}
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </div>
         )}
