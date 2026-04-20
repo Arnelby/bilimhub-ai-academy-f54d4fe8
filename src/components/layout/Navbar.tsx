@@ -30,19 +30,27 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Build nav links based on experiment group
+  // Главная навигация — только Home + Profile + Dashboard.
+  // Остальные разделы (Tests, Practice, Lessons, AI-Tutor, Plan) скрыты в подменю «Ещё».
   const navLinks = [
     { href: '/', label: t.nav.home, show: true },
-    ...(user ? [
-      { href: '/lessons', label: t.nav.lessons, show: canAccessLessons },
-      { href: '/tests', label: t.nav.tests, show: canAccessTests },
-      { href: '/dashboard', label: t.nav.dashboard, show: canAccessDashboard },
-      { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor', show: canAccessAI },
-      { href: '/learning-plan', label: t.nav.myPlan || 'My Plan', show: canAccessAI },
-      { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessPractice },
-      { href: '/profile', label: t.nav.profile, show: canAccessProfile },
-    ] : []),
-  ].filter(link => link.show);
+    ...(user
+      ? [
+          { href: '/dashboard', label: t.nav.dashboard, show: canAccessDashboard },
+          { href: '/profile', label: t.nav.profile, show: canAccessProfile },
+        ]
+      : []),
+  ].filter((link) => link.show);
+
+  const moreLinks = user
+    ? [
+        { href: '/lessons', label: t.nav.lessons, show: canAccessLessons },
+        { href: '/tests', label: t.nav.tests, show: canAccessTests },
+        { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessPractice },
+        { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor', show: canAccessAI },
+        { href: '/learning-plan', label: t.nav.myPlan || 'My Plan', show: canAccessAI },
+      ].filter((link) => link.show)
+    : [];
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -74,6 +82,22 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {moreLinks.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    Ещё
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {moreLinks.map((link) => (
+                    <DropdownMenuItem key={link.href} asChild>
+                      <Link to={link.href}>{link.label}</Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Right side actions */}
@@ -136,7 +160,7 @@ export function Navbar() {
         {isOpen && (
           <div className="border-t border-border py-3 md:hidden animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {[...navLinks, ...moreLinks].map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}

@@ -1305,6 +1305,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_learning_state: {
+        Row: {
+          created_at: string
+          current_step: string
+          current_topic: string | null
+          daily_goal: number
+          daily_progress: number
+          errors_count: number
+          last_activity_date: string | null
+          next_action: string
+          next_reason: string | null
+          streak: number
+          strong_topics: Json
+          updated_at: string
+          user_id: string
+          weak_topics: Json
+        }
+        Insert: {
+          created_at?: string
+          current_step?: string
+          current_topic?: string | null
+          daily_goal?: number
+          daily_progress?: number
+          errors_count?: number
+          last_activity_date?: string | null
+          next_action?: string
+          next_reason?: string | null
+          streak?: number
+          strong_topics?: Json
+          updated_at?: string
+          user_id: string
+          weak_topics?: Json
+        }
+        Update: {
+          created_at?: string
+          current_step?: string
+          current_topic?: string | null
+          daily_goal?: number
+          daily_progress?: number
+          errors_count?: number
+          last_activity_date?: string | null
+          next_action?: string
+          next_reason?: string | null
+          streak?: number
+          strong_topics?: Json
+          updated_at?: string
+          user_id?: string
+          weak_topics?: Json
+        }
+        Relationships: []
+      }
       user_lesson_progress: {
         Row: {
           completed: boolean | null

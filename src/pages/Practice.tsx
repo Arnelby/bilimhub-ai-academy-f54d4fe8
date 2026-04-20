@@ -21,6 +21,7 @@ import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
+import { updateLearningState } from '@/lib/learningState';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -719,6 +720,13 @@ export default function Practice() {
       await motivation.recordTask();
     } catch (e) {
       console.error('[MOTIVATION_HOOK] failed', e);
+    }
+
+    // Unified Learning State refresh — recompute next_action / weak topics / progress.
+    try {
+      await updateLearningState(user.id);
+    } catch (e) {
+      console.error('[LEARNING_STATE_HOOK] failed', e);
     }
   }, [user, sessionId, participantId, motivation]);
 
