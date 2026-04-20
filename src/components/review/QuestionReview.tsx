@@ -265,7 +265,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
               ✅ Правильное решение
             </div>
             <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
-              {correctExplText ? <MathRenderer content={correctExplText} /> : NO_EXPL}
+              {correctExplText ? <SafeMath content={correctExplText} /> : NO_EXPL}
             </div>
           </div>
 
