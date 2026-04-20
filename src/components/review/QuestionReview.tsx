@@ -80,12 +80,52 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  const wrongExpl = !data.isCorrect
-    ? pickDistractorExplanation(data.userAnswer, data)
+  // STEP 1 — diagnostic log of exactly what the UI uses
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[REVIEW_DATA]", {
+      questionNumber: data.questionNumber,
+      questionCacheId: data.questionCacheId,
+      userAnswer: data.userAnswer,
+      correctAnswer: data.correctAnswer,
+      isCorrect: data.isCorrect,
+      hasOptions: !!data.options,
+      optionsKeys: data.options ? Object.keys(data.options) : null,
+      explanation_a: data.explanationA,
+      explanation_b: data.explanationB,
+      explanation_c: data.explanationC,
+      explanation_d: data.explanationD,
+      explanation_e: data.explanationE,
+      explanation_correct: data.correctExplanation,
+    });
+  }
+
+  // STEP 4 — coerce types so comparisons / lookups never break
+  const safeUserAnswerRaw =
+    data.userAnswer != null ? String(data.userAnswer) : null;
+  const safeCorrectAnswerRaw =
+    data.correctAnswer != null ? String(data.correctAnswer) : "";
+
+  // STEP 5 — safe explanation map (Latin + Cyrillic keys both supported)
+  const explanationMap: Record<string, string | null | undefined> = {
+    A: data.explanationA, B: data.explanationB, C: data.explanationC,
+    D: data.explanationD, E: data.explanationE,
+    А: data.explanationA, Б: data.explanationB, В: data.explanationC,
+    Г: data.explanationD, Д: data.explanationE,
+  };
+
+  const wrongExpl = !data.isCorrect && safeUserAnswerRaw
+    ? explanationMap[safeUserAnswerRaw.toUpperCase()] ??
+      pickDistractorExplanation(safeUserAnswerRaw, data)
     : null;
   const correctExpl = data.correctExplanation;
-  const displayUserAnswer = formatAnswerKey(data.userAnswer);
-  const displayCorrectAnswer = formatAnswerKey(data.correctAnswer);
+
+  const displayUserAnswer = safeUserAnswerRaw
+    ? formatAnswerKey(safeUserAnswerRaw)
+    : "Нет ответа";
+  const displayCorrectAnswer = safeCorrectAnswerRaw
+    ? formatAnswerKey(safeCorrectAnswerRaw)
+    : "—";
   const wrongExplText = sanitizeReviewText(wrongExpl);
   const correctExplText = sanitizeReviewText(correctExpl);
 
