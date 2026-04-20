@@ -6,20 +6,22 @@ interface VideoEmbedProps {
   title: string;
 }
 
-function getYouTubeEmbedUrl(url: string): string | null {
-  // Handle various YouTube URL formats
+function getYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?#]+)/,
     /youtube\.com\/shorts\/([^&?#]+)/
   ];
-
   for (const pattern of patterns) {
     const match = url.match(pattern);
-    if (match && match[1]) {
-      return `https://www.youtube.com/embed/${match[1]}`;
-    }
+    if (match && match[1]) return match[1];
   }
   return null;
+}
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  const id = getYouTubeId(url);
+  // Use privacy-enhanced + lighter domain; rel=0 to keep related videos minimal
+  return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null;
 }
 
 export function VideoEmbed({ url, title }: VideoEmbedProps) {
@@ -41,6 +43,8 @@ export function VideoEmbed({ url, title }: VideoEmbedProps) {
         <iframe
           src={embedUrl}
           title={title}
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
           className="absolute top-0 left-0 w-full h-full rounded-lg"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

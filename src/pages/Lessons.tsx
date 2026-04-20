@@ -45,6 +45,7 @@ export default function Lessons() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'videos' | 'lessons'>('lessons');
+  const [playingLesson, setPlayingLesson] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -118,9 +119,17 @@ export default function Lessons() {
     }
   };
 
-  const getYoutubeEmbedUrl = (url: string) => {
+  const getYoutubeId = (url: string) => {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : '';
+    return match ? match[1] : '';
+  };
+  const getYoutubeEmbedUrl = (url: string) => {
+    const id = getYoutubeId(url);
+    return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1` : '';
+  };
+  const getYoutubeThumbnail = (url: string) => {
+    const id = getYoutubeId(url);
+    return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
   };
 
   if (loading) {
@@ -148,22 +157,24 @@ export default function Lessons() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={activeTab === 'lessons' ? 'default' : 'outline'}
             onClick={() => setActiveTab('lessons')}
             className="gap-2"
+            size="sm"
           >
             <BookOpen className="h-4 w-4" />
-            Базовые уроки
+            <span className="truncate">Базовые уроки</span>
           </Button>
           <Button
             variant={activeTab === 'videos' ? 'default' : 'outline'}
             onClick={() => setActiveTab('videos')}
             className="gap-2"
+            size="sm"
           >
             <Video className="h-4 w-4" />
-            Видеоразборы тестов
+            <span className="truncate">Видеоразборы тестов</span>
           </Button>
         </div>
 
@@ -182,15 +193,15 @@ export default function Lessons() {
                   <Card key={lesson.id} className="overflow-hidden">
                     <CardContent className="p-0">
                       <div className="flex flex-col">
-                        <div className="flex items-center justify-between p-4">
-                          <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-4">
+                          <div className="flex items-center gap-3 min-w-0">
                             {isWatched ? (
                               <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
                             ) : (
                               <Play className="h-5 w-5 text-accent shrink-0" />
                             )}
-                            <div>
-                              <p className="font-semibold">{title}</p>
+                            <div className="min-w-0">
+                              <p className="font-semibold break-words">{title}</p>
                               {isWatched && (
                                 <Badge variant="secondary" className="text-xs mt-1">
                                   ✔ Просмотрено
@@ -202,22 +213,47 @@ export default function Lessons() {
                             <Button
                               size="sm"
                               variant="outline"
+                              className="shrink-0"
                               onClick={() => markLessonWatched(lesson.id)}
                             >
-                              Отметить просмотренным
+                              <span className="hidden sm:inline">Отметить просмотренным</span>
+                              <span className="sm:hidden">Просмотрено</span>
                             </Button>
                           )}
                         </div>
                         {youtubeUrl && (
-                          <div className="aspect-video w-full">
-                            <iframe
-                              src={getYoutubeEmbedUrl(youtubeUrl)}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              title={title}
-                            />
-                          </div>
+                          playingLesson === lesson.id ? (
+                            <div className="aspect-video w-full bg-muted">
+                              <iframe
+                                src={getYoutubeEmbedUrl(youtubeUrl)}
+                                className="w-full h-full"
+                                loading="lazy"
+                                referrerPolicy="strict-origin-when-cross-origin"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                title={title}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPlayingLesson(lesson.id)}
+                              className="relative aspect-video w-full bg-muted overflow-hidden group"
+                              aria-label={`Воспроизвести: ${title}`}
+                            >
+                              <img
+                                src={getYoutubeThumbnail(youtubeUrl)}
+                                alt={title}
+                                loading="lazy"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/90 shadow-lg">
+                                  <Play className="h-8 w-8 text-accent-foreground ml-1" fill="currentColor" />
+                                </span>
+                              </span>
+                            </button>
+                          )
                         )}
                       </div>
                     </CardContent>
