@@ -160,7 +160,7 @@ export function Navbar() {
         {isOpen && (
           <div className="border-t border-border py-3 md:hidden animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex flex-col gap-1">
-              {navLinks.map((link) => (
+              {[...navLinks, ...moreLinks].map((link) => (
                 <Link
                   key={link.href}
                   to={link.href}
