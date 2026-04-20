@@ -45,6 +45,7 @@ export default function Lessons() {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'videos' | 'lessons'>('lessons');
+  const [playingLesson, setPlayingLesson] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -118,9 +119,17 @@ export default function Lessons() {
     }
   };
 
-  const getYoutubeEmbedUrl = (url: string) => {
+  const getYoutubeId = (url: string) => {
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : '';
+    return match ? match[1] : '';
+  };
+  const getYoutubeEmbedUrl = (url: string) => {
+    const id = getYoutubeId(url);
+    return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1` : '';
+  };
+  const getYoutubeThumbnail = (url: string) => {
+    const id = getYoutubeId(url);
+    return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
   };
 
   if (loading) {
