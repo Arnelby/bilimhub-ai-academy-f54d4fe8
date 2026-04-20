@@ -19,3 +19,6 @@ verify_jwt = false
 
 [functions.ai-practice-generate]
 verify_jwt = false
+
+[functions.apply-practice-explanations]
+verify_jwt = false
