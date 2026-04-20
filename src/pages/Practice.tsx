@@ -1154,29 +1154,30 @@ export default function Practice() {
             </CardHeader>
             <CardContent className="space-y-4">
               {allResults.map(({ q, userAnswer, isCorrect }, idx) => (
-                <QuestionReview
-                  key={qKey(q)}
-                  groupMode={isAI ? 'ai' : 'control'}
-                  data={{
-                    questionNumber: idx + 1,
-                    topic: isAI ? q.topic : null,
-                    type: q.type,
-                    instruction: q.instruction ?? null,
-                    column_a: q.type === 'comparison' ? q.column_a : null,
-                    column_b: q.type === 'comparison' ? q.column_b : null,
-                    options: q.type === 'mcq' ? q.options : null,
-                    userAnswer,
-                    correctAnswer: q.correct_answer,
-                    isCorrect,
-                    correctExplanation: q.correct_explanation ?? null,
-                    explanationA: q.explanation_a ?? null,
-                    explanationB: q.explanation_b ?? null,
-                    explanationC: q.explanation_c ?? null,
-                    explanationD: q.explanation_d ?? null,
-                    explanationE: q.explanation_e ?? null,
-                    questionCacheId: (q as any)._qid ?? null,
-                  }}
-                />
+                <div key={qKey(q)} id={`review-${(q as any)._qid || `${q.type}_${q.id}`}`}>
+                  <QuestionReview
+                    groupMode={isAI ? 'ai' : 'control'}
+                    data={{
+                      questionNumber: idx + 1,
+                      topic: isAI ? q.topic : null,
+                      type: q.type,
+                      instruction: q.instruction ?? null,
+                      column_a: q.type === 'comparison' ? q.column_a : null,
+                      column_b: q.type === 'comparison' ? q.column_b : null,
+                      options: q.type === 'mcq' ? q.options : null,
+                      userAnswer,
+                      correctAnswer: q.correct_answer,
+                      isCorrect,
+                      correctExplanation: q.correct_explanation ?? null,
+                      explanationA: q.explanation_a ?? null,
+                      explanationB: q.explanation_b ?? null,
+                      explanationC: q.explanation_c ?? null,
+                      explanationD: q.explanation_d ?? null,
+                      explanationE: q.explanation_e ?? null,
+                      questionCacheId: (q as any)._qid ?? null,
+                    }}
+                  />
+                </div>
               ))}
             </CardContent>
           </Card>
