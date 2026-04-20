@@ -478,6 +478,14 @@ export default function Practice() {
         if (focusPick.length < TOPIC_TOTAL) {
           focusPick = focusPick.concat(shuffleArr(seenTopic).slice(0, TOPIC_TOTAL - focusPick.length));
         }
+        if (focusPick.length < TOPIC_TOTAL && topicBank.length > 0) {
+          const refillPool = shuffleArr(topicBank);
+          let refillIndex = 0;
+          while (focusPick.length < TOPIC_TOTAL) {
+            focusPick.push(refillPool[refillIndex % refillPool.length]);
+            refillIndex++;
+          }
+        }
         chosen = focusPick;
 
         // GRACEFUL FALLBACK: if the topic has zero questions in the bank,
@@ -905,11 +913,12 @@ export default function Practice() {
                   onClick={() => {
                     // Auto-queue: if we just finished a focused topic, jump to the next weak topic.
                     if (focusedTopic && weakTopics.length > 0) {
+                      const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
                       const idx = weakTopics.findIndex(
-                        t => t.toLowerCase() === focusedTopic.toLowerCase(),
+                        t => normalizeAnalyticsTopic(t) === normalizedFocused,
                       );
                       const next = weakTopics[(idx + 1) % weakTopics.length];
-                      if (next && next.toLowerCase() !== focusedTopic.toLowerCase()) {
+                      if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
                         setSearchParams({ topic: next });
                         return;
                       }
