@@ -148,18 +148,27 @@ export default function Practice() {
           : Promise.resolve({ data: null } as any),
       ]);
 
-      const recentQuestionIds = Array.from(new Set(
-        (priorPractice || [])
-          .map((p: any) => p.question_id || p.question_data?.question_id)
-          .filter((qid: string | null | undefined): qid is string => typeof qid === 'string' && qid.startsWith('pq_'))
-          .slice(0, PRACTICE_RECENT_HISTORY_LIMIT),
-      ));
+      // Build per-question history maps — used for 3-tier selection (NEW → INCORRECT → REVIEW).
+      // Newest entries first because priorPractice is ordered by created_at DESC.
+      const answeredQids = new Set<string>();
+      const incorrectQids = new Set<string>();
+      const recentQidsOrdered: string[] = [];
+      for (const p of (priorPractice || []) as any[]) {
+        const qid: string | undefined = p.question_id || p.question_data?.question_id;
+        if (typeof qid !== 'string' || !qid.startsWith('pq_')) continue;
+        if (!answeredQids.has(qid)) recentQidsOrdered.push(qid);
+        answeredQids.add(qid);
+        if (p.is_correct === false) incorrectQids.add(qid);
+      }
+      // Last few question_ids to avoid in tier-3 fallback
+      const veryRecentQids = new Set(recentQidsOrdered.slice(0, 5));
 
+      // Fetch the FULL topic pool (no pre-exclusion) so we can tier client-side.
       const [{ data: practiceRows, error: practicePoolError }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
         (supabase as any).rpc('get_practice_question_pool', {
           requested_topic: focusRu,
-          recent_question_ids: recentQuestionIds.length > 0 ? recentQuestionIds : null,
-          max_rows: focusedTopic ? 400 : 1000,
+          recent_question_ids: null,
+          max_rows: focusedTopic ? 1000 : 1000,
         }),
         supabase
           .from('math_questions')
@@ -457,20 +466,91 @@ export default function Practice() {
       };
 
       let chosen: Bank[] = [];
+      let selectionDebug: any = {};
 
       if (focusedTopic) {
-        const topicBank = bank.filter(b => normalizePracticeTopic(b.topic) === focusRu);
-        chosen = uniqueByQid(topicBank).slice(0, requestedCount);
+        // 3-TIER SELECTION for a focused topic — always returns up to requestedCount.
+        // Tier 1 (NEW)        — questions never answered in this topic
+        // Tier 2 (INCORRECT)  — previously wrong answers in this topic (oldest mistakes first)
+        // Tier 3 (REVIEW)     — any topic question, excluding the very last 5
+        // Final pad           — if topic has zero pool, pad from other topics (NEW first)
+        const topicBank = uniqueByQid(bank.filter(b => normalizePracticeTopic(b.topic) === focusRu));
 
-        if (chosen.length === 0) {
-          setGenerationError(`Недостаточно новых вопросов по теме «${focusRu}».`);
-          setLoading(false);
-          return;
+        const tier1New = topicBank.filter(b => !answeredQids.has(b.qid));
+        // shuffle tier1 for variety
+        for (let i = tier1New.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [tier1New[i], tier1New[j]] = [tier1New[j], tier1New[i]];
         }
+        chosen.push(...tier1New.slice(0, requestedCount));
+
+        let tier2Count = 0;
+        let tier3Count = 0;
+        let crossTopicPad = 0;
+
+        if (chosen.length < requestedCount) {
+          // Tier 2: incorrect ones — sort oldest mistake first.
+          // priorPractice is DESC by created_at, so reverse to get oldest first among answered set.
+          const orderedIncorrectQids = (priorPractice || [])
+            .slice()
+            .reverse()
+            .map((p: any) => p.question_id || p.question_data?.question_id)
+            .filter((qid: any): qid is string => typeof qid === 'string' && incorrectQids.has(qid));
+          const seenInTier2 = new Set<string>();
+          const tier2: Bank[] = [];
+          for (const qid of orderedIncorrectQids) {
+            if (seenInTier2.has(qid)) continue;
+            seenInTier2.add(qid);
+            const b = topicBank.find(x => x.qid === qid);
+            if (b && !chosen.some(c => c.qid === b.qid)) tier2.push(b);
+          }
+          const need2 = requestedCount - chosen.length;
+          chosen.push(...tier2.slice(0, need2));
+          tier2Count = Math.min(tier2.length, need2);
+        }
+
+        if (chosen.length < requestedCount) {
+          // Tier 3: any from topic, excluding the very recent 5 + already-chosen
+          const chosenIds = new Set(chosen.map(b => b.qid));
+          const tier3Pool = topicBank.filter(b => !chosenIds.has(b.qid) && !veryRecentQids.has(b.qid));
+          for (let i = tier3Pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [tier3Pool[i], tier3Pool[j]] = [tier3Pool[j], tier3Pool[i]];
+          }
+          const need3 = requestedCount - chosen.length;
+          chosen.push(...tier3Pool.slice(0, need3));
+          tier3Count = Math.min(tier3Pool.length, need3);
+        }
+
+        if (chosen.length < requestedCount) {
+          // Cross-topic pad — only used if the requested topic genuinely has no/insufficient bank.
+          // This guarantees the user always gets a full session of `requestedCount` questions.
+          const chosenIds = new Set(chosen.map(b => b.qid));
+          const otherPool = bank.filter(b => !chosenIds.has(b.qid) && normalizePracticeTopic(b.topic) !== focusRu);
+          // prefer NEW (unanswered) cross-topic questions
+          const otherNew = otherPool.filter(b => !answeredQids.has(b.qid));
+          const otherRest = otherPool.filter(b => answeredQids.has(b.qid));
+          const padPool = pickBalancedByTopic([...otherNew, ...otherRest], requestedCount - chosen.length);
+          chosen.push(...padPool);
+          crossTopicPad = padPool.length;
+        }
+
+        chosen = uniqueByQid(chosen).slice(0, requestedCount);
+        selectionDebug = {
+          tier: 'focused-topic',
+          topic: focusRu,
+          topic_pool_size: topicBank.length,
+          new_count: Math.min(tier1New.length, requestedCount),
+          incorrect_count: tier2Count,
+          fallback_count: tier3Count,
+          cross_topic_pad: crossTopicPad,
+          final_count: chosen.length,
+        };
 
         setLatestTestName(`Практика: ${focusRu}`);
       } else if (isControl) {
         chosen = pickBalancedByTopic(bank, requestedCount);
+        selectionDebug = { tier: 'control', final_count: chosen.length };
       } else {
         const weakSet = new Set(weak.map(topic => normalizePracticeTopic(topic)));
         const weakPool = bank.filter(b => weakSet.has(normalizePracticeTopic(b.topic)));
@@ -487,10 +567,12 @@ export default function Practice() {
           const topUp = pickBalancedByTopic(bank.filter(b => !chosenIds.has(b.qid)), requestedCount - chosen.length);
           chosen = [...chosen, ...topUp];
         }
+        selectionDebug = { tier: 'ai-personalized', final_count: chosen.length };
       }
 
       chosen = uniqueByQid(chosen);
 
+      console.log('[PRACTICE_SELECTION]', selectionDebug);
       console.log('[SELECTION_DEBUG]', {
         requested_count: requestedCount,
         actual_selected: chosen.length,
@@ -499,7 +581,10 @@ export default function Practice() {
       });
 
       if (chosen.length === 0) {
-        setGenerationError('Недостаточно новых вопросов. Попробуйте другую тему или начните общую практику.');
+        // Truly no questions anywhere — only happens if the entire DB pool is empty.
+        // Show a soft empty-state instead of an error screen.
+        console.warn('[PRACTICE_SELECTION] empty bank — DB pool exhausted');
+        setQuestions([]);
         setLoading(false);
         return;
       }
