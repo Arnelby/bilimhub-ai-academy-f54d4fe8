@@ -955,6 +955,39 @@ export type Database = {
         }
         Relationships: []
       }
+      spaced_repetition: {
+        Row: {
+          correct_streak: number
+          created_at: string
+          id: string
+          next_review_date: string
+          question_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_streak?: number
+          created_at?: string
+          id?: string
+          next_review_date?: string
+          question_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_streak?: number
+          created_at?: string
+          id?: string
+          next_review_date?: string
+          question_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       test_access: {
         Row: {
           created_at: string
