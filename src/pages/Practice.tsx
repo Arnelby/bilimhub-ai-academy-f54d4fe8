@@ -712,7 +712,15 @@ export default function Practice() {
     } catch (e) {
       console.error('[TOPIC_STATS_HOOK] failed', e);
     }
-  }, [user, sessionId, participantId]);
+
+    // Motivation: count this answer toward the daily goal (also performs
+    // daily-reset + streak update if it's the first action of the day).
+    try {
+      await motivation.recordTask();
+    } catch (e) {
+      console.error('[MOTIVATION_HOOK] failed', e);
+    }
+  }, [user, sessionId, participantId, motivation]);
 
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
@@ -1066,7 +1074,19 @@ export default function Practice() {
           <Badge variant="accent">{answeredCount}/{questions.length}</Badge>
         </div>
 
-        <Progress value={(answeredCount / questions.length) * 100} className="mb-6 h-2" />
+        <Progress value={(answeredCount / questions.length) * 100} className="mb-4 h-2" />
+
+        {!motivation.loading && (
+          <MotivationWidget
+            streak={motivation.streak}
+            tasksCompletedToday={motivation.tasksCompletedToday}
+            dailyGoal={motivation.dailyGoal}
+            goalCompleted={motivation.goalCompleted}
+            activeDaysLast7={motivation.activeDaysLast7}
+            warningLevel={motivation.warningLevel}
+            className="mb-6"
+          />
+        )}
 
         <Card className="mb-6">
           <CardContent className="p-6">
