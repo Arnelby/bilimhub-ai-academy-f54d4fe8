@@ -16,12 +16,13 @@ import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
 import { TopicSummary } from '@/components/practice/TopicSummary';
-import { updateSpacedRepetition } from '@/lib/spacedRepetition';
+import { updateSpacedRepetition, getFailedQuestions } from '@/lib/spacedRepetition';
 import { updateTopicStats } from '@/lib/topicStats';
 import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
-import { updateLearningState } from '@/lib/learningState';
+import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
+import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -76,7 +77,9 @@ export default function Practice() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
+  const reviewMode = searchParams.get('mode') === 'review';
   const { user } = useAuth();
+  const [learningState, setLearningState] = useState<LearningState | null>(null);
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
   const motivation = useMotivation(user?.id);
   const [loading, setLoading] = useState(true);
@@ -700,9 +703,15 @@ export default function Practice() {
     if (error) console.error('[PRACTICE_SESSION] save answer failed', error);
     else console.log(`[TRACKING_ENABLED] is_correct=${isCorrect} time_spent_s=${timeSpentSeconds} topic="${q.topic}" session=${sessionId}`);
 
-    // Spaced repetition update (deterministic, NO AI)
+    // Spaced repetition / per-question learning state update (deterministic, NO AI).
+    // Pass topic so we can attach linked_lesson_id for the recovery flow.
     try {
-      await updateSpacedRepetition({ userId: user.id, questionId: qid, isCorrect });
+      await updateSpacedRepetition({
+        userId: user.id,
+        questionId: qid,
+        isCorrect,
+        topic: q.topic ?? null,
+      });
     } catch (e) {
       console.error('[SPACED_HOOK] failed', e);
     }
