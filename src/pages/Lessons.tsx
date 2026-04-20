@@ -116,6 +116,8 @@ export default function Lessons() {
 
     if (!error) {
       setCompletedLessons(prev => new Set(prev).add(lessonId));
+      const { updateLearningState } = await import('@/lib/learningState');
+      await updateLearningState(user.id);
     }
   };
 

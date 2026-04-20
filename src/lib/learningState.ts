@@ -1,44 +1,86 @@
 import { supabase } from '@/integrations/supabase/client';
 import { checkInDaily, DEFAULT_DAILY_GOAL } from '@/lib/userActivity';
+import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
 
 /**
- * Learning State Engine — единый источник правды о том, что делать пользователю.
+ * Learning State Engine — ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ.
  * Детерминированно. БЕЗ AI.
  *
- * Состояние хранится в таблице `user_learning_state` и пересчитывается из:
- *  - user_tests              (был ли тест сегодня)
- *  - user_topic_stats        (слабые/сильные темы)
- *  - practice_responses      (ошибки за 2 дня)
- *  - user_activity           (streak, daily progress)
+ * Все экраны (Index/Dashboard/Practice/Plan) обязаны читать только из
+ * `user_learning_state`. Никаких параллельных расчётов на фронте.
  *
- * ВСЕ модули обязаны вызывать `updateLearningState(userId)` после:
- *  - ответа на вопрос
- *  - завершения практики
- *  - завершения теста
+ * Состояние пересчитывается из:
+ *  - user_tests              (тесты сегодня + completed_tests)
+ *  - practice_responses      (topic_stats + ошибки)
+ *  - spaced_repetition       (due → review_mistakes)
+ *  - user_lesson_progress    (completed_lessons + watched_videos)
+ *  - user_activity           (streak, daily progress)
+ *  - lessons + topics        (mapping topic → lesson_id для watch_lesson)
+ *
+ * Вызывается ПОСЛЕ каждого действия:
+ *  - ответа на вопрос (Practice.tsx)
+ *  - завершения теста (TestTaking/MathTestTaking)
+ *  - просмотра урока (markLessonWatched)
  */
 
+export type NextActionType =
+  | 'review_mistakes'
+  | 'watch_lesson'
+  | 'practice'
+  | 'take_test'
+  | 'done';
+
+// Legacy alias — used by Index.tsx / NextStep.tsx step indicator
 export type NextAction = 'test' | 'practice' | 'review_errors' | 'completed';
 export type CurrentStep = 'test' | 'practice' | 'review' | 'done';
 
+export interface TopicStat {
+  total_attempts: number;
+  correct_answers: number;
+  accuracy: number; // 0..1
+}
+
+export interface PlanItem {
+  type: 'lesson' | 'practice' | 'review';
+  topic?: string;
+  source?: 'mistakes';
+  lesson_id?: string;
+  done?: boolean;
+}
+
 export interface LearningState {
   user_id: string;
-  current_step: CurrentStep;
+  // Single source of truth fields
+  topic_stats: Record<string, TopicStat>;
   weak_topics: string[];
   strong_topics: string[];
-  current_topic: string | null;
+  completed_lessons: string[];
+  watched_videos: string[];
+  completed_tests: number;
+  current_plan: PlanItem[];
+  next_action: NextAction; // legacy enum for backward compat
+  next_action_type: NextActionType; // new richer enum
+  next_target?: string | null; // topic or lesson_id depending on action
+  next_reason: string;
+  // Motivation
   daily_goal: number;
   daily_progress: number;
   streak: number;
   last_activity_date: string | null;
-  next_action: NextAction;
-  next_reason: string;
+  last_activity_at: string | null;
+  // Derived helpers used by UI
+  current_step: CurrentStep;
+  current_topic: string | null;
   errors_count: number;
 }
 
-const MIN_ATTEMPTS_FOR_WEAK = 3;
 const WEAK_THRESHOLD = 0.6;
-const STRONG_THRESHOLD = 0.8;
-const ERRORS_LOOKBACK_DAYS = 2;
+const MIN_ATTEMPTS = 1; // per spec: ВСЕ темы где accuracy < 0.6
+
+function todayDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function startOfTodayISO(): string {
   const d = new Date();
@@ -46,31 +88,53 @@ function startOfTodayISO(): string {
   return d.toISOString();
 }
 
-function lookbackISO(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
-
-function todayDate(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-interface ComputedSnapshot {
-  testDoneToday: boolean;
-  weak: Array<{ topic: string; accuracy: number }>;
-  strong: string[];
-  errorsCount: number;
+interface Snapshot {
+  topic_stats: Record<string, TopicStat>;
+  weak_topics: string[];
+  strong_topics: string[];
+  completed_lessons: string[];
+  watched_videos: string[];
+  completed_tests: number;
+  test_done_today: boolean;
+  due_review_count: number;
+  errors_count: number;
   streak: number;
-  dailyProgress: number;
-  dailyGoal: number;
+  daily_progress: number;
+  daily_goal: number;
+  topic_to_lesson: Record<string, string>; // normalized topic title → lesson_id
 }
 
-async function computeSnapshot(userId: string): Promise<ComputedSnapshot> {
-  // Параллельно опрашиваем БД
-  const [testsRes, statsRes, errorsRes, activityRow] = await Promise.all([
+async function buildTopicLessonMap(): Promise<Record<string, string>> {
+  // lessons.topic_id → topics.title; map normalized topic title → first lesson_id
+  const { data: lessons } = await supabase
+    .from('lessons')
+    .select('id, topic_id, topics:topic_id (title, title_ru)');
+
+  const map: Record<string, string> = {};
+  for (const l of (lessons ?? []) as any[]) {
+    const titleEn = l.topics?.title;
+    const titleRu = l.topics?.title_ru;
+    const lessonId = l.id;
+    if (!lessonId) continue;
+    for (const t of [titleEn, titleRu]) {
+      if (!t) continue;
+      const norm = normalizeAnalyticsTopic(t);
+      if (norm && !map[norm]) map[norm] = lessonId;
+    }
+  }
+  return map;
+}
+
+async function computeSnapshot(userId: string): Promise<Snapshot> {
+  const [
+    testsTodayRes,
+    testsTotalRes,
+    responsesRes,
+    spacedRes,
+    lessonProgressRes,
+    activityRow,
+    topicLessonMap,
+  ] = await Promise.all([
     supabase
       .from('user_tests')
       .select('id')
@@ -79,139 +143,211 @@ async function computeSnapshot(userId: string): Promise<ComputedSnapshot> {
       .not('completed_at', 'is', null)
       .limit(1),
     supabase
-      .from('user_topic_stats' as any)
-      .select('topic, accuracy, total_attempts')
-      .eq('user_id', userId),
-    supabase
-      .from('practice_responses')
+      .from('user_tests')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('is_correct', false)
-      .gte('created_at', lookbackISO(ERRORS_LOOKBACK_DAYS)),
+      .not('completed_at', 'is', null),
+    supabase
+      .from('practice_responses')
+      .select('topic, is_correct')
+      .eq('user_id', userId),
+    supabase
+      .from('spaced_repetition' as any)
+      .select('id, next_review_date')
+      .eq('user_id', userId)
+      .lte('next_review_date', new Date().toISOString()),
+    supabase
+      .from('user_lesson_progress')
+      .select('lesson_id, completed')
+      .eq('user_id', userId)
+      .eq('completed', true),
     checkInDaily(userId).catch(() => null),
+    buildTopicLessonMap(),
   ]);
 
-  const testDoneToday = (testsRes.data?.length ?? 0) > 0;
+  // Aggregate topic_stats from practice_responses
+  const stats: Record<string, TopicStat> = {};
+  let errors_count = 0;
+  for (const r of (responsesRes.data ?? []) as any[]) {
+    const t = normalizeAnalyticsTopic(r.topic || '');
+    if (!t) continue;
+    const cur = stats[t] || { total_attempts: 0, correct_answers: 0, accuracy: 0 };
+    cur.total_attempts += 1;
+    if (r.is_correct) cur.correct_answers += 1;
+    cur.accuracy = cur.total_attempts > 0 ? cur.correct_answers / cur.total_attempts : 0;
+    stats[t] = cur;
+    if (r.is_correct === false) errors_count += 1;
+  }
 
-  const rows = (statsRes.data ?? []) as unknown as Array<{
-    topic: string;
-    accuracy: number;
-    total_attempts: number;
-  }>;
+  const weak_topics: string[] = [];
+  const strong_topics: string[] = [];
+  for (const [topic, s] of Object.entries(stats)) {
+    if ((s.total_attempts ?? 0) < MIN_ATTEMPTS) continue;
+    if (s.accuracy < WEAK_THRESHOLD) weak_topics.push(topic);
+    else strong_topics.push(topic);
+  }
+  // Sort weak by accuracy ASC (worst first)
+  weak_topics.sort((a, b) => (stats[a].accuracy ?? 0) - (stats[b].accuracy ?? 0));
+  strong_topics.sort((a, b) => (stats[b].accuracy ?? 0) - (stats[a].accuracy ?? 0));
 
-  const weak = rows
-    .filter(
-      (r) =>
-        (r.total_attempts ?? 0) >= MIN_ATTEMPTS_FOR_WEAK &&
-        (r.accuracy ?? 0) < WEAK_THRESHOLD,
-    )
-    .sort((a, b) => (a.accuracy ?? 0) - (b.accuracy ?? 0))
-    .map((r) => ({ topic: r.topic, accuracy: r.accuracy ?? 0 }));
-
-  const strong = rows
-    .filter(
-      (r) =>
-        (r.total_attempts ?? 0) >= MIN_ATTEMPTS_FOR_WEAK &&
-        (r.accuracy ?? 0) >= STRONG_THRESHOLD,
-    )
-    .map((r) => r.topic);
-
-  const errorsCount = errorsRes.count ?? 0;
+  // completed_lessons & watched_videos derived from user_lesson_progress
+  const completed_lessons: string[] = [];
+  const watched_videos: string[] = [];
+  for (const row of (lessonProgressRes.data ?? []) as any[]) {
+    const lid = row.lesson_id as string;
+    if (!lid) continue;
+    if (lid.startsWith('video_')) watched_videos.push(lid);
+    else completed_lessons.push(lid);
+  }
 
   return {
-    testDoneToday,
-    weak,
-    strong,
-    errorsCount,
+    topic_stats: stats,
+    weak_topics,
+    strong_topics,
+    completed_lessons,
+    watched_videos,
+    completed_tests: testsTotalRes.count ?? 0,
+    test_done_today: (testsTodayRes.data?.length ?? 0) > 0,
+    due_review_count: (spacedRes.data?.length ?? 0),
+    errors_count,
     streak: activityRow?.streak ?? 0,
-    dailyProgress: activityRow?.tasks_completed_today ?? 0,
-    dailyGoal: activityRow?.daily_goal ?? DEFAULT_DAILY_GOAL,
+    daily_progress: activityRow?.tasks_completed_today ?? 0,
+    daily_goal: activityRow?.daily_goal ?? DEFAULT_DAILY_GOAL,
+    topic_to_lesson: topicLessonMap,
   };
 }
 
-function resolveNext(snap: ComputedSnapshot): {
+interface NextResolved {
   next_action: NextAction;
+  next_action_type: NextActionType;
+  next_target: string | null;
+  next_reason: string;
   current_step: CurrentStep;
   current_topic: string | null;
-  reason: string;
-} {
-  // Дневной flow: test → practice → review_errors → completed
-  if (!snap.testDoneToday) {
-    return {
-      next_action: 'test',
-      current_step: 'test',
-      current_topic: null,
-      reason: 'Сегодня ты ещё не проходил тест',
-    };
-  }
+}
 
-  if (snap.weak.length > 0 && snap.dailyProgress < snap.dailyGoal) {
-    const top = snap.weak[0];
-    const pct = Math.round((top.accuracy ?? 0) * 100);
-    return {
-      next_action: 'practice',
-      current_step: 'practice',
-      current_topic: top.topic,
-      reason: `Ты тренируешь тему «${top.topic}» (точность ${pct}%)`,
-    };
-  }
+function topicHasWatchedLesson(topic: string, snap: Snapshot): boolean {
+  const lessonId = snap.topic_to_lesson[topic];
+  if (!lessonId) return true; // if no lesson exists → skip the watch step
+  return snap.completed_lessons.includes(lessonId);
+}
 
-  if (snap.errorsCount > 0) {
-    const word =
-      snap.errorsCount === 1
-        ? 'ошибка'
-        : snap.errorsCount < 5
-          ? 'ошибки'
-          : 'ошибок';
+function resolveNext(snap: Snapshot): NextResolved {
+  // 1. Spaced repetition due → повторить ошибки
+  if (snap.due_review_count > 0) {
     return {
       next_action: 'review_errors',
+      next_action_type: 'review_mistakes',
+      next_target: null,
+      next_reason: `У тебя ${snap.due_review_count} задач на повторение`,
       current_step: 'review',
       current_topic: null,
-      reason: `У тебя ${snap.errorsCount} ${word} — нужно закрепить`,
     };
   }
 
-  if (snap.dailyProgress < snap.dailyGoal) {
+  // 2. Слабые темы → видео или практика
+  if (snap.weak_topics.length > 0) {
+    const topic = snap.weak_topics[0];
+    const acc = snap.topic_stats[topic]?.accuracy ?? 0;
+    const pct = Math.round(acc * 100);
+    if (!topicHasWatchedLesson(topic, snap)) {
+      const lessonId = snap.topic_to_lesson[topic] || null;
+      return {
+        next_action: 'practice',
+        next_action_type: 'watch_lesson',
+        next_target: lessonId || topic,
+        next_reason: `Сначала посмотри урок по теме «${topic}» (точность ${pct}%)`,
+        current_step: 'practice',
+        current_topic: topic,
+      };
+    }
     return {
       next_action: 'practice',
+      next_action_type: 'practice',
+      next_target: topic,
+      next_reason: `Тренируй тему «${topic}» (точность ${pct}%)`,
       current_step: 'practice',
-      current_topic: null,
-      reason: 'Выполни дневную норму практики',
+      current_topic: topic,
     };
   }
 
+  // 3. Тест сегодня?
+  if (!snap.test_done_today) {
+    return {
+      next_action: 'test',
+      next_action_type: 'take_test',
+      next_target: null,
+      next_reason: 'Сегодня ты ещё не проходил тест',
+      current_step: 'test',
+      current_topic: null,
+    };
+  }
+
+  // 4. Всё сделано
   return {
     next_action: 'completed',
+    next_action_type: 'done',
+    next_target: null,
+    next_reason: 'Все задачи на сегодня выполнены — отличная работа!',
     current_step: 'done',
     current_topic: null,
-    reason: 'Все задачи на сегодня выполнены — отличная работа!',
   };
 }
 
-/**
- * Пересчитать состояние пользователя и записать в БД.
- * Возвращает свежее состояние. Идемпотентна.
- */
+function buildPlan(snap: Snapshot, next: NextResolved): PlanItem[] {
+  const plan: PlanItem[] = [];
+
+  // Pull review on top if there are due items
+  if (snap.due_review_count > 0) {
+    plan.push({ type: 'review', source: 'mistakes' });
+  }
+
+  // Up to 3 weak topics: lesson (if not watched) + practice each
+  const top = snap.weak_topics.slice(0, 3);
+  for (const topic of top) {
+    const lessonId = snap.topic_to_lesson[topic];
+    const watched = lessonId ? snap.completed_lessons.includes(lessonId) : true;
+    if (lessonId && !watched) {
+      plan.push({ type: 'lesson', topic, lesson_id: lessonId });
+    }
+    plan.push({ type: 'practice', topic });
+  }
+
+  // If nothing weak — at least one practice or test
+  if (plan.length === 0 && next.next_action_type === 'take_test') {
+    plan.push({ type: 'practice' } as PlanItem);
+  }
+
+  return plan;
+}
+
 export async function updateLearningState(userId: string): Promise<LearningState | null> {
   if (!userId) return null;
 
   try {
     const snap = await computeSnapshot(userId);
     const next = resolveNext(snap);
+    const plan = buildPlan(snap, next);
 
     const payload = {
       user_id: userId,
-      current_step: next.current_step,
-      weak_topics: snap.weak.map((w) => w.topic),
-      strong_topics: snap.strong,
-      current_topic: next.current_topic,
-      daily_goal: snap.dailyGoal,
-      daily_progress: snap.dailyProgress,
-      streak: snap.streak,
-      last_activity_date: todayDate(),
+      topic_stats: snap.topic_stats as any,
+      weak_topics: snap.weak_topics as any,
+      strong_topics: snap.strong_topics as any,
+      completed_lessons: snap.completed_lessons as any,
+      watched_videos: snap.watched_videos as any,
+      completed_tests: snap.completed_tests,
+      current_plan: plan as any,
       next_action: next.next_action,
-      next_reason: next.reason,
-      errors_count: snap.errorsCount,
+      next_reason: next.next_reason,
+      current_step: next.current_step,
+      current_topic: next.current_topic,
+      daily_goal: snap.daily_goal,
+      daily_progress: snap.daily_progress,
+      streak: snap.streak,
+      errors_count: snap.errors_count,
+      last_activity_date: todayDate(),
+      last_activity_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
@@ -221,50 +357,82 @@ export async function updateLearningState(userId: string): Promise<LearningState
       .single();
 
     if (error) {
-      console.error('[LEARNING_STATE] upsert failed', error);
+      console.error('[STATE_UPDATED] upsert failed', error);
       return null;
     }
 
-    console.log('[LEARNING_STATE]', {
+    console.log('[STATE_UPDATED]', {
       user_id: userId,
-      next_action: payload.next_action,
-      current_topic: payload.current_topic,
-      weak_count: payload.weak_topics.length,
-      errors: payload.errors_count,
-      progress: `${payload.daily_progress}/${payload.daily_goal}`,
+      weak_topics: snap.weak_topics,
+      next_action: next.next_action_type,
+      target: next.next_target,
     });
+    console.log('[PLAN_UPDATED]', { plan });
+    console.log('[NEXT_ACTION]', next.next_action_type);
+    for (const [topic, s] of Object.entries(snap.topic_stats)) {
+      console.log('[TOPIC_STATS]', { topic, accuracy: s.accuracy, attempts: s.total_attempts });
+    }
 
-    return data as unknown as LearningState;
+    const row = data as any;
+    return {
+      ...row,
+      next_action_type: next.next_action_type,
+      next_target: next.next_target,
+    } as LearningState;
   } catch (e) {
-    console.error('[LEARNING_STATE] update failed', e);
+    console.error('[STATE_UPDATED] failed', e);
     return null;
   }
 }
 
-/**
- * Получить кэшированное состояние. Если его нет — пересчитать.
- */
 export async function getLearningState(userId: string): Promise<LearningState | null> {
   if (!userId) return null;
-
   const { data, error } = await supabase
     .from('user_learning_state' as any)
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error) {
-    console.error('[LEARNING_STATE] fetch failed', error);
-  }
+  if (error) console.error('[STATE_FETCH] failed', error);
 
-  if (data) {
-    return data as unknown as LearningState;
+  if (!data) return updateLearningState(userId);
+  // Ensure UI always has next_action_type
+  const row = data as any;
+  if (!row.next_action_type) {
+    return updateLearningState(userId);
   }
+  return row as LearningState;
+}
 
-  // Первое обращение — рассчитать и записать
+/**
+ * Event: пользователь посмотрел/завершил урок (или видео-разбор).
+ * Обновляет user_lesson_progress + пересчитывает state.
+ */
+export async function markLessonWatched(params: {
+  userId: string;
+  lessonId: string;
+}): Promise<LearningState | null> {
+  const { userId, lessonId } = params;
+  if (!userId || !lessonId) return null;
+
+  await supabase
+    .from('user_lesson_progress')
+    .upsert(
+      {
+        user_id: userId,
+        lesson_id: lessonId,
+        completed: true,
+        completed_at: new Date().toISOString(),
+        progress_percentage: 100,
+      },
+      { onConflict: 'user_id,lesson_id' },
+    );
+
+  console.log('[LESSON_WATCHED]', { user_id: userId, lesson_id: lessonId });
   return updateLearningState(userId);
 }
 
+// ===== Legacy helpers (back-compat for existing UI) =====
 export function nextActionLabel(a: NextAction): string {
   switch (a) {
     case 'test':
@@ -279,6 +447,23 @@ export function nextActionLabel(a: NextAction): string {
 }
 
 export function nextActionRoute(state: LearningState): string {
+  // Prefer rich type when available
+  switch (state.next_action_type) {
+    case 'review_mistakes':
+      return '/practice?mode=review';
+    case 'watch_lesson':
+      if (state.next_target) return `/lessons/${state.next_target}`;
+      return '/lessons';
+    case 'practice':
+      return state.next_target
+        ? `/practice?topic=${encodeURIComponent(state.next_target)}`
+        : '/practice';
+    case 'take_test':
+      return '/tests';
+    case 'done':
+      return '/dashboard';
+  }
+  // fallback to legacy
   switch (state.next_action) {
     case 'test':
       return '/tests';

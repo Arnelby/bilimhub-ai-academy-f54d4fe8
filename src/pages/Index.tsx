@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   TrendingUp,
   BookOpen,
   Sparkles,
+  PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,21 +19,29 @@ import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useLearningState } from '@/hooks/useLearningState';
-import { nextActionLabel, nextActionRoute, type NextAction } from '@/lib/learningState';
-import { useNavigate } from 'react-router-dom';
+import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
 
-const ICONS: Record<NextAction, React.ReactNode> = {
-  test: <ClipboardList className="h-7 w-7" />,
+const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
+  take_test: <ClipboardList className="h-7 w-7" />,
   practice: <Target className="h-7 w-7" />,
-  review_errors: <RefreshCw className="h-7 w-7" />,
-  completed: <CheckCircle2 className="h-7 w-7" />,
+  review_mistakes: <RefreshCw className="h-7 w-7" />,
+  watch_lesson: <PlayCircle className="h-7 w-7" />,
+  done: <CheckCircle2 className="h-7 w-7" />,
 };
 
-const STEP_ORDER: Array<{ key: NextAction; label: string }> = [
-  { key: 'test', label: 'Тест' },
-  { key: 'practice', label: 'Практика' },
-  { key: 'review_errors', label: 'Повтор ошибок' },
-];
+const ACTION_LABEL: Record<NextActionType, string> = {
+  take_test: 'Пройти тест',
+  practice: 'Практика',
+  review_mistakes: 'Повторить ошибки',
+  watch_lesson: 'Посмотреть урок',
+  done: 'Готово',
+};
+
+const PLAN_ITEM_LABEL: Record<PlanItem['type'], string> = {
+  lesson: 'Урок',
+  practice: 'Практика',
+  review: 'Повтор',
+};
 
 function GuestHero() {
   return (
@@ -46,7 +55,7 @@ function GuestHero() {
           Подготовка к ОРТ — без хаоса
         </h1>
         <p className="text-lg text-muted-foreground">
-          Платформа сама ведёт тебя: один шаг за раз. Тест → практика → повтор ошибок.
+          Платформа сама ведёт тебя: один шаг за раз. Тест → урок → практика → повтор.
         </p>
         <Button size="lg" asChild>
           <Link to="/login">
@@ -75,22 +84,16 @@ export default function Index() {
     );
   }
 
-  const isCompleted = state.next_action === 'completed';
+  const actionType: NextActionType = (state as any).next_action_type ?? 'take_test';
+  const isCompleted = actionType === 'done';
   const route = nextActionRoute(state);
-  const goalPct = state.daily_goal > 0
-    ? Math.min(100, Math.round((state.daily_progress / state.daily_goal) * 100))
-    : 0;
+  const goalPct =
+    state.daily_goal > 0
+      ? Math.min(100, Math.round((state.daily_progress / state.daily_goal) * 100))
+      : 0;
 
-  // Шаг N из 3 (test=1, practice=2, review_errors=3)
-  const stepNumber: Record<NextAction, number> = {
-    test: 1,
-    practice: 2,
-    review_errors: 3,
-    completed: 3,
-  };
-  const currentStepNum = stepNumber[state.next_action];
-
-  const upcoming = STEP_ORDER.filter((s) => stepNumber[s.key] > currentStepNum);
+  const plan: PlanItem[] = Array.isArray(state.current_plan) ? (state.current_plan as PlanItem[]) : [];
+  const weakTopics: string[] = Array.isArray(state.weak_topics) ? (state.weak_topics as string[]) : [];
 
   const handleContinue = () => {
     if (isCompleted) return;
@@ -100,44 +103,23 @@ export default function Index() {
   return (
     <Layout>
       <div className="container max-w-3xl mx-auto py-10 px-4 space-y-6">
-        {/* Шаги */}
-        <div className="flex items-center justify-center gap-2">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`h-1.5 w-16 rounded-full transition-colors ${
-                i <= currentStepNum ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
-        </div>
-        <p className="text-center text-sm text-muted-foreground">
-          Шаг {currentStepNum} из 3
-        </p>
-
         {/* Главная карточка */}
         <Card className="border-2 shadow-lg overflow-hidden">
           <CardContent className="p-8 text-center space-y-6">
             <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              {ICONS[state.next_action]}
+              {ACTION_ICONS[actionType]}
             </div>
 
             <div className="space-y-2">
               <h1 className="text-3xl font-bold">
                 {isCompleted ? 'Готово на сегодня!' : 'Продолжить обучение'}
               </h1>
-              <p className="text-muted-foreground text-base">
-                {state.next_reason}
-              </p>
+              <p className="text-muted-foreground text-base">{state.next_reason}</p>
             </div>
 
             {!isCompleted ? (
-              <Button
-                size="lg"
-                onClick={handleContinue}
-                className="w-full text-base h-14"
-              >
-                Продолжить обучение
+              <Button size="lg" onClick={handleContinue} className="w-full text-base h-14">
+                {ACTION_LABEL[actionType]}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             ) : (
@@ -151,29 +133,26 @@ export default function Index() {
               </Button>
             )}
 
-            {/* Подсказки */}
-            {!isCompleted && (
-              <div className="pt-4 border-t space-y-1.5 text-sm text-muted-foreground">
-                <p>
-                  Дальше:{' '}
-                  <span className="text-foreground font-medium">
-                    {nextActionLabel(state.next_action)}
-                  </span>
+            {/* План на сегодня */}
+            {plan.length > 0 && !isCompleted && (
+              <div className="pt-4 border-t">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
+                  План сегодня
                 </p>
-                {upcoming.length > 0 && (
-                  <p>
-                    После этого:{' '}
-                    <span className="text-foreground font-medium">
-                      {upcoming.map((u) => u.label.toLowerCase()).join(' → ')}
-                    </span>
-                  </p>
-                )}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {plan.slice(0, 6).map((p, i) => (
+                    <Badge key={i} variant={i === 0 ? 'default' : 'secondary'} className="text-xs">
+                      {PLAN_ITEM_LABEL[p.type]}
+                      {p.topic ? `: ${p.topic}` : ''}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Краткий дашборд */}
+        {/* Краткий дашборд (читает только из state) */}
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardContent className="p-5 flex items-center gap-3">
@@ -208,21 +187,27 @@ export default function Index() {
                 <TrendingUp className="h-5 w-5 text-destructive" />
               </div>
               <div>
-                <div className="text-2xl font-bold">{state.weak_topics.length}</div>
+                <div className="text-2xl font-bold">{weakTopics.length}</div>
                 <div className="text-xs text-muted-foreground">слабых тем</div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Текущая тема */}
-        {state.current_topic && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-5 flex items-center gap-3">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <div>
-                <div className="text-xs text-muted-foreground">Текущая тема</div>
-                <div className="font-medium">{state.current_topic}</div>
+        {/* Слабые темы */}
+        {weakTopics.length > 0 && (
+          <Card>
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <BookOpen className="h-4 w-4" />
+                Слабые темы
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {weakTopics.map((t) => (
+                  <Badge key={t} variant="outline">
+                    {t}
+                  </Badge>
+                ))}
               </div>
             </CardContent>
           </Card>
