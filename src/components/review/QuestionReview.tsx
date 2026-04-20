@@ -204,24 +204,25 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
             )}
           </div>
 
-          {/* Why your answer was wrong (only if wrong) */}
-          {!data.isCorrect && (
+          {/* Why your answer was wrong — AI group only.
+              Control group sees only the static correct solution per design. */}
+          {!data.isCorrect && groupMode === 'ai' && (
             <div className="rounded-md border border-destructive/20 bg-background/60 p-3 text-sm overflow-hidden">
               <div className="mb-1 font-medium text-destructive">
                 ❌ Почему «{displayUserAnswer}» неверно
               </div>
-              <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
+              <div className="text-foreground/90 break-words [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
                 {wrongExplText ? <MathRenderer content={wrongExplText} /> : NO_EXPL}
               </div>
             </div>
           )}
 
-          {/* Correct explanation */}
+          {/* Correct explanation (shown to both groups) */}
           <div className="rounded-md border border-success/20 bg-background/60 p-3 text-sm overflow-hidden">
             <div className="mb-1 font-medium text-success">
               ✅ Правильное решение
             </div>
-            <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
+            <div className="text-foreground/90 break-words [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
               {correctExplText ? <MathRenderer content={correctExplText} /> : NO_EXPL}
             </div>
           </div>
