@@ -148,18 +148,27 @@ export default function Practice() {
           : Promise.resolve({ data: null } as any),
       ]);
 
-      const recentQuestionIds = Array.from(new Set(
-        (priorPractice || [])
-          .map((p: any) => p.question_id || p.question_data?.question_id)
-          .filter((qid: string | null | undefined): qid is string => typeof qid === 'string' && qid.startsWith('pq_'))
-          .slice(0, PRACTICE_RECENT_HISTORY_LIMIT),
-      ));
+      // Build per-question history maps — used for 3-tier selection (NEW → INCORRECT → REVIEW).
+      // Newest entries first because priorPractice is ordered by created_at DESC.
+      const answeredQids = new Set<string>();
+      const incorrectQids = new Set<string>();
+      const recentQidsOrdered: string[] = [];
+      for (const p of priorPractice || []) {
+        const qid: string | undefined = p.question_id || p.question_data?.question_id;
+        if (typeof qid !== 'string' || !qid.startsWith('pq_')) continue;
+        if (!answeredQids.has(qid)) recentQidsOrdered.push(qid);
+        answeredQids.add(qid);
+        if (p.is_correct === false) incorrectQids.add(qid);
+      }
+      // Last few question_ids to avoid in tier-3 fallback
+      const veryRecentQids = new Set(recentQidsOrdered.slice(0, 5));
 
+      // Fetch the FULL topic pool (no pre-exclusion) so we can tier client-side.
       const [{ data: practiceRows, error: practicePoolError }, { data: testCompRows }, { data: testMcqRows }] = await Promise.all([
         (supabase as any).rpc('get_practice_question_pool', {
           requested_topic: focusRu,
-          recent_question_ids: recentQuestionIds.length > 0 ? recentQuestionIds : null,
-          max_rows: focusedTopic ? 400 : 1000,
+          recent_question_ids: null,
+          max_rows: focusedTopic ? 1000 : 1000,
         }),
         supabase
           .from('math_questions')
