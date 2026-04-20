@@ -1001,6 +1001,9 @@ export default function Practice() {
             </CardContent>
           </Card>
 
+          {/* Deterministic per-topic summary from user_topic_stats (NO AI) */}
+          {user && <TopicSummary userId={user.id} />}
+
           {/* Unified data-driven review (no AI) — uses QuestionReview component */}
           <Card>
             <CardHeader>
