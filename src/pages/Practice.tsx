@@ -78,6 +78,7 @@ export default function Practice() {
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const reviewMode = searchParams.get('mode') === 'review';
+  const difficultyParam = (searchParams.get('difficulty') || 'all') as 'easy' | 'medium' | 'hard' | 'all';
   const { user } = useAuth();
   const [learningState, setLearningState] = useState<LearningState | null>(null);
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
@@ -428,7 +429,31 @@ export default function Practice() {
         return true;
       };
 
-      const bank = rawBank.filter(isQualityOk);
+      const bankAll = rawBank.filter(isQualityOk);
+
+      // === DIFFICULTY HEURISTIC (no DB column needed) ===
+      // easy   — short instruction, only digits, no variables/equations
+      // hard   — long text OR contains figure refs / multi-step keywords
+      // medium — everything in between
+      const classifyDifficulty = (b: Bank): 'easy' | 'medium' | 'hard' => {
+        const q = b.q;
+        const text = (q.type === 'comparison'
+          ? `${q.instruction || ''} ${(q as ComparisonPractice).column_a} ${(q as ComparisonPractice).column_b}`
+          : `${q.instruction || ''} ${Object.values((q as McqPractice).options || {}).join(' ')}`
+        ).trim();
+        const len = text.length;
+        const hasVars = /[a-zA-Zа-яА-Я]\s*[=≠<>≤≥]/.test(text);
+        const hasMultiStep = /(если|тогда|найдите|сколько|при каком|на сколько)/i.test(text);
+        const hasFigure = /(рисун|рис\.|фигур|диаграмм|график)/i.test(text);
+        if (len < 60 && !hasVars && !hasMultiStep && !hasFigure) return 'easy';
+        if (len > 180 || hasFigure || (hasVars && hasMultiStep)) return 'hard';
+        return 'medium';
+      };
+      const bank = difficultyParam === 'all'
+        ? bankAll
+        : bankAll.filter(b => classifyDifficulty(b) === difficultyParam);
+      console.log('[DIFFICULTY_FILTER]', { selected: difficultyParam, before: bankAll.length, after: bank.length });
+
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
       const poolByTopic = Array.from(bank.reduce((map, item) => {
         const key = normalizePracticeTopic(item.topic || '<empty>');
@@ -758,7 +783,7 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams, difficultyParam]);
 
   useEffect(() => {
     // When user navigates with ?topic=... or ?mode=review, always start a fresh session.
@@ -1220,6 +1245,31 @@ export default function Practice() {
         </div>
 
         <Progress value={(answeredCount / questions.length) * 100} className="mb-4 h-2" />
+
+        {/* Difficulty selector — switching restarts the session with the new filter */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground mr-1">Сложность:</span>
+          {([
+            { id: 'all', label: 'Все' },
+            { id: 'easy', label: '🟢 Лёгкие' },
+            { id: 'medium', label: '🟡 Средние' },
+            { id: 'hard', label: '🔴 Сложные' },
+          ] as const).map(opt => (
+            <Button
+              key={opt.id}
+              size="sm"
+              variant={difficultyParam === opt.id ? 'accent' : 'outline'}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                if (opt.id === 'all') next.delete('difficulty');
+                else next.set('difficulty', opt.id);
+                setSearchParams(next);
+              }}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
 
         {/* Motivation widget — AI group only (control gets no retention/streak signals) */}
         {isAI && !motivation.loading && (

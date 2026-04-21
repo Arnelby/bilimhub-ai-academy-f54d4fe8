@@ -54,13 +54,29 @@ export default function AISmartTutor() {
     if (!user) return;
 
     try {
-      const [profileRes, topicsRes] = await Promise.all([
+      // Pull weak topics from REAL stats (user_topic_stats), not just topic_progress.
+      const [profileRes, statsRes, topicsRes] = await Promise.all([
         supabase.from('user_diagnostic_profile').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('user_topic_progress').select('*, topics(title)').eq('user_id', user.id).lt('progress_percentage', 50),
+        supabase
+          .from('user_topic_stats')
+          .select('topic, accuracy, total_attempts')
+          .eq('user_id', user.id)
+          .gte('total_attempts', 2)
+          .lt('accuracy', 0.6)
+          .order('accuracy', { ascending: true })
+          .limit(5),
+        supabase
+          .from('user_topic_progress')
+          .select('progress_percentage, topics(title)')
+          .eq('user_id', user.id)
+          .lt('progress_percentage', 50),
       ]);
 
       setDiagnosticProfile(profileRes.data);
-      setWeakTopics(topicsRes.data?.map((t: any) => t.topics?.title).filter(Boolean) || []);
+      const fromStats = (statsRes.data || []).map((r: any) => r.topic).filter(Boolean);
+      const fromProgress = (topicsRes.data || []).map((t: any) => t.topics?.title).filter(Boolean);
+      const merged = Array.from(new Set([...fromStats, ...fromProgress])).slice(0, 5);
+      setWeakTopics(merged);
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
@@ -283,8 +299,9 @@ export default function AISmartTutor() {
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center mt-6">
                       {[
+                        language === 'ru' ? '📋 Составь мне план на сегодня' : '📋 Build my plan for today',
+                        language === 'ru' ? '🎯 Дай задачу по слабой теме' : '🎯 Give me a task on my weak topic',
                         language === 'ru' ? 'Объясни квадратные уравнения' : 'Explain quadratic equations',
-                        language === 'ru' ? 'Как решать проценты?' : 'How to solve percentages?',
                         language === 'ru' ? 'Помоги с геометрией' : 'Help me with geometry',
                       ].map((suggestion, idx) => (
                         <Button 
