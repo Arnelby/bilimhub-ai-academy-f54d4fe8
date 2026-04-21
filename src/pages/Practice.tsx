@@ -783,7 +783,7 @@ export default function Practice() {
     } finally {
       setLoading(false);
     }
-  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams]);
+  }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams, difficultyParam]);
 
   useEffect(() => {
     // When user navigates with ?topic=... or ?mode=review, always start a fresh session.
