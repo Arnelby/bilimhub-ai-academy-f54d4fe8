@@ -299,8 +299,9 @@ export default function AISmartTutor() {
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center mt-6">
                       {[
+                        language === 'ru' ? '📋 Составь мне план на сегодня' : '📋 Build my plan for today',
+                        language === 'ru' ? '🎯 Дай задачу по слабой теме' : '🎯 Give me a task on my weak topic',
                         language === 'ru' ? 'Объясни квадратные уравнения' : 'Explain quadratic equations',
-                        language === 'ru' ? 'Как решать проценты?' : 'How to solve percentages?',
                         language === 'ru' ? 'Помоги с геометрией' : 'Help me with geometry',
                       ].map((suggestion, idx) => (
                         <Button 
