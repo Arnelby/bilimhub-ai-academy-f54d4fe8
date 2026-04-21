@@ -78,6 +78,7 @@ export default function Practice() {
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const reviewMode = searchParams.get('mode') === 'review';
+  const difficultyParam = (searchParams.get('difficulty') || 'all') as 'easy' | 'medium' | 'hard' | 'all';
   const { user } = useAuth();
   const [learningState, setLearningState] = useState<LearningState | null>(null);
   const { isAI, isControl, group, loading: groupLoading } = useUserGroup();
