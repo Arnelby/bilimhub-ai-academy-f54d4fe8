@@ -25,15 +25,25 @@ export default function NextStep() {
   useEffect(() => {
     if (!user?.id) return;
     let cancel = false;
-    (async () => {
+    const load = async () => {
       setLoading(true);
       const result = await getNextAction(user.id);
       if (!cancel) {
         setStep(result);
         setLoading(false);
       }
-    })();
-    return () => { cancel = true; };
+    };
+    void load();
+    // Auto-refresh on focus / visibility — reflects practice/test progress immediately.
+    const onFocus = () => { void load(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancel = true;
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [user?.id]);
 
   const handleContinue = () => {
