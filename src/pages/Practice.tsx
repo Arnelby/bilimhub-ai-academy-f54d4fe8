@@ -1246,6 +1246,31 @@ export default function Practice() {
 
         <Progress value={(answeredCount / questions.length) * 100} className="mb-4 h-2" />
 
+        {/* Difficulty selector — switching restarts the session with the new filter */}
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground mr-1">Сложность:</span>
+          {([
+            { id: 'all', label: 'Все' },
+            { id: 'easy', label: '🟢 Лёгкие' },
+            { id: 'medium', label: '🟡 Средние' },
+            { id: 'hard', label: '🔴 Сложные' },
+          ] as const).map(opt => (
+            <Button
+              key={opt.id}
+              size="sm"
+              variant={difficultyParam === opt.id ? 'accent' : 'outline'}
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                if (opt.id === 'all') next.delete('difficulty');
+                else next.set('difficulty', opt.id);
+                setSearchParams(next);
+              }}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+
         {/* Motivation widget — AI group only (control gets no retention/streak signals) */}
         {isAI && !motivation.loading && (
           <MotivationWidget
