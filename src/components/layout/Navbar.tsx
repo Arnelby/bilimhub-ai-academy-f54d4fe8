@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, Moon, Sun, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Globe, Moon, Sun, LogOut, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +27,9 @@ export function Navbar() {
   const { user, signOut } = useAuth();
   const { canAccessAI, canAccessLessons, canAccessDashboard, canAccessTests, canAccessProfile, canAccessPractice } = useUserGroup();
   const location = useLocation();
+  const navigate = useNavigate();
+  // Show Back button on every page EXCEPT Home/Dashboard.
+  const showBack = !['/', '/dashboard', '/login', '/index'].includes(location.pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -62,10 +65,23 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="BilimHub" className="h-8 w-auto" />
-          </Link>
+          {/* Back + Logo */}
+          <div className="flex items-center gap-2">
+            {showBack && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+                aria-label="Назад"
+                className="h-9 w-9"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <Link to="/" className="flex items-center gap-2">
+              <img src={logo} alt="BilimHub" className="h-8 w-auto" />
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden items-center gap-1 md:flex">
