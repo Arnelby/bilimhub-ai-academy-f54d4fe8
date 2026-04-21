@@ -429,7 +429,31 @@ export default function Practice() {
         return true;
       };
 
-      const bank = rawBank.filter(isQualityOk);
+      const bankAll = rawBank.filter(isQualityOk);
+
+      // === DIFFICULTY HEURISTIC (no DB column needed) ===
+      // easy   — short instruction, only digits, no variables/equations
+      // hard   — long text OR contains figure refs / multi-step keywords
+      // medium — everything in between
+      const classifyDifficulty = (b: Bank): 'easy' | 'medium' | 'hard' => {
+        const q = b.q;
+        const text = (q.type === 'comparison'
+          ? `${q.instruction || ''} ${(q as ComparisonPractice).column_a} ${(q as ComparisonPractice).column_b}`
+          : `${q.instruction || ''} ${Object.values((q as McqPractice).options || {}).join(' ')}`
+        ).trim();
+        const len = text.length;
+        const hasVars = /[a-zA-Zа-яА-Я]\s*[=≠<>≤≥]/.test(text);
+        const hasMultiStep = /(если|тогда|найдите|сколько|при каком|на сколько)/i.test(text);
+        const hasFigure = /(рисун|рис\.|фигур|диаграмм|график)/i.test(text);
+        if (len < 60 && !hasVars && !hasMultiStep && !hasFigure) return 'easy';
+        if (len > 180 || hasFigure || (hasVars && hasMultiStep)) return 'hard';
+        return 'medium';
+      };
+      const bank = difficultyParam === 'all'
+        ? bankAll
+        : bankAll.filter(b => classifyDifficulty(b) === difficultyParam);
+      console.log('[DIFFICULTY_FILTER]', { selected: difficultyParam, before: bankAll.length, after: bank.length });
+
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
       const poolByTopic = Array.from(bank.reduce((map, item) => {
         const key = normalizePracticeTopic(item.topic || '<empty>');
