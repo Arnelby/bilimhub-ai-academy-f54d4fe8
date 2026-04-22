@@ -1,6 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { checkInDaily, DEFAULT_DAILY_GOAL } from '@/lib/userActivity';
 import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
+import {
+  selectForcedTopic,
+  computeProgress,
+  getMasteryForTopic,
+  type MasteryProgress,
+  type TopicMasteryRow,
+} from '@/lib/masteryEngine';
 
 /**
  * Learning State Engine — ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ.
