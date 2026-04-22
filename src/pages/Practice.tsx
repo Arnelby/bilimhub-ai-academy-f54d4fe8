@@ -23,6 +23,7 @@ import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
+import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic } from '@/lib/masteryEngine';
 
 interface ComparisonPractice {
   type: 'comparison';
