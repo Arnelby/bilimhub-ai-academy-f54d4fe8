@@ -468,6 +468,45 @@ export type Database = {
         }
         Relationships: []
       }
+      mistake_queue: {
+        Row: {
+          correct_streak: number
+          created_at: string
+          id: string
+          question_id: string
+          resolved: boolean
+          resolved_at: string | null
+          topic: string
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_streak?: number
+          created_at?: string
+          id?: string
+          question_id: string
+          resolved?: boolean
+          resolved_at?: string | null
+          topic: string
+          total_attempts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_streak?: number
+          created_at?: string
+          id?: string
+          question_id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          topic?: string
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pq_explanation_staging: {
         Row: {
           correct_explanation: string | null
@@ -1066,6 +1105,54 @@ export type Database = {
           title_kg?: string | null
           title_ru?: string | null
           type?: Database["public"]["Enums"]["test_type"]
+        }
+        Relationships: []
+      }
+      topic_mastery_state: {
+        Row: {
+          accuracy: number
+          consecutive_wrong: number
+          correct_answers: number
+          created_at: string
+          id: string
+          last_lesson_watched_at: string | null
+          mastered_at: string | null
+          needs_lesson: boolean
+          status: Database["public"]["Enums"]["topic_mastery_status"]
+          topic: string
+          total_attempts: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number
+          consecutive_wrong?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          last_lesson_watched_at?: string | null
+          mastered_at?: string | null
+          needs_lesson?: boolean
+          status?: Database["public"]["Enums"]["topic_mastery_status"]
+          topic: string
+          total_attempts?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number
+          consecutive_wrong?: number
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          last_lesson_watched_at?: string | null
+          mastered_at?: string | null
+          needs_lesson?: boolean
+          status?: Database["public"]["Enums"]["topic_mastery_status"]
+          topic?: string
+          total_attempts?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2009,6 +2096,7 @@ export type Database = {
         | "physics"
         | "english"
       test_type: "ort" | "practice"
+      topic_mastery_status: "new" | "learning" | "mastering" | "mastered"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2161,6 +2249,7 @@ export const Constants = {
         "english",
       ],
       test_type: ["ort", "practice"],
+      topic_mastery_status: ["new", "learning", "mastering", "mastered"],
     },
   },
 } as const

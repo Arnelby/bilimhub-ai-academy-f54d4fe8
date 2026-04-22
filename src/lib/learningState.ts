@@ -1,6 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { checkInDaily, DEFAULT_DAILY_GOAL } from '@/lib/userActivity';
 import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
+import {
+  selectForcedTopic,
+  computeProgress,
+  getMasteryForTopic,
+  type MasteryProgress,
+  type TopicMasteryRow,
+} from '@/lib/masteryEngine';
 
 /**
  * Learning State Engine — ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ.
@@ -72,10 +79,14 @@ export interface LearningState {
   current_step: CurrentStep;
   current_topic: string | null;
   errors_count: number;
+  /** Mastery progress for current_topic, if any. UI shows X/10 + accuracy% + sessions left. */
+  current_topic_progress?: MasteryProgress | null;
+  /** True when ANY topic is unmastered → user is locked into the forced topic. */
+  mastery_lock?: boolean;
 }
 
 const WEAK_THRESHOLD = 0.6;
-const MIN_ATTEMPTS = 1; // per spec: ВСЕ темы где accuracy < 0.6
+const MIN_ATTEMPTS = 1; // legacy fallback; mastery engine takes precedence
 
 function todayDate(): string {
   const d = new Date();
@@ -257,39 +268,44 @@ function topicHasWatchedLesson(topic: string, snap: Snapshot): boolean {
   return snap.completed_lessons.includes(lessonId);
 }
 
-function resolveNext(snap: Snapshot): NextResolved {
-  // 1. СВЕЖИЕ ОШИБКИ (≤24ч) → СНАЧАЛА УРОК ПО СЛАБОЙ ТЕМЕ.
-  // Это критический приоритет: пользователь только что ошибся → его нельзя
-  // отправлять обратно в практику без видео.
-  if (snap.recent_mistake_topic) {
-    const topic = snap.recent_mistake_topic;
-    const acc = snap.topic_stats[topic]?.accuracy ?? 0;
+function resolveNext(snap: Snapshot, forced: TopicMasteryRow | null): NextResolved {
+  // ===== PRIORITY 0: MASTERY LOCK =====
+  // If there is ANY unmastered topic → user MUST work on it.
+  // No free choice, no jumping themes.
+  if (forced) {
+    const topic = forced.topic;
+    const acc = forced.accuracy;
     const pct = Math.round(acc * 100);
     const lessonId = snap.topic_to_lesson[topic] || null;
-    if (lessonId && !snap.completed_lessons.includes(lessonId)) {
+
+    // Lesson trigger: low accuracy or 3 wrong in a row → force watch first.
+    if (forced.needs_lesson && lessonId && !forced.last_lesson_watched_at) {
       return {
         next_action: 'practice',
         next_action_type: 'watch_lesson',
         next_target: lessonId,
-        next_reason: `Ты ошибся в теме «${topic}» (точность ${pct}%). Сначала посмотри урок.`,
+        next_reason: `Ты не понимаешь тему «${topic}» (точность ${pct}%). Сначала посмотри урок.`,
         current_step: 'practice',
         current_topic: topic,
       };
     }
-    // Урок уже посмотрен → закрепи практикой
-    if (lessonId) {
-      return {
-        next_action: 'practice',
-        next_action_type: 'practice',
-        next_target: topic,
-        next_reason: `Закрепи тему «${topic}» практикой (точность ${pct}%)`,
-        current_step: 'practice',
-        current_topic: topic,
-      };
-    }
+
+    return {
+      next_action: 'practice',
+      next_action_type: 'practice',
+      next_target: topic,
+      next_reason:
+        forced.total_attempts < 10
+          ? `Тема «${topic}»: ${forced.total_attempts}/10 попыток. Точность ${pct}%.`
+          : `Тема «${topic}»: подними точность до 80% (сейчас ${pct}%).`,
+      current_step: 'practice',
+      current_topic: topic,
+    };
   }
 
-  // 2. Spaced repetition due → повторить ошибки
+  // ===== Below applies only when EVERYTHING is mastered =====
+
+  // 1. Spaced repetition due → review
   if (snap.due_review_count > 0) {
     return {
       next_action: 'review_errors',
@@ -381,9 +397,13 @@ export async function updateLearningState(userId: string): Promise<LearningState
   if (!userId) return null;
 
   try {
-    const snap = await computeSnapshot(userId);
-    const next = resolveNext(snap);
+    const [snap, forced] = await Promise.all([
+      computeSnapshot(userId),
+      selectForcedTopic(userId),
+    ]);
+    const next = resolveNext(snap, forced);
     const plan = buildPlan(snap, next);
+    const currentProgress = forced ? computeProgress(forced) : null;
 
     const payload = {
       user_id: userId,
@@ -419,21 +439,21 @@ export async function updateLearningState(userId: string): Promise<LearningState
 
     console.log('[STATE_UPDATED]', {
       user_id: userId,
-      weak_topics: snap.weak_topics,
+      forced_topic: forced?.topic ?? null,
+      mastery_lock: !!forced,
       next_action: next.next_action_type,
       target: next.next_target,
     });
     console.log('[PLAN_UPDATED]', { plan });
     console.log('[NEXT_ACTION]', next.next_action_type);
-    for (const [topic, s] of Object.entries(snap.topic_stats)) {
-      console.log('[TOPIC_STATS]', { topic, accuracy: s.accuracy, attempts: s.total_attempts });
-    }
 
     const row = data as any;
     return {
       ...row,
       next_action_type: next.next_action_type,
       next_target: next.next_target,
+      current_topic_progress: currentProgress,
+      mastery_lock: !!forced,
     } as LearningState;
   } catch (e) {
     console.error('[STATE_UPDATED] failed', e);
@@ -452,12 +472,25 @@ export async function getLearningState(userId: string): Promise<LearningState | 
   if (error) console.error('[STATE_FETCH] failed', error);
 
   if (!data) return updateLearningState(userId);
-  // Ensure UI always has next_action_type
   const row = data as any;
-  if (!row.next_action_type) {
-    return updateLearningState(userId);
+  if (!row.next_action_type) return updateLearningState(userId);
+
+  // Hydrate mastery progress + lock so UI always shows X/10 + accuracy%.
+  let current_topic_progress: MasteryProgress | null = null;
+  let mastery_lock = false;
+  try {
+    const forced = await selectForcedTopic(userId);
+    mastery_lock = !!forced;
+    if (forced) current_topic_progress = computeProgress(forced);
+    else if (row.current_topic) {
+      const r = await getMasteryForTopic(userId, row.current_topic);
+      if (r) current_topic_progress = computeProgress(r);
+    }
+  } catch (e) {
+    console.error('[STATE_FETCH] mastery hydrate failed', e);
   }
-  return row as LearningState;
+
+  return { ...row, current_topic_progress, mastery_lock } as LearningState;
 }
 
 /**

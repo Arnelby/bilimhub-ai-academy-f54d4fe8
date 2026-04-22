@@ -23,6 +23,7 @@ import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
+import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic } from '@/lib/masteryEngine';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -109,6 +110,23 @@ export default function Practice() {
     setExpandedMistake(null);
     setGenerationError(null);
     sessionStartRef.current = Date.now();
+
+    // ===== MASTERY LOCK (AI group only) =====
+    // If there is an unmastered topic and the user did NOT request review mode,
+    // force them onto the weakest topic. No free choice.
+    if (!reviewMode && isAI) {
+      try {
+        const forced = await selectForcedTopic(user.id);
+        if (forced && normalizeAnalyticsTopic(focusedTopic || '') !== forced.topic) {
+          console.log('[MASTERY_LOCK] redirecting to forced topic', forced.topic);
+          setSearchParams({ topic: forced.topic });
+          return;
+        }
+      } catch (e) {
+        console.error('[MASTERY_LOCK] check failed', e);
+      }
+    }
+
 
     // === REVIEW MODE — AI group only. Control must never see mistake-review flow. ===
     if (reviewMode && !isAI) {
@@ -851,6 +869,18 @@ export default function Practice() {
       await updateTopicStats({ userId: user.id, topic: q.topic, isCorrect });
     } catch (e) {
       console.error('[TOPIC_STATS_HOOK] failed', e);
+    }
+
+    // MASTERY MODE — record attempt + maintain mistake queue (deterministic, NO AI)
+    try {
+      await recordMasteryAttempt({
+        userId: user.id,
+        topic: q.topic,
+        questionId: qid,
+        isCorrect,
+      });
+    } catch (e) {
+      console.error('[MASTERY_HOOK] failed', e);
     }
 
     // Motivation: count this answer toward the daily goal (also performs
