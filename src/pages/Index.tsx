@@ -11,11 +11,13 @@ import {
   BookOpen,
   Sparkles,
   PlayCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
@@ -225,87 +227,99 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        {/* Краткий дашборд (читает только из state) */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="p-5 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Flame className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{state.streak}</div>
-                <div className="text-xs text-muted-foreground">дней подряд</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  Дневная цель
-                </span>
-                <span className="font-medium">
-                  {state.daily_progress}/{state.daily_goal}
-                </span>
-              </div>
-              <Progress value={goalPct} className="h-2" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-5 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{weakTopics.length}</div>
-                <div className="text-xs text-muted-foreground">слабых тем</div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Compact secondary line — keeps signals visible without overload */}
+        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Flame className="h-4 w-4 text-accent" />
+            <span className="font-medium text-foreground">{state.streak}</span> дн.
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Target className="h-4 w-4" />
+            <span className="font-medium text-foreground">{state.daily_progress}/{state.daily_goal}</span>
+          </span>
+          {weakTopics.length > 0 && (
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4 text-destructive" />
+              <span className="font-medium text-foreground">{weakTopics.length}</span> слаб.
+            </span>
+          )}
         </div>
 
-        {/* Слабые темы */}
-        {weakTopics.length > 0 && (
-          <Card>
-            <CardContent className="p-5 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4" />
-                Слабые темы
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {weakTopics.map((t) => (
-                  <Badge key={t} variant="outline">
-                    {t}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Подробности (свернуто по умолчанию) */}
+        <Collapsible>
+          <CollapsibleTrigger className="w-full text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 select-none group">
+            Подробнее
+            <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 space-y-4">
+            {/* Дневная цель — прогресс */}
+            <Card>
+              <CardContent className="p-5 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Target className="h-4 w-4" />
+                    Дневная цель
+                  </span>
+                  <span className="font-medium">
+                    {state.daily_progress}/{state.daily_goal}
+                  </span>
+                </div>
+                <Progress value={goalPct} className="h-2" />
+              </CardContent>
+            </Card>
 
-        {/* Подменю «больше» */}
-        <details className="group">
-          <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground text-center select-none">
-            Больше разделов ▾
-          </summary>
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/lessons">Уроки</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/tests">Тесты</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/practice">Практика</Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/dashboard">Панель</Link>
-            </Button>
-          </div>
-        </details>
+            {/* Слабые темы (первые 3, остальные раскрываются) */}
+            {weakTopics.length > 0 && (
+              <Card>
+                <CardContent className="p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <BookOpen className="h-4 w-4" />
+                    Слабые темы ({weakTopics.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {weakTopics.slice(0, 3).map((t) => (
+                      <Badge key={t} variant="outline">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                  {weakTopics.length > 3 && (
+                    <Collapsible>
+                      <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground">
+                        Показать ещё {weakTopics.length - 3} ▾
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {weakTopics.slice(3).map((t) => (
+                            <Badge key={t} variant="outline">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Больше разделов */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/lessons">Уроки</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/tests">Тесты</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/practice">Практика</Link>
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/dashboard">Панель</Link>
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </Layout>
   );
