@@ -618,10 +618,16 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Achievements - full width below */}
-            <div className="mt-8">
-              <AchievementsPanel />
-            </div>
+            {/* Achievements - collapsed by default */}
+            <details className="mt-8 group rounded-lg border bg-card">
+              <summary className="cursor-pointer p-4 text-sm font-medium flex items-center justify-between select-none hover:bg-muted/50 rounded-lg">
+                <span>🏆 Достижения</span>
+                <span className="text-xs text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+              <div className="p-4 pt-0">
+                <AchievementsPanel />
+              </div>
+            </details>
           </>
         )}
       </div>

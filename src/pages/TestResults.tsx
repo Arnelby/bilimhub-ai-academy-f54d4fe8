@@ -292,71 +292,80 @@ export default function TestResults() {
           </Card>
         </div>
 
-        {/* Per-Question Breakdown — BOTH groups */}
+        {/* Per-Question Breakdown — collapsed by default for less overload */}
         {hasRichAnswers && answerDetails.length > 0 && (
           <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Разбор по вопросам</CardTitle>
-              <CardDescription>Подробный разбор каждого ответа из базы данных</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {displayedAnswers.map((a, idx) => {
-                  const expl = explanationsByQNum[a.questionNumber] || {
-                    correct_explanation: null,
-                    explanation_a: null,
-                    explanation_b: null,
-                    explanation_c: null,
-                    explanation_d: null,
-                    explanation_e: null,
-                  };
-                  const numericTestId = Object.entries(TEST_CONFIG).find(
-                    ([, cfg]) => cfg.uuid === (result as any).test_id,
-                  )?.[0];
-                  const cfg = numericTestId ? TEST_CONFIG[Number(numericTestId)] : null;
-                  const cachePrefix = cfg?.table === 'math_test_questions' ? 'mtq' : 'mq';
-                  const cacheId = numericTestId
-                    ? `${cachePrefix}_${numericTestId}_${a.questionNumber}`
-                    : null;
-                  const reviewData: QuestionReviewData = {
-                    questionNumber: a.questionNumber,
-                    topic: a.topic,
-                    type: a.type,
-                    instruction: a.instruction,
-                    column_a: a.column_a,
-                    column_b: a.column_b,
-                    options: a.options,
-                    userAnswer: a.answer,
-                    correctAnswer: a.correctAnswer,
-                    isCorrect: a.isCorrect,
-                    correctExplanation: expl.correct_explanation,
-                    explanationA: expl.explanation_a,
-                    explanationB: expl.explanation_b,
-                    explanationC: expl.explanation_c,
-                    explanationD: expl.explanation_d,
-                    explanationE: expl.explanation_e,
-                    questionCacheId: cacheId,
-                  };
-                  return (
-                    <QuestionReview
-                      key={idx}
-                      data={reviewData}
-                      groupMode={isAI ? 'ai' : 'control'}
-                    />
-                  );
-                })}
-              </div>
+            <Collapsible>
+              <CollapsibleTrigger className="w-full text-left group">
+                <CardHeader className="flex-row items-center justify-between space-y-0">
+                  <div>
+                    <CardTitle>Разбор по вопросам ({answerDetails.length})</CardTitle>
+                    <CardDescription>Нажмите, чтобы посмотреть подробный разбор</CardDescription>
+                  </div>
+                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
+                  <div className="space-y-3">
+                    {displayedAnswers.map((a, idx) => {
+                      const expl = explanationsByQNum[a.questionNumber] || {
+                        correct_explanation: null,
+                        explanation_a: null,
+                        explanation_b: null,
+                        explanation_c: null,
+                        explanation_d: null,
+                        explanation_e: null,
+                      };
+                      const numericTestId = Object.entries(TEST_CONFIG).find(
+                        ([, cfg]) => cfg.uuid === (result as any).test_id,
+                      )?.[0];
+                      const cfg = numericTestId ? TEST_CONFIG[Number(numericTestId)] : null;
+                      const cachePrefix = cfg?.table === 'math_test_questions' ? 'mtq' : 'mq';
+                      const cacheId = numericTestId
+                        ? `${cachePrefix}_${numericTestId}_${a.questionNumber}`
+                        : null;
+                      const reviewData: QuestionReviewData = {
+                        questionNumber: a.questionNumber,
+                        topic: a.topic,
+                        type: a.type,
+                        instruction: a.instruction,
+                        column_a: a.column_a,
+                        column_b: a.column_b,
+                        options: a.options,
+                        userAnswer: a.answer,
+                        correctAnswer: a.correctAnswer,
+                        isCorrect: a.isCorrect,
+                        correctExplanation: expl.correct_explanation,
+                        explanationA: expl.explanation_a,
+                        explanationB: expl.explanation_b,
+                        explanationC: expl.explanation_c,
+                        explanationD: expl.explanation_d,
+                        explanationE: expl.explanation_e,
+                        questionCacheId: cacheId,
+                      };
+                      return (
+                        <QuestionReview
+                          key={idx}
+                          data={reviewData}
+                          groupMode={isAI ? 'ai' : 'control'}
+                        />
+                      );
+                    })}
+                  </div>
 
-              {answerDetails.length > 10 && !showAllQuestions && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => setShowAllQuestions(true)}
-                >
-                  Показать все {answerDetails.length} вопросов
-                </Button>
-              )}
-            </CardContent>
+                  {answerDetails.length > 10 && !showAllQuestions && (
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => setShowAllQuestions(true)}
+                    >
+                      Показать все {answerDetails.length} вопросов
+                    </Button>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
         )}
 
