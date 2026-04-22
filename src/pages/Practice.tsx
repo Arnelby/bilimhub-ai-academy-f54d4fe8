@@ -854,6 +854,18 @@ export default function Practice() {
       console.error('[TOPIC_STATS_HOOK] failed', e);
     }
 
+    // MASTERY MODE — record attempt + maintain mistake queue (deterministic, NO AI)
+    try {
+      await recordMasteryAttempt({
+        userId: user.id,
+        topic: q.topic,
+        questionId: qid,
+        isCorrect,
+      });
+    } catch (e) {
+      console.error('[MASTERY_HOOK] failed', e);
+    }
+
     // Motivation: count this answer toward the daily goal (also performs
     // daily-reset + streak update if it's the first action of the day).
     try {
