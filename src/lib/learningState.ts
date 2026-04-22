@@ -397,9 +397,13 @@ export async function updateLearningState(userId: string): Promise<LearningState
   if (!userId) return null;
 
   try {
-    const snap = await computeSnapshot(userId);
-    const next = resolveNext(snap);
+    const [snap, forced] = await Promise.all([
+      computeSnapshot(userId),
+      selectForcedTopic(userId),
+    ]);
+    const next = resolveNext(snap, forced);
     const plan = buildPlan(snap, next);
+    const currentProgress = forced ? computeProgress(forced) : null;
 
     const payload = {
       user_id: userId,
@@ -435,21 +439,21 @@ export async function updateLearningState(userId: string): Promise<LearningState
 
     console.log('[STATE_UPDATED]', {
       user_id: userId,
-      weak_topics: snap.weak_topics,
+      forced_topic: forced?.topic ?? null,
+      mastery_lock: !!forced,
       next_action: next.next_action_type,
       target: next.next_target,
     });
     console.log('[PLAN_UPDATED]', { plan });
     console.log('[NEXT_ACTION]', next.next_action_type);
-    for (const [topic, s] of Object.entries(snap.topic_stats)) {
-      console.log('[TOPIC_STATS]', { topic, accuracy: s.accuracy, attempts: s.total_attempts });
-    }
 
     const row = data as any;
     return {
       ...row,
       next_action_type: next.next_action_type,
       next_target: next.next_target,
+      current_topic_progress: currentProgress,
+      mastery_lock: !!forced,
     } as LearningState;
   } catch (e) {
     console.error('[STATE_UPDATED] failed', e);
