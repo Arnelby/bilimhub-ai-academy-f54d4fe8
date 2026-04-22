@@ -472,12 +472,25 @@ export async function getLearningState(userId: string): Promise<LearningState | 
   if (error) console.error('[STATE_FETCH] failed', error);
 
   if (!data) return updateLearningState(userId);
-  // Ensure UI always has next_action_type
   const row = data as any;
-  if (!row.next_action_type) {
-    return updateLearningState(userId);
+  if (!row.next_action_type) return updateLearningState(userId);
+
+  // Hydrate mastery progress + lock so UI always shows X/10 + accuracy%.
+  let current_topic_progress: MasteryProgress | null = null;
+  let mastery_lock = false;
+  try {
+    const forced = await selectForcedTopic(userId);
+    mastery_lock = !!forced;
+    if (forced) current_topic_progress = computeProgress(forced);
+    else if (row.current_topic) {
+      const r = await getMasteryForTopic(userId, row.current_topic);
+      if (r) current_topic_progress = computeProgress(r);
+    }
+  } catch (e) {
+    console.error('[STATE_FETCH] mastery hydrate failed', e);
   }
-  return row as LearningState;
+
+  return { ...row, current_topic_progress, mastery_lock } as LearningState;
 }
 
 /**
