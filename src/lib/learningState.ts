@@ -79,10 +79,14 @@ export interface LearningState {
   current_step: CurrentStep;
   current_topic: string | null;
   errors_count: number;
+  /** Mastery progress for current_topic, if any. UI shows X/10 + accuracy% + sessions left. */
+  current_topic_progress?: MasteryProgress | null;
+  /** True when ANY topic is unmastered → user is locked into the forced topic. */
+  mastery_lock?: boolean;
 }
 
 const WEAK_THRESHOLD = 0.6;
-const MIN_ATTEMPTS = 1; // per spec: ВСЕ темы где accuracy < 0.6
+const MIN_ATTEMPTS = 1; // legacy fallback; mastery engine takes precedence
 
 function todayDate(): string {
   const d = new Date();
