@@ -111,6 +111,23 @@ export default function Practice() {
     setGenerationError(null);
     sessionStartRef.current = Date.now();
 
+    // ===== MASTERY LOCK (AI group only) =====
+    // If there is an unmastered topic and the user did NOT request review mode,
+    // force them onto the weakest topic. No free choice.
+    if (!reviewMode && isAI) {
+      try {
+        const forced = await selectForcedTopic(user.id);
+        if (forced && normalizeAnalyticsTopic(focusedTopic || '') !== forced.topic) {
+          console.log('[MASTERY_LOCK] redirecting to forced topic', forced.topic);
+          setSearchParams({ topic: forced.topic });
+          return;
+        }
+      } catch (e) {
+        console.error('[MASTERY_LOCK] check failed', e);
+      }
+    }
+
+
     // === REVIEW MODE — AI group only. Control must never see mistake-review flow. ===
     if (reviewMode && !isAI) {
       console.log('[REVIEW_MODE] blocked for non-AI group — redirecting to general practice');
