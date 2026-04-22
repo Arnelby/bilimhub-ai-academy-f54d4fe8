@@ -268,39 +268,44 @@ function topicHasWatchedLesson(topic: string, snap: Snapshot): boolean {
   return snap.completed_lessons.includes(lessonId);
 }
 
-function resolveNext(snap: Snapshot): NextResolved {
-  // 1. СВЕЖИЕ ОШИБКИ (≤24ч) → СНАЧАЛА УРОК ПО СЛАБОЙ ТЕМЕ.
-  // Это критический приоритет: пользователь только что ошибся → его нельзя
-  // отправлять обратно в практику без видео.
-  if (snap.recent_mistake_topic) {
-    const topic = snap.recent_mistake_topic;
-    const acc = snap.topic_stats[topic]?.accuracy ?? 0;
+function resolveNext(snap: Snapshot, forced: TopicMasteryRow | null): NextResolved {
+  // ===== PRIORITY 0: MASTERY LOCK =====
+  // If there is ANY unmastered topic → user MUST work on it.
+  // No free choice, no jumping themes.
+  if (forced) {
+    const topic = forced.topic;
+    const acc = forced.accuracy;
     const pct = Math.round(acc * 100);
     const lessonId = snap.topic_to_lesson[topic] || null;
-    if (lessonId && !snap.completed_lessons.includes(lessonId)) {
+
+    // Lesson trigger: low accuracy or 3 wrong in a row → force watch first.
+    if (forced.needs_lesson && lessonId && !forced.last_lesson_watched_at) {
       return {
         next_action: 'practice',
         next_action_type: 'watch_lesson',
         next_target: lessonId,
-        next_reason: `Ты ошибся в теме «${topic}» (точность ${pct}%). Сначала посмотри урок.`,
+        next_reason: `Ты не понимаешь тему «${topic}» (точность ${pct}%). Сначала посмотри урок.`,
         current_step: 'practice',
         current_topic: topic,
       };
     }
-    // Урок уже посмотрен → закрепи практикой
-    if (lessonId) {
-      return {
-        next_action: 'practice',
-        next_action_type: 'practice',
-        next_target: topic,
-        next_reason: `Закрепи тему «${topic}» практикой (точность ${pct}%)`,
-        current_step: 'practice',
-        current_topic: topic,
-      };
-    }
+
+    return {
+      next_action: 'practice',
+      next_action_type: 'practice',
+      next_target: topic,
+      next_reason:
+        forced.total_attempts < 10
+          ? `Тема «${topic}»: ${forced.total_attempts}/10 попыток. Точность ${pct}%.`
+          : `Тема «${topic}»: подними точность до 80% (сейчас ${pct}%).`,
+      current_step: 'practice',
+      current_topic: topic,
+    };
   }
 
-  // 2. Spaced repetition due → повторить ошибки
+  // ===== Below applies only when EVERYTHING is mastered =====
+
+  // 1. Spaced repetition due → review
   if (snap.due_review_count > 0) {
     return {
       next_action: 'review_errors',
