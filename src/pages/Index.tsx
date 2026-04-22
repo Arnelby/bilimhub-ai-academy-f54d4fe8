@@ -167,6 +167,29 @@ export default function Index() {
               <p className="text-muted-foreground text-base">{state.next_reason}</p>
             </div>
 
+            {/* Mastery progress for the forced/current topic */}
+            {!isCompleted && (state as any).current_topic_progress && (
+              <div className="rounded-lg border bg-muted/30 p-4 text-left space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium">
+                    Тема: {(state as any).current_topic_progress.topic}
+                  </span>
+                  <Badge variant={(state as any).current_topic_progress.needs_lesson ? 'destructive' : 'secondary'}>
+                    {Math.round(((state as any).current_topic_progress.accuracy ?? 0) * 100)}% точность
+                  </Badge>
+                </div>
+                <Progress value={(state as any).current_topic_progress.progress_pct} className="h-2" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Попыток: {(state as any).current_topic_progress.total_attempts}/10
+                  </span>
+                  <span>
+                    Осталось: ~{(state as any).current_topic_progress.attempts_left_estimate} подходов
+                  </span>
+                </div>
+              </div>
+            )}
+
             {!isCompleted ? (
               <Button size="lg" onClick={handleContinue} className="w-full text-base h-14">
                 {ACTION_LABEL[actionType]}
