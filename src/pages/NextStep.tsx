@@ -4,9 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, ArrowRight, CheckCircle2, Target, RefreshCw, ClipboardList } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Target, RefreshCw, ClipboardList, PlayCircle } from 'lucide-react';
 import { getNextAction, nextActionLabel, type NextStepResult, type NextAction } from '@/lib/nextStepEngine';
 import { useMotivation } from '@/hooks/useMotivation';
+import { getLearningState, nextActionRoute, type LearningState } from '@/lib/learningState';
 
 const ICONS: Record<NextAction, React.ReactNode> = {
   test: <ClipboardList className="h-6 w-6" />,
@@ -19,6 +20,7 @@ export default function NextStep() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<NextStepResult | null>(null);
+  const [state, setState] = useState<LearningState | null>(null);
   const [loading, setLoading] = useState(true);
   const motivation = useMotivation(user?.id);
 
@@ -27,9 +29,15 @@ export default function NextStep() {
     let cancel = false;
     const load = async () => {
       setLoading(true);
-      const result = await getNextAction(user.id);
+      // Fetch both the legacy result (for step indicator) AND the rich state
+      // (for routing — only the rich state knows about watch_lesson + next_target).
+      const [result, fullState] = await Promise.all([
+        getNextAction(user.id),
+        getLearningState(user.id),
+      ]);
       if (!cancel) {
         setStep(result);
+        setState(fullState);
         setLoading(false);
       }
     };
@@ -48,6 +56,14 @@ export default function NextStep() {
 
   const handleContinue = () => {
     if (!step) return;
+    // PRIORITY 1: rich state knows about watch_lesson, real lesson IDs and topic targets.
+    if (state) {
+      const route = nextActionRoute(state);
+      console.log('[NEXT_STEP_NAV]', { type: state.next_action_type, target: state.next_target, route });
+      navigate(route);
+      return;
+    }
+    // Fallback to legacy enum
     switch (step.next_action) {
       case 'test':
         navigate('/tests');
@@ -67,6 +83,11 @@ export default function NextStep() {
         break;
     }
   };
+
+  // Determine the CTA label/icon based on the rich action type when available.
+  const isWatchLesson = state?.next_action_type === 'watch_lesson';
+  const ctaIcon = isWatchLesson ? <PlayCircle className="h-6 w-6" /> : (step ? ICONS[step.next_action] : null);
+  const ctaLabel = isWatchLesson ? 'Смотреть урок' : 'Продолжить обучение';
 
   if (loading || !step) {
     return (
