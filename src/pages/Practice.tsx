@@ -825,6 +825,16 @@ export default function Practice() {
     const isCorrect = compareAnswers(latinKey, q.correct_answer);
     const respReliable = !!(participantId && normUser);
 
+    // Strict diagnostic — never hide a comparison from the developer console.
+    console.log('[ANSWER_DEBUG]', {
+      question_id: qid,
+      user_answer: latinKey,
+      correct_answer: q.correct_answer,
+      normalized_user: normUser,
+      normalized_correct: normCorrect,
+      result: isCorrect,
+    });
+
     const timeSpentSeconds = Math.max(0, Math.round((Date.now() - questionStartRef.current) / 1000));
     const row = {
       session_id: sessionId,
