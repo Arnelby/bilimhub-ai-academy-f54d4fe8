@@ -177,18 +177,8 @@ export default function Lessons() {
     return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex h-[60vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
-        </div>
-      </Layout>
-    );
-  }
-
   // Build topic → lessons map (excluding the recommended lesson, which is shown on top).
-  // The hierarchy is: Topic (group) → Lessons → Video (each card already shows the embed).
+  // Hierarchy: Topic (group) → Lessons → Video. Hooks declared before any early return.
   const weakTopicsNorm = useMemo(() => {
     const w = Array.isArray((learningState as any)?.weak_topics)
       ? ((learningState as any).weak_topics as string[])
@@ -196,7 +186,6 @@ export default function Lessons() {
     return new Set(w.map(t => normalizeAnalyticsTopic(t)).filter(Boolean));
   }, [learningState]);
 
-  // All distinct topics (sorted: weak first, then alphabetical)
   const allTopics = useMemo(() => {
     const map = new Map<string, { name: string; isWeak: boolean }>();
     for (const l of lessons) {
@@ -237,6 +226,16 @@ export default function Lessons() {
       return next;
     });
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        </div>
+      </Layout>
+    );
+  }
 
   const renderLessonCard = (lesson: LessonRow, opts?: { highlight?: boolean }) => {
     const youtubeUrl = lesson.content?.youtube_url || '';
