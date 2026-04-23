@@ -449,11 +449,30 @@ export default function Practice() {
 
       const bankAll = rawBank.filter(isQualityOk);
 
-      // === DIFFICULTY HEURISTIC (no DB column needed) ===
-      // easy   — short instruction, only digits, no variables/equations
-      // hard   — long text OR contains figure refs / multi-step keywords
-      // medium — everything in between
-      const classifyDifficulty = (b: Bank): 'easy' | 'medium' | 'hard' => {
+      // === DIFFICULTY: data-driven first, text heuristic as fallback ===
+      // Pull global accuracy per question_id from practice_responses (across all users).
+      // difficulty_score = correct / total
+      //   easy   > 0.7
+      //   medium 0.4–0.7
+      //   hard   < 0.4
+      // Requires n >= 5 attempts; otherwise fall back to text heuristic.
+      const qidsForStats = bankAll.map(b => b.qid).filter(Boolean);
+      const statsByQid = new Map<string, { total: number; correct: number }>();
+      if (qidsForStats.length > 0) {
+        const { data: statsRows } = await supabase
+          .from('practice_responses')
+          .select('question_id, is_correct')
+          .in('question_id', qidsForStats);
+        for (const r of (statsRows || [])) {
+          if (!r.question_id) continue;
+          const cur = statsByQid.get(r.question_id) || { total: 0, correct: 0 };
+          cur.total += 1;
+          if (r.is_correct) cur.correct += 1;
+          statsByQid.set(r.question_id, cur);
+        }
+      }
+
+      const classifyByText = (b: Bank): 'easy' | 'medium' | 'hard' => {
         const q = b.q;
         const text = (q.type === 'comparison'
           ? `${q.instruction || ''} ${(q as ComparisonPractice).column_a} ${(q as ComparisonPractice).column_b}`
@@ -467,10 +486,28 @@ export default function Practice() {
         if (len > 180 || hasFigure || (hasVars && hasMultiStep)) return 'hard';
         return 'medium';
       };
+
+      const classifyDifficulty = (b: Bank): 'easy' | 'medium' | 'hard' => {
+        const s = statsByQid.get(b.qid);
+        if (s && s.total >= 5) {
+          const score = s.correct / s.total;
+          const level: 'easy' | 'medium' | 'hard' =
+            score > 0.7 ? 'easy' : score < 0.4 ? 'hard' : 'medium';
+          console.log('[DIFFICULTY_DATA]', { qid: b.qid, n: s.total, score: score.toFixed(2), level });
+          return level;
+        }
+        return classifyByText(b);
+      };
+
       const bank = difficultyParam === 'all'
         ? bankAll
         : bankAll.filter(b => classifyDifficulty(b) === difficultyParam);
-      console.log('[DIFFICULTY_FILTER]', { selected: difficultyParam, before: bankAll.length, after: bank.length });
+      console.log('[DIFFICULTY_FILTER]', {
+        selected: difficultyParam,
+        before: bankAll.length,
+        after: bank.length,
+        with_stats: Array.from(statsByQid.values()).filter(s => s.total >= 5).length,
+      });
 
       const bankByQid = new Map(bank.map(b => [b.qid, b]));
       const poolByTopic = Array.from(bank.reduce((map, item) => {
