@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CheckCircle, XCircle, Sparkles, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CheckCircle, XCircle, Sparkles, Loader2, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MathRenderer } from "@/components/math/MathRenderer";
