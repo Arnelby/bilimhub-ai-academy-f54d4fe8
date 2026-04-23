@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,12 +26,14 @@ interface Message {
 export default function AISmartTutor() {
   const { user, session } = useAuth();
   const { language } = useLanguage();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [diagnosticProfile, setDiagnosticProfile] = useState<any>(null);
   const [weakTopics, setWeakTopics] = useState<string[]>([]);
+  const [seededQuestion, setSeededQuestion] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +42,32 @@ export default function AISmartTutor() {
       loadChatHistory();
     }
   }, [user]);
+
+  // Seed initial message from URL params (?question=...&user_answer=...&correct_answer=...&topic=...)
+  // Triggered when user clicks "Разбор с AI" on a wrong answer in Practice/Test review.
+  useEffect(() => {
+    if (!user || !session || seededQuestion || loading) return;
+    const q = searchParams.get('question');
+    const ua = searchParams.get('user_answer');
+    const ca = searchParams.get('correct_answer');
+    const topic = searchParams.get('topic');
+    if (!q && !ca) return;
+    setSeededQuestion(true);
+    const lines = [
+      language === 'ru'
+        ? 'Разбери эту задачу со мной по шагам. Объясни, где я ошибся и как решить правильно.'
+        : 'Walk me through this problem step by step. Explain where I went wrong and how to solve it.',
+      '',
+      topic ? `Тема: ${topic}` : '',
+      q ? `Задача: ${q}` : '',
+      ua ? `Мой ответ: ${ua}` : '',
+      ca ? `Правильный ответ: ${ca}` : '',
+    ].filter(Boolean).join('\n');
+    const next = new URLSearchParams(searchParams);
+    ['question', 'user_answer', 'correct_answer', 'topic'].forEach(k => next.delete(k));
+    setSearchParams(next, { replace: true });
+    setTimeout(() => { void sendMessage(lines); }, 250);
+  }, [user, session, searchParams, seededQuestion, loading]);
 
   useEffect(() => {
     scrollToBottom();

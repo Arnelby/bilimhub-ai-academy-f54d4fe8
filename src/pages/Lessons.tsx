@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, Lock, Loader2, ChevronRight, BookOpen, CheckCircle, Play, Sparkles, ArrowRight } from 'lucide-react';
+import { Video, Lock, Loader2, ChevronRight, BookOpen, CheckCircle, Play, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +51,8 @@ export default function Lessons() {
   const [playingLesson, setPlayingLesson] = useState<string | null>(null);
   const [learningState, setLearningState] = useState<LearningState | null>(null);
   const [recommendedLesson, setRecommendedLesson] = useState<LessonRow | null>(null);
+  const [topicFilter, setTopicFilter] = useState<string>('all');
+  const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
@@ -174,6 +177,56 @@ export default function Lessons() {
     return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
   };
 
+  // Build topic → lessons map (excluding the recommended lesson, which is shown on top).
+  // Hierarchy: Topic (group) → Lessons → Video. Hooks declared before any early return.
+  const weakTopicsNorm = useMemo(() => {
+    const w = Array.isArray((learningState as any)?.weak_topics)
+      ? ((learningState as any).weak_topics as string[])
+      : [];
+    return new Set(w.map(t => normalizeAnalyticsTopic(t)).filter(Boolean));
+  }, [learningState]);
+
+  const allTopics = useMemo(() => {
+    const map = new Map<string, { name: string; isWeak: boolean }>();
+    for (const l of lessons) {
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      if (!map.has(name)) {
+        const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        map.set(name, { name, isWeak: norm ? weakTopicsNorm.has(norm) : false });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.isWeak && !b.isWeak) return -1;
+      if (!a.isWeak && b.isWeak) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [lessons, language, weakTopicsNorm]);
+
+  const lessonsByTopic = useMemo(() => {
+    const map = new Map<string, LessonRow[]>();
+    for (const l of lessons) {
+      if (recommendedLesson && l.id === recommendedLesson.id) continue;
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      if (topicFilter !== 'all' && topicFilter !== 'weak' && topicFilter !== name) continue;
+      if (topicFilter === 'weak') {
+        const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        if (!norm || !weakTopicsNorm.has(norm)) continue;
+      }
+      const arr = map.get(name) || [];
+      arr.push(l);
+      map.set(name, arr);
+    }
+    return map;
+  }, [lessons, recommendedLesson, language, topicFilter, weakTopicsNorm]);
+
+  const toggleTopic = (name: string) => {
+    setOpenTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -183,15 +236,6 @@ export default function Lessons() {
       </Layout>
     );
   }
-
-  // Lessons of the same topic as the recommended one (excluding the recommended itself)
-  const otherSameTopic = recommendedLesson
-    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id === recommendedLesson.topic_id)
-    : [];
-  // Other topics (everything else)
-  const otherLessons = recommendedLesson
-    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id !== recommendedLesson.topic_id)
-    : lessons;
 
   const renderLessonCard = (lesson: LessonRow, opts?: { highlight?: boolean }) => {
     const youtubeUrl = lesson.content?.youtube_url || '';
@@ -335,26 +379,70 @@ export default function Lessons() {
                   </section>
                 )}
 
-                {/* Other lessons of the same topic */}
-                {otherSameTopic.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-bold mb-3">Другие уроки по теме</h2>
-                    <div className="space-y-3">
-                      {otherSameTopic.map(l => renderLessonCard(l))}
-                    </div>
-                  </section>
+                {/* Topic filter chips */}
+                {allTopics.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={topicFilter === 'all' ? 'default' : 'outline'}
+                      onClick={() => setTopicFilter('all')}
+                    >
+                      Все темы
+                    </Button>
+                    {weakTopicsNorm.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant={topicFilter === 'weak' ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter('weak')}
+                      >
+                        ⚠ Мои слабые темы
+                      </Button>
+                    )}
+                    {allTopics.map(t => (
+                      <Button
+                        key={t.name}
+                        size="sm"
+                        variant={topicFilter === t.name ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter(t.name)}
+                        className={t.isWeak ? 'border-destructive/40' : ''}
+                      >
+                        {t.isWeak && '⚠ '}{t.name}
+                      </Button>
+                    ))}
+                  </div>
                 )}
 
-                {/* All other lessons */}
-                {otherLessons.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-bold mb-3">
-                      {recommendedLesson ? 'Все остальные уроки' : 'Все уроки'}
-                    </h2>
-                    <div className="space-y-3">
-                      {otherLessons.map(l => renderLessonCard(l))}
-                    </div>
-                  </section>
+                {/* Lessons grouped by topic — collapsed by default */}
+                {Array.from(lessonsByTopic.entries()).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Нет уроков по выбранной теме.
+                  </p>
+                ) : (
+                  Array.from(lessonsByTopic.entries()).map(([topicName, topicLessons]) => {
+                    const isOpen = openTopics.has(topicName) || topicFilter !== 'all';
+                    const norm = normalizeAnalyticsTopic(topicName);
+                    const isWeak = norm ? weakTopicsNorm.has(norm) : false;
+                    const watchedCount = topicLessons.filter(l => completedLessons.has(l.id)).length;
+                    return (
+                      <Collapsible key={topicName} open={isOpen} onOpenChange={() => toggleTopic(topicName)}>
+                        <CollapsibleTrigger className="w-full">
+                          <div className={`flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 ${isWeak ? 'border-destructive/40 bg-destructive/5' : ''}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <BookOpen className="h-4 w-4 shrink-0 text-accent" />
+                              <span className="font-semibold truncate">{isWeak && '⚠ '}{topicName}</span>
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {watchedCount}/{topicLessons.length}
+                              </Badge>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2 pl-2">
+                          {topicLessons.map(l => renderLessonCard(l))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })
                 )}
               </>
             )}
