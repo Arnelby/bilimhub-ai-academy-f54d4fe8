@@ -126,19 +126,21 @@ export default function NextStep() {
         {/* Main card */}
         <Card className="p-8 text-center space-y-6 shadow-lg border-2">
           <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            {ICONS[step.next_action]}
+            {ctaIcon}
           </div>
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold">
               {isCompleted ? 'Готово на сегодня!' : 'Твой следующий шаг'}
             </h1>
-            <p className="text-muted-foreground">{step.reason}</p>
+            <p className="text-muted-foreground">
+              {state?.next_reason || step.reason}
+            </p>
           </div>
 
           {!isCompleted && (
             <Button size="lg" onClick={handleContinue} className="w-full text-base h-14">
-              Продолжить обучение
+              {ctaLabel}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           )}
