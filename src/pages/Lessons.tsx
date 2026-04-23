@@ -51,6 +51,8 @@ export default function Lessons() {
   const [playingLesson, setPlayingLesson] = useState<string | null>(null);
   const [learningState, setLearningState] = useState<LearningState | null>(null);
   const [recommendedLesson, setRecommendedLesson] = useState<LessonRow | null>(null);
+  const [topicFilter, setTopicFilter] = useState<string>('all');
+  const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchData();
