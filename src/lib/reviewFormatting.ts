@@ -31,13 +31,25 @@ export function sanitizeReviewText(raw: string | null | undefined): string | nul
     return `\u0000M${idx}\u0000`;
   });
 
-  // 3. Prose-only fixes
+  // 3. Prose-only fixes — synchronize answer letters with UI display (Cyrillic).
+  // The DB stores correct_answer as Latin (A/B/C/D/E), but the UI shows А/Б/В/Г/Д.
+  // Without this, an explanation that says "Ответ A" looks like a contradiction
+  // when the UI badge reads "А". We rewrite ANY standalone Latin variant letter
+  // appearing as a choice reference into Cyrillic.
   text = text.replace(
-    /(Правильный ответ|Ответ|ответ|Вариант|вариант)\s*([:—-]?\s*)([ABCDE])\b/g,
+    /(Правильный ответ|Ответ|ответ|Вариант|вариант|Пункт|пункт|вариант ответа)\s*([:—\-]?\s*)([ABCDE])\b/g,
     (_m, prefix: string, separator: string, letter: string) => `${prefix}${separator}${toCyrillicKey(letter)}`,
   );
-  text = text.replace(/([«"“„])([ABCDE])([»"”“])/g, (_m, open: string, letter: string, close: string) => {
+  // Quoted choices: «A», "B", 'C', (D)
+  text = text.replace(/([«"“„'(])([ABCDE])([»"”“')])/g, (_m, open: string, letter: string, close: string) => {
     return `${open}${toCyrillicKey(letter)}${close}`;
+  });
+  // Bare standalone variant letter at the very end of a sentence: "...значит A.", "...получается B,"
+  text = text.replace(/(\s)([ABCDE])(?=[.,;:!?\s)]|$)/g, (m: string, sp: string, letter: string, offset: number, full: string) => {
+    // Only convert if neighbouring chars are NOT alphanumeric (i.e. a real standalone letter).
+    const prev = full[offset - 1];
+    if (prev && /[A-Za-z0-9_]/.test(prev)) return m;
+    return `${sp}${toCyrillicKey(letter)}`;
   });
 
   // Repair glued Cyrillic words (math already hidden behind placeholders)
