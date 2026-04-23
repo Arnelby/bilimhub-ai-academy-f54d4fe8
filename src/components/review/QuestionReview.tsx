@@ -272,7 +272,7 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
 
           {/* AI hint button (cache-only, AI group only) */}
           {canShowAiBtn && (
-            <div className="pt-1">
+            <div className="pt-1 flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -288,8 +288,25 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
                 {aiOpen ? "Скрыть AI-разбор" : "Разбор с AI"}
               </Button>
 
+              {/* Open in full AI Tutor with question pre-loaded */}
+              {groupMode === 'ai' && !data.isCorrect && (
+                <Button asChild size="sm" variant="outline" className="border-accent/40 text-accent hover:bg-accent/10">
+                  <Link
+                    to={`/ai-tutor?${new URLSearchParams({
+                      question: (data.instruction || (data.column_a && data.column_b ? `Сравните: А = ${data.column_a}, Б = ${data.column_b}` : '')).slice(0, 1000),
+                      user_answer: data.userAnswer || '',
+                      correct_answer: data.correctAnswer || '',
+                      topic: data.topic ? translateTopic(data.topic, 'ru') : '',
+                    }).toString()}`}
+                  >
+                    <Bot className="mr-1 h-3.5 w-3.5" />
+                    Спросить AI-тренера
+                  </Link>
+                </Button>
+              )}
+
               {aiOpen && !aiLoading && (
-                <div className="mt-2 rounded-md border border-accent/20 bg-accent/5 p-3 text-sm overflow-hidden">
+                <div className="mt-2 w-full rounded-md border border-accent/20 bg-accent/5 p-3 text-sm overflow-hidden">
                   {aiError ? (
                     <p className="text-muted-foreground">{aiError}</p>
                   ) : aiHint ? (
