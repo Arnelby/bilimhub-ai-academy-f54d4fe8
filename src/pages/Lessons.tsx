@@ -379,26 +379,70 @@ export default function Lessons() {
                   </section>
                 )}
 
-                {/* Other lessons of the same topic */}
-                {otherSameTopic.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-bold mb-3">Другие уроки по теме</h2>
-                    <div className="space-y-3">
-                      {otherSameTopic.map(l => renderLessonCard(l))}
-                    </div>
-                  </section>
+                {/* Topic filter chips */}
+                {allTopics.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={topicFilter === 'all' ? 'default' : 'outline'}
+                      onClick={() => setTopicFilter('all')}
+                    >
+                      Все темы
+                    </Button>
+                    {weakTopicsNorm.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant={topicFilter === 'weak' ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter('weak')}
+                      >
+                        ⚠ Мои слабые темы
+                      </Button>
+                    )}
+                    {allTopics.map(t => (
+                      <Button
+                        key={t.name}
+                        size="sm"
+                        variant={topicFilter === t.name ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter(t.name)}
+                        className={t.isWeak ? 'border-destructive/40' : ''}
+                      >
+                        {t.isWeak && '⚠ '}{t.name}
+                      </Button>
+                    ))}
+                  </div>
                 )}
 
-                {/* All other lessons */}
-                {otherLessons.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-bold mb-3">
-                      {recommendedLesson ? 'Все остальные уроки' : 'Все уроки'}
-                    </h2>
-                    <div className="space-y-3">
-                      {otherLessons.map(l => renderLessonCard(l))}
-                    </div>
-                  </section>
+                {/* Lessons grouped by topic — collapsed by default */}
+                {Array.from(lessonsByTopic.entries()).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Нет уроков по выбранной теме.
+                  </p>
+                ) : (
+                  Array.from(lessonsByTopic.entries()).map(([topicName, topicLessons]) => {
+                    const isOpen = openTopics.has(topicName) || topicFilter !== 'all';
+                    const norm = normalizeAnalyticsTopic(topicName);
+                    const isWeak = norm ? weakTopicsNorm.has(norm) : false;
+                    const watchedCount = topicLessons.filter(l => completedLessons.has(l.id)).length;
+                    return (
+                      <Collapsible key={topicName} open={isOpen} onOpenChange={() => toggleTopic(topicName)}>
+                        <CollapsibleTrigger className="w-full">
+                          <div className={`flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 ${isWeak ? 'border-destructive/40 bg-destructive/5' : ''}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <BookOpen className="h-4 w-4 shrink-0 text-accent" />
+                              <span className="font-semibold truncate">{isWeak && '⚠ '}{topicName}</span>
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {watchedCount}/{topicLessons.length}
+                              </Badge>
+                            </div>
+                            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                          </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2 pl-2">
+                          {topicLessons.map(l => renderLessonCard(l))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })
                 )}
               </>
             )}
