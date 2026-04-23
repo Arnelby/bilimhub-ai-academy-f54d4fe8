@@ -187,14 +187,56 @@ export default function Lessons() {
     );
   }
 
-  // Lessons of the same topic as the recommended one (excluding the recommended itself)
-  const otherSameTopic = recommendedLesson
-    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id === recommendedLesson.topic_id)
-    : [];
-  // Other topics (everything else)
-  const otherLessons = recommendedLesson
-    ? lessons.filter(l => l.id !== recommendedLesson.id && l.topic_id !== recommendedLesson.topic_id)
-    : lessons;
+  // Build topic → lessons map (excluding the recommended lesson, which is shown on top).
+  // The hierarchy is: Topic (group) → Lessons → Video (each card already shows the embed).
+  const weakTopicsNorm = useMemo(() => {
+    const w = Array.isArray((learningState as any)?.weak_topics)
+      ? ((learningState as any).weak_topics as string[])
+      : [];
+    return new Set(w.map(t => normalizeAnalyticsTopic(t)).filter(Boolean));
+  }, [learningState]);
+
+  // All distinct topics (sorted: weak first, then alphabetical)
+  const allTopics = useMemo(() => {
+    const map = new Map<string, { name: string; isWeak: boolean }>();
+    for (const l of lessons) {
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      if (!map.has(name)) {
+        const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        map.set(name, { name, isWeak: norm ? weakTopicsNorm.has(norm) : false });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.isWeak && !b.isWeak) return -1;
+      if (!a.isWeak && b.isWeak) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [lessons, language, weakTopicsNorm]);
+
+  const lessonsByTopic = useMemo(() => {
+    const map = new Map<string, LessonRow[]>();
+    for (const l of lessons) {
+      if (recommendedLesson && l.id === recommendedLesson.id) continue;
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      if (topicFilter !== 'all' && topicFilter !== 'weak' && topicFilter !== name) continue;
+      if (topicFilter === 'weak') {
+        const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
+        if (!norm || !weakTopicsNorm.has(norm)) continue;
+      }
+      const arr = map.get(name) || [];
+      arr.push(l);
+      map.set(name, arr);
+    }
+    return map;
+  }, [lessons, recommendedLesson, language, topicFilter, weakTopicsNorm]);
+
+  const toggleTopic = (name: string) => {
+    setOpenTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
 
   const renderLessonCard = (lesson: LessonRow, opts?: { highlight?: boolean }) => {
     const youtubeUrl = lesson.content?.youtube_url || '';
