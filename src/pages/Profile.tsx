@@ -31,6 +31,7 @@ import { AchievementCard } from '@/components/gamification/AchievementCard';
 import { LearningTree } from '@/components/gamification/LearningTree';
 import { MasteryLevel } from '@/components/gamification/MasteryNode';
 import { Leaderboard } from '@/components/gamification/Leaderboard';
+import { loadAchievementsForUser, type AchievementProgress } from '@/lib/achievementsSource';
 
 interface Profile {
   name: string | null;
@@ -55,7 +56,7 @@ export default function Profile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topics, setTopics] = useState<TopicProgress[]>([]);
-  const [achievements, setAchievements] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<AchievementProgress[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editFullName, setEditFullName] = useState('');
@@ -134,70 +135,33 @@ export default function Profile() {
         averageScore: avgScore,
       });
 
-      // Fetch topics with progress
-      const { data: topicsData } = await supabase
-        .from('topics')
-        .select('*')
-        .eq('subject', 'mathematics')
-        .order('order_index');
+      // Build learning tree from topic_mastery_state (real source of truth)
+      const { data: masteryRows } = await supabase
+        .from('topic_mastery_state')
+        .select('topic, status, accuracy, total_attempts')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
 
-      const { data: topicProgressData } = await supabase
-        .from('user_topic_progress')
-        .select('*')
-        .eq('user_id', user.id);
-
-      const progressMap = new Map(topicProgressData?.map(p => [p.topic_id, p]) || []);
-
-      const masteryMap: Record<string, MasteryLevel> = {
-        'mastered': 'mastered',
-        'in_progress': 'in-progress',
-        'weak': 'weak',
-        'not_attempted': 'locked',
+      const statusToLevel: Record<string, MasteryLevel> = {
+        mastered: 'mastered',
+        learning: 'in-progress',
+        in_progress: 'in-progress',
+        weak: 'weak',
+        new: 'locked',
       };
 
-      const topicsWithProgress: TopicProgress[] = (topicsData || []).map(topic => {
-        const progress = progressMap.get(topic.id);
-        let level: MasteryLevel = 'locked';
-        
-        if (progress?.mastery) {
-          level = masteryMap[progress.mastery] || 'locked';
-        }
-
-        return {
-          id: topic.id,
-          title: language === 'ru' && topic.title_ru ? topic.title_ru : topic.title,
-          level,
-          progress: progress?.progress_percentage || 0,
-        };
-      });
+      const topicsWithProgress: TopicProgress[] = (masteryRows || []).map(row => ({
+        id: row.topic,
+        title: row.topic,
+        level: statusToLevel[row.status as string] || 'locked',
+        progress: Math.round((row.accuracy || 0) * 100),
+      }));
 
       setTopics(topicsWithProgress);
 
-      // Fetch achievements
-      const { data: achievementsData } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id);
-
-      type AchievementType = 'first_lesson' | 'first_test' | 'streak_3' | 'streak_7' | 'streak_30' | 'mastery_5' | 'mastery_10' | 'perfect_score' | 'early_bird' | 'night_owl';
-      
-      const achievementsList: { id: AchievementType; title: string; description: string; icon?: React.ReactNode }[] = [
-        { id: 'first_lesson', title: 'Первый урок', description: 'Завершите первый урок', icon: <BookOpen className="h-6 w-6" /> },
-        { id: 'first_test', title: 'Первый тест', description: 'Завершите первый тест', icon: <Target className="h-6 w-6" /> },
-        { id: 'streak_3', title: '3-дневный стрик', description: 'Учитесь 3 дня подряд', icon: <Star className="h-6 w-6" /> },
-        { id: 'streak_7', title: '7-дневный стрик', description: 'Учитесь 7 дней подряд', icon: <Star className="h-6 w-6" /> },
-        { id: 'streak_30', title: '30-дневный стрик', description: 'Учитесь 30 дней подряд', icon: <Trophy className="h-6 w-6" /> },
-        { id: 'perfect_score', title: 'Отличник', description: 'Получите 100% на тесте', icon: <Trophy className="h-6 w-6" /> },
-      ];
-
-      const unlockedIds = new Set(achievementsData?.map(a => a.achievement) || []);
-      setAchievements(achievementsList.map(a => ({
-        ...a,
-        unlocked: unlockedIds.has(a.id),
-        progress: a.id.includes('streak') ? Math.min(100, ((profile?.streak || 0) / parseInt(a.id.split('_')[1] || '7')) * 100) : undefined,
-      })));
-
-      // Saved terms removed (table deleted)
+      // Achievements — single source of truth (same logic as AchievementsPanel)
+      const ach = await loadAchievementsForUser(user.id);
+      setAchievements(ach);
 
     } catch (error) {
       console.error('Error fetching profile data:', error);
