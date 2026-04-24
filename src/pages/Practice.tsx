@@ -23,7 +23,9 @@ import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
-import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic } from '@/lib/masteryEngine';
+import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
+import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
+import { toast } from 'sonner';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -110,6 +112,17 @@ export default function Practice() {
     setExpandedMistake(null);
     setGenerationError(null);
     sessionStartRef.current = Date.now();
+
+    // ENGAGEMENT: when starting a fresh session, clear stale "before" snapshots
+    // so the next results screen captures the true accuracy at session start.
+    if (forceNew) {
+      try {
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith('pre_acc:')) sessionStorage.removeItem(k);
+        }
+      } catch { /* sessionStorage may be unavailable */ }
+    }
 
     // ===== MASTERY LOCK (AI group only) =====
     // If there is an unmastered topic and the user did NOT request review mode,
@@ -827,6 +840,26 @@ export default function Practice() {
       setQuestions(finalQuestions);
       console.log(`[PRACTICE_LOAD] loaded_questions_count=${finalQuestions.length}`);
       console.log('[SCOPE_LOCKED] practice runtime: no AI generation, no runtime personalization beyond pre-built session.');
+
+      // ENGAGEMENT: snapshot pre-session accuracy per topic so the result screen
+      // can render «Было X% → стало Y%». Stored in sessionStorage (per-tab, per-topic).
+      try {
+        const topics = Array.from(
+          new Set(finalQuestions.map((q) => normalizeAnalyticsTopic(q.topic || '')).filter(Boolean)),
+        );
+        await Promise.all(
+          topics.map(async (t) => {
+            const key = `pre_acc:${t}`;
+            // Don't overwrite an existing snapshot (we want true "before" of this session).
+            if (sessionStorage.getItem(key) !== null) return;
+            const row = await getMasteryForTopic(user.id, t);
+            const pct = row ? Math.round((row.accuracy ?? 0) * 100) : 0;
+            sessionStorage.setItem(key, String(pct));
+          }),
+        );
+      } catch (e) {
+        console.warn('[ENGAGEMENT_SNAPSHOT] failed', e);
+      }
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
       console.log('[TOPIC_LOAD_DEBUG]', {
@@ -928,6 +961,27 @@ export default function Practice() {
       });
     } catch (e) {
       console.error('[MASTERY_HOOK] failed', e);
+    }
+
+    // ENGAGEMENT: micro-feedback toast — every action gets a reaction.
+    try {
+      if (isCorrect) {
+        const normTopic = normalizeAnalyticsTopic(q.topic || '');
+        const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
+        if (row && row.status === 'mastered') {
+          toast.success(`🎯 Тема «${row.topic}» закрыта!`);
+        } else if (row) {
+          const left = Math.max(0, 10 - row.total_attempts);
+          if (left > 0 && left <= 3) toast.success(`+1 шаг • осталось ${left} до закрытия`);
+          else toast.success('+1 шаг к закрытию темы');
+        } else {
+          toast.success('+1 шаг к закрытию темы');
+        }
+      } else {
+        toast('Ошибка — вернёмся к этому позже', { icon: '↻' });
+      }
+    } catch (e) {
+      console.warn('[MICRO_FEEDBACK] failed', e);
     }
 
     // Motivation: count this answer toward the daily goal (also performs
@@ -1203,9 +1257,30 @@ export default function Practice() {
       linkedLessonId: null,
     }));
 
+    // ENGAGEMENT: dominant topic of this session → progress delta block
+    const topicCount: Record<string, number> = {};
+    for (const r of allResults) {
+      const t = normalizeAnalyticsTopic(r.q.topic || '');
+      if (t) topicCount[t] = (topicCount[t] || 0) + 1;
+    }
+    const sessionTopic = Object.entries(topicCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-3xl">
+          {/* ENGAGEMENT — «Было X% → стало Y%», прогресс к закрытию темы, "Добить тему" */}
+          {isAI && user && sessionTopic && (
+            <TopicProgressDelta
+              userId={user.id}
+              topic={sessionTopic}
+              onContinue={() => {
+                // Clear the snapshot so the next session captures a fresh "before".
+                sessionStorage.removeItem(`pre_acc:${sessionTopic}`);
+                setSearchParams({ topic: sessionTopic });
+              }}
+            />
+          )}
+
           {/* === Header — AI group sees full Learning Loop; control sees plain score only === */}
           {isAI ? (
             <MistakesBlock
