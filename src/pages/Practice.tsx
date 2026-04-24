@@ -113,6 +113,17 @@ export default function Practice() {
     setGenerationError(null);
     sessionStartRef.current = Date.now();
 
+    // ENGAGEMENT: when starting a fresh session, clear stale "before" snapshots
+    // so the next results screen captures the true accuracy at session start.
+    if (forceNew) {
+      try {
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith('pre_acc:')) sessionStorage.removeItem(k);
+        }
+      } catch { /* sessionStorage may be unavailable */ }
+    }
+
     // ===== MASTERY LOCK (AI group only) =====
     // If there is an unmastered topic and the user did NOT request review mode,
     // force them onto the weakest topic. No free choice.
