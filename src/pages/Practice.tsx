@@ -23,7 +23,9 @@ import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
-import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic } from '@/lib/masteryEngine';
+import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
+import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
+import { toast } from 'sonner';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -827,6 +829,26 @@ export default function Practice() {
       setQuestions(finalQuestions);
       console.log(`[PRACTICE_LOAD] loaded_questions_count=${finalQuestions.length}`);
       console.log('[SCOPE_LOCKED] practice runtime: no AI generation, no runtime personalization beyond pre-built session.');
+
+      // ENGAGEMENT: snapshot pre-session accuracy per topic so the result screen
+      // can render «Было X% → стало Y%». Stored in sessionStorage (per-tab, per-topic).
+      try {
+        const topics = Array.from(
+          new Set(finalQuestions.map((q) => normalizeAnalyticsTopic(q.topic || '')).filter(Boolean)),
+        );
+        await Promise.all(
+          topics.map(async (t) => {
+            const key = `pre_acc:${t}`;
+            // Don't overwrite an existing snapshot (we want true "before" of this session).
+            if (sessionStorage.getItem(key) !== null) return;
+            const row = await getMasteryForTopic(user.id, t);
+            const pct = row ? Math.round((row.accuracy ?? 0) * 100) : 0;
+            sessionStorage.setItem(key, String(pct));
+          }),
+        );
+      } catch (e) {
+        console.warn('[ENGAGEMENT_SNAPSHOT] failed', e);
+      }
     } catch (err) {
       console.error('[PRACTICE_FRONTEND] Practice load error:', err);
       console.log('[TOPIC_LOAD_DEBUG]', {
