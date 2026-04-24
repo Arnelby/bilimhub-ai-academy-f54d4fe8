@@ -22,6 +22,8 @@ import { Layout } from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { useLearningState } from '@/hooks/useLearningState';
+import { useMotivation } from '@/hooks/useMotivation';
+import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
 
 const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
@@ -120,6 +122,7 @@ export default function Index() {
   const navigate = useNavigate();
   const { isControl, loading: groupLoading } = useUserGroup();
   const { state, loading } = useLearningState(user?.id);
+  const motivation = useMotivation(user?.id);
 
   if (!user) return <GuestHero />;
 
@@ -252,21 +255,17 @@ export default function Index() {
             <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-4 space-y-4">
-            {/* Дневная цель — прогресс */}
-            <Card>
-              <CardContent className="p-5 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Target className="h-4 w-4" />
-                    Дневная цель
-                  </span>
-                  <span className="font-medium">
-                    {state.daily_progress}/{state.daily_goal}
-                  </span>
-                </div>
-                <Progress value={goalPct} className="h-2" />
-              </CardContent>
-            </Card>
+            {/* Mastery + retention motivation */}
+            {!motivation.loading && (
+              <MotivationWidget
+                streak={motivation.streak}
+                tasksCompletedToday={motivation.tasksCompletedToday}
+                dailyGoal={motivation.dailyGoal}
+                goalCompleted={motivation.goalCompleted}
+                activeDaysLast7={motivation.activeDaysLast7}
+                warningLevel={motivation.warningLevel}
+              />
+            )}
 
             {/* Слабые темы (первые 3, остальные раскрываются) */}
             {weakTopics.length > 0 && (
