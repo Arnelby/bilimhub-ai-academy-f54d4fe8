@@ -86,6 +86,12 @@ export default function Tests() {
         for (const row of accessData) {
           aMap[row.test_id] = row.is_allowed;
         }
+        // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always unlock tests 1 & 2
+        if (participantId === 'CTRL-030') {
+          aMap[1] = true;
+          aMap[2] = true;
+          console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test_1: 'allowed', test_2: 'allowed' });
+        }
         setAccessMap(aMap);
       } catch (err) {
         console.error('Error:', err);
