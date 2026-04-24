@@ -1246,9 +1246,30 @@ export default function Practice() {
       linkedLessonId: null,
     }));
 
+    // ENGAGEMENT: dominant topic of this session → progress delta block
+    const topicCount: Record<string, number> = {};
+    for (const r of allResults) {
+      const t = normalizeAnalyticsTopic(r.q.topic || '');
+      if (t) topicCount[t] = (topicCount[t] || 0) + 1;
+    }
+    const sessionTopic = Object.entries(topicCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-3xl">
+          {/* ENGAGEMENT — «Было X% → стало Y%», прогресс к закрытию темы, "Добить тему" */}
+          {isAI && user && sessionTopic && (
+            <TopicProgressDelta
+              userId={user.id}
+              topic={sessionTopic}
+              onContinue={() => {
+                // Clear the snapshot so the next session captures a fresh "before".
+                sessionStorage.removeItem(`pre_acc:${sessionTopic}`);
+                setSearchParams({ topic: sessionTopic });
+              }}
+            />
+          )}
+
           {/* === Header — AI group sees full Learning Loop; control sees plain score only === */}
           {isAI ? (
             <MistakesBlock
