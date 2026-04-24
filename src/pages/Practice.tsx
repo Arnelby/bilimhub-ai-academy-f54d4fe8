@@ -952,6 +952,27 @@ export default function Practice() {
       console.error('[MASTERY_HOOK] failed', e);
     }
 
+    // ENGAGEMENT: micro-feedback toast — every action gets a reaction.
+    try {
+      if (isCorrect) {
+        const normTopic = normalizeAnalyticsTopic(q.topic || '');
+        const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
+        if (row && row.status === 'mastered') {
+          toast.success(`🎯 Тема «${row.topic}» закрыта!`);
+        } else if (row) {
+          const left = Math.max(0, 10 - row.total_attempts);
+          if (left > 0 && left <= 3) toast.success(`+1 шаг • осталось ${left} до закрытия`);
+          else toast.success('+1 шаг к закрытию темы');
+        } else {
+          toast.success('+1 шаг к закрытию темы');
+        }
+      } else {
+        toast('Ошибка — вернёмся к этому позже', { icon: '↻' });
+      }
+    } catch (e) {
+      console.warn('[MICRO_FEEDBACK] failed', e);
+    }
+
     // Motivation: count this answer toward the daily goal (also performs
     // daily-reset + streak update if it's the first action of the day).
     try {
