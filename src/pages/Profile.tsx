@@ -355,8 +355,7 @@ export default function Profile() {
                       title={achievement.title}
                       description={achievement.description}
                       unlocked={achievement.unlocked}
-                      progress={achievement.progress}
-                      icon={achievement.icon}
+                      progress={achievement.pct}
                     />
                   ))}
                 </div>
