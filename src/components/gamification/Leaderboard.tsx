@@ -39,16 +39,28 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
 
   async function fetchLeaderboard() {
     try {
-      // Fetch visible profiles
-      const { data: allTimeData } = await supabase
+      // Fetch visible profiles + always include current user
+      const { data: visibleData } = await supabase
         .from('profiles')
         .select('id, name, full_name, avatar_url, points, level, streak')
         .eq('leaderboard_visible', true)
         .order('points', { ascending: false })
-        .limit(50); // fetch more, we'll re-sort by accuracy
+        .limit(50);
+
+      let pool = visibleData || [];
+
+      // Always include the current user even if they're not visible to others
+      if (user && !pool.find(p => p.id === user.id)) {
+        const { data: meRow } = await supabase
+          .from('profiles')
+          .select('id, name, full_name, avatar_url, points, level, streak')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (meRow) pool = [...pool, meRow];
+      }
 
       // Fetch test stats for these users
-      const userIds = (allTimeData || []).map(u => u.id);
+      const userIds = pool.map(u => u.id);
       const { data: testsData } = userIds.length > 0
         ? await supabase
             .from('user_tests')
@@ -69,8 +81,8 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         userStats.set(t.user_id, s);
       }
 
-      // Sort by accuracy (not XP)
-      const allTimeLeaders: LeaderboardEntry[] = (allTimeData || []).map((entry) => {
+      // Sort all by accuracy
+      const ranked = pool.map((entry) => {
         const st = userStats.get(entry.id);
         return {
           ...entry,
@@ -80,23 +92,21 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
           averageScore: st ? Math.round(st.totalPct / st.count) : 0,
         };
       })
-        .filter(e => e.testsCompleted > 0) // only users who took tests
+        .filter(e => e.testsCompleted > 0)
         .sort((a, b) => b.averageScore - a.averageScore)
-        .slice(0, limit)
         .map((e, i) => ({ ...e, rank: i + 1 }));
 
-      setLeaders(allTimeLeaders);
+      // Find user position in full ranking
+      const me = user ? ranked.find(r => r.id === user.id) : undefined;
+      setUserRank(me ? me.rank : null);
 
-      // Find user's rank
-      if (user) {
-        const { data: allProfiles } = await supabase
-          .from('profiles')
-          .select('id, points')
-          .order('points', { ascending: false });
-
-        const rank = (allProfiles || []).findIndex(p => p.id === user.id) + 1;
-        setUserRank(rank > 0 ? rank : null);
+      // Top N + ensure current user is always included even if outside top N
+      let topSlice = ranked.slice(0, limit);
+      if (me && !topSlice.find(r => r.id === user!.id)) {
+        topSlice = [...topSlice, me];
       }
+      setLeaders(topSlice);
+
 
       // For weekly, we use last_activity_date and recent points
       // In a real app, you'd have a weekly points tracking table
