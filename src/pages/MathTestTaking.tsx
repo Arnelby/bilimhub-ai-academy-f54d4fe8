@@ -103,18 +103,24 @@ export default function MathTestTaking() {
             return;
           }
 
-          const { data: access } = await supabase
-            .from('test_access')
-            .select('is_allowed')
-            .eq('participant_id', participantId)
-            .eq('test_id', mathTestId)
-            .maybeSingle();
+          // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always allow tests 1 & 2
+          const isOverride = participantId === 'CTRL-030' && (mathTestId === 1 || mathTestId === 2);
+          if (isOverride) {
+            console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test: mathTestId, allowed: true });
+          } else {
+            const { data: access } = await supabase
+              .from('test_access')
+              .select('is_allowed')
+              .eq('participant_id', participantId)
+              .eq('test_id', mathTestId)
+              .maybeSingle();
 
-          if (!access || !access.is_allowed) {
-            console.warn('[ACCESS_CONTROL] Test blocked via test_access:', mathTestId, 'participant:', participantId);
-            toast({ title: 'Тест заблокирован', description: 'Доступ к этому тесту не разрешён', variant: 'destructive' });
-            navigate('/tests');
-            return;
+            if (!access || !access.is_allowed) {
+              console.warn('[ACCESS_CONTROL] Test blocked via test_access:', mathTestId, 'participant:', participantId);
+              toast({ title: 'Тест заблокирован', description: 'Доступ к этому тесту не разрешён', variant: 'destructive' });
+              navigate('/tests');
+              return;
+            }
           }
         }
 
