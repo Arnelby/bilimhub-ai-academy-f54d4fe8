@@ -132,6 +132,20 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
   const wrongExplText = sanitizeReviewText(wrongExpl);
   const correctExplText = sanitizeReviewText(correctExpl);
 
+  // Quality gate (frontend safety net): hide explanations that contradict correct_answer.
+  // correct_answer is the SOLE source of truth.
+  const wrongExplValid = isExplanationConsistent(wrongExplText, safeCorrectAnswerRaw);
+  const correctExplValid = isExplanationConsistent(correctExplText, safeCorrectAnswerRaw);
+
+  if (typeof window !== "undefined" && (!wrongExplValid || !correctExplValid)) {
+    // eslint-disable-next-line no-console
+    console.warn("[QUESTION_QUALITY_FILTERED]", {
+      questionCacheId: data.questionCacheId,
+      correctAnswer: safeCorrectAnswerRaw,
+      wrongExplValid, correctExplValid,
+    });
+  }
+
   const canShowAiBtn =
     groupMode === "ai" && !data.isCorrect && !!data.questionCacheId;
 
