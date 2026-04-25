@@ -7,6 +7,7 @@ import { MathRenderer } from "@/components/math/MathRenderer";
 import { SafeMath } from "@/components/review/SafeMath";
 import { translateTopic } from "@/lib/topicTranslations";
 import { formatAnswerKey, sanitizeReviewText } from "@/lib/reviewFormatting";
+import { isExplanationConsistent } from "@/lib/answerExtraction";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
