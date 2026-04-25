@@ -2030,6 +2030,7 @@ export type Database = {
         }
         Returns: Json
       }
+      extract_answer_letter: { Args: { _text: string }; Returns: string }
       get_lesson_video_url: {
         Args: { expires_in?: number; video_path: string }
         Returns: string

@@ -7,6 +7,7 @@ import { MathRenderer } from "@/components/math/MathRenderer";
 import { SafeMath } from "@/components/review/SafeMath";
 import { translateTopic } from "@/lib/topicTranslations";
 import { formatAnswerKey, sanitizeReviewText } from "@/lib/reviewFormatting";
+import { isExplanationConsistent } from "@/lib/answerExtraction";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -131,6 +132,20 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
   const wrongExplText = sanitizeReviewText(wrongExpl);
   const correctExplText = sanitizeReviewText(correctExpl);
 
+  // Quality gate (frontend safety net): hide explanations that contradict correct_answer.
+  // correct_answer is the SOLE source of truth.
+  const wrongExplValid = isExplanationConsistent(wrongExplText, safeCorrectAnswerRaw);
+  const correctExplValid = isExplanationConsistent(correctExplText, safeCorrectAnswerRaw);
+
+  if (typeof window !== "undefined" && (!wrongExplValid || !correctExplValid)) {
+    // eslint-disable-next-line no-console
+    console.warn("[QUESTION_QUALITY_FILTERED]", {
+      questionCacheId: data.questionCacheId,
+      correctAnswer: safeCorrectAnswerRaw,
+      wrongExplValid, correctExplValid,
+    });
+  }
+
   const canShowAiBtn =
     groupMode === "ai" && !data.isCorrect && !!data.questionCacheId;
 
@@ -248,25 +263,33 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
           </div>
 
           {/* Why your answer was wrong — AI group only.
-              Control group sees only the static correct solution per design. */}
-          {!data.isCorrect && groupMode === 'ai' && (
+              Hidden if explanation contradicts correct_answer. */}
+          {!data.isCorrect && groupMode === 'ai' && wrongExplValid && wrongExplText && (
             <div className="rounded-md border border-destructive/20 bg-background/60 p-3 text-sm overflow-hidden">
               <div className="mb-1 font-medium text-destructive">
                 ❌ Почему «{displayUserAnswer}» неверно
               </div>
               <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
-                {wrongExplText ? <SafeMath content={wrongExplText} /> : NO_EXPL}
+                <SafeMath content={wrongExplText} />
               </div>
             </div>
           )}
 
-          {/* Correct explanation (shown to both groups) */}
+          {/* Correct explanation (shown to both groups).
+              If text contradicts correct_answer → show neutral fallback with authoritative answer only. */}
           <div className="rounded-md border border-success/20 bg-background/60 p-3 text-sm overflow-hidden">
             <div className="mb-1 font-medium text-success">
               ✅ Правильное решение
             </div>
             <div className="text-foreground/90 break-words whitespace-pre-line [overflow-wrap:anywhere] [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full [&_p]:mb-2 [&_p:last-child]:mb-0">
-              {correctExplText ? <SafeMath content={correctExplText} /> : NO_EXPL}
+              {correctExplValid && correctExplText ? (
+                <SafeMath content={correctExplText} />
+              ) : (
+                <p className="text-muted-foreground">
+                  Разбор для этой задачи временно недоступен. Правильный ответ:{" "}
+                  <span className="font-semibold text-success">{displayCorrectAnswer}</span>
+                </p>
+              )}
             </div>
           </div>
 
