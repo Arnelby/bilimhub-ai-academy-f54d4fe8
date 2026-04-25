@@ -32,8 +32,30 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Quality gate: extract A-E letter from text (Latin or Cyrillic).
+    // If text claims an answer different from stored correct_answer → reject.
+    const CYR_TO_LAT: Record<string, string> = { "А":"A","Б":"B","В":"C","Г":"D","Д":"E" };
+    const VALID = new Set(["A","B","C","D","E"]);
+    const PATTERNS: RegExp[] = [
+      /(?:правильн[а-яё]*\s+ответ|верн[а-яё]*\s+ответ|ответ)\s*[:\-—–]?\s*[«"(]?\s*([A-EА-ДЁ])/i,
+      /[=≡]\s*([A-EА-ДЁ])\s*[)\.,;!\?]?\s*$/i,
+    ];
+    const extractLetter = (txt: string | null | undefined): string | null => {
+      if (!txt || !txt.trim()) return null;
+      for (const re of PATTERNS) {
+        const m = txt.match(re);
+        if (m && m[1]) {
+          const u = m[1].toUpperCase();
+          const lat = CYR_TO_LAT[u] ?? u;
+          if (VALID.has(lat)) return lat;
+        }
+      }
+      return null;
+    };
+
     let updated = 0;
     let skipped = 0;
+    let rejected = 0;
     const errors: string[] = [];
 
     for (const r of rows) {
@@ -42,7 +64,7 @@ Deno.serve(async (req) => {
 
       const { data: cur, error: selErr } = await supabase
         .from("practice_questions")
-        .select("correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e")
+        .select("correct_answer, correct_explanation, explanation_a, explanation_b, explanation_c, explanation_d, explanation_e")
         .eq("id", id)
         .maybeSingle();
 
@@ -55,6 +77,24 @@ Deno.serve(async (req) => {
       }
       if (Object.keys(patch).length === 0) { skipped++; continue; }
 
+      // === QUALITY GATE ===
+      // correct_answer is the SOLE source of truth.
+      // If incoming correct_explanation extracts to a different letter → reject + mark row as 'remove'.
+      const correctAns = ((cur.correct_answer as string) || "").trim().toUpperCase();
+      const incomingExpl = patch.correct_explanation;
+      if (correctAns && incomingExpl) {
+        const claimed = extractLetter(incomingExpl);
+        if (claimed && claimed !== correctAns) {
+          rejected++;
+          await supabase
+            .from("practice_questions")
+            .update({ quality_status: "remove", quality_reason: "explanation_answer_mismatch" })
+            .eq("id", id);
+          console.log(`[QGATE] Reject ${id}: explanation says ${claimed}, correct is ${correctAns}`);
+          continue;
+        }
+      }
+
       const { error: updErr } = await supabase
         .from("practice_questions")
         .update(patch)
@@ -66,7 +106,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ updated, skipped, errors: errors.slice(0, 10), errorCount: errors.length }), {
+    return new Response(JSON.stringify({ updated, skipped, rejected, errors: errors.slice(0, 10), errorCount: errors.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
