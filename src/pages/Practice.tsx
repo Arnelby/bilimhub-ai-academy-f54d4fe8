@@ -999,8 +999,9 @@ export default function Practice() {
     // Unified Learning State refresh — recompute next_action / weak topics / progress.
     try {
       // MASTERY LOOP: advance phase machine BEFORE generic recompute.
+      let masteryResult: Awaited<ReturnType<typeof advanceMasteryAfterAnswer>> = null;
       if (masteryMode && q.topic) {
-        await advanceMasteryAfterAnswer({
+        masteryResult = await advanceMasteryAfterAnswer({
           userId: user.id,
           topic: normalizeAnalyticsTopic(q.topic) || q.topic,
           isCorrect,
@@ -1009,10 +1010,27 @@ export default function Practice() {
       }
       const newState = await updateLearningState(user.id);
       if (newState) setLearningState(newState);
+
+      // React to phase transition: route user to the new step.
+      if (masteryMode && masteryResult?.changed && masteryResult.old_phase !== masteryResult.new_phase) {
+        const np = masteryResult.new_phase;
+        const nt = masteryResult.new_topic;
+        if (np === 'lesson') {
+          toast('Возврат к уроку — закрепим основу', { icon: '📘' });
+          const slug = nt ? (await import('@/lib/topicTranslations')).topicToLessonSlug(nt) : null;
+          setTimeout(() => navigate(slug ? `/lessons/topic/${encodeURIComponent(slug)}` : '/lessons'), 900);
+        } else if (np === 'validation') {
+          toast.success('2 верно подряд — переходим к проверке темы');
+          setTimeout(() => navigate(`/practice?topic=${encodeURIComponent(nt || q.topic)}&mode=validation`), 900);
+        } else if (np === 'idle') {
+          toast.success('Тема улучшена! Переходим к следующей.');
+          setTimeout(() => navigate('/next-step'), 900);
+        }
+      }
     } catch (e) {
       console.error('[LEARNING_STATE_HOOK] failed', e);
     }
-  }, [user, sessionId, participantId, motivation, masteryMode, isValidationMode]);
+  }, [user, sessionId, participantId, motivation, masteryMode, isValidationMode, navigate]);
 
   // Load latest learning state once on mount so the results screen has it ready.
   useEffect(() => {
