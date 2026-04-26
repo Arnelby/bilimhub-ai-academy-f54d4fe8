@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,9 @@ import { Language } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getMasteryLoopState, completeMasteryLesson, type MasteryLoopState } from '@/lib/masteryLoop';
+import { topicToLessonSlug, normalizeAnalyticsTopic } from '@/lib/topicTranslations';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 
 // Import exponent images
 import exponentRulesCheatsheet from '@/assets/lessons/exponent-rules-cheatsheet.png';
