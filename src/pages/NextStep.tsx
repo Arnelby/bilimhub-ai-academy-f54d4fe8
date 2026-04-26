@@ -127,7 +127,8 @@ export default function NextStep() {
     ? Math.max(0, motivation.dailyGoal - motivation.tasksCompletedToday)
     : null;
 
-  const isCompleted = step.next_action === 'completed';
+  // Mastery active overrides — only "completed" if mastery is idle AND legacy says completed.
+  const isCompleted = !masteryActive && step.next_action === 'completed';
 
   return (
     <Layout>
