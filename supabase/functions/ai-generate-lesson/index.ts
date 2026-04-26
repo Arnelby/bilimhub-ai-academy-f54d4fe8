@@ -49,7 +49,13 @@ serve(async (req) => {
     // Build personalized context from student results
     let studentContext = '';
     if (studentResults) {
-      const { accuracy, weakAreas, strongAreas, recentMistakes, testsCompleted } = studentResults;
+      const { accuracy = 0, weakAreas = [], strongAreas = [], recentMistakes = [], testsCompleted = 0 } = studentResults as {
+        accuracy?: number;
+        weakAreas?: string[];
+        strongAreas?: string[];
+        recentMistakes?: string[];
+        testsCompleted?: number;
+      };
       studentContext = `
 STUDENT PERFORMANCE DATA:
 - Accuracy: ${accuracy || 0}%
