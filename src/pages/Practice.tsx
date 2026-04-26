@@ -998,12 +998,21 @@ export default function Practice() {
 
     // Unified Learning State refresh — recompute next_action / weak topics / progress.
     try {
+      // MASTERY LOOP: advance phase machine BEFORE generic recompute.
+      if (masteryMode && q.topic) {
+        await advanceMasteryAfterAnswer({
+          userId: user.id,
+          topic: normalizeAnalyticsTopic(q.topic) || q.topic,
+          isCorrect,
+          isValidation: isValidationMode,
+        });
+      }
       const newState = await updateLearningState(user.id);
       if (newState) setLearningState(newState);
     } catch (e) {
       console.error('[LEARNING_STATE_HOOK] failed', e);
     }
-  }, [user, sessionId, participantId, motivation]);
+  }, [user, sessionId, participantId, motivation, masteryMode, isValidationMode]);
 
   // Load latest learning state once on mount so the results screen has it ready.
   useEffect(() => {
