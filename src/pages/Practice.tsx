@@ -22,6 +22,7 @@ import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
+import { advanceMasteryAfterAnswer } from '@/lib/masteryLoop';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
 import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
 import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
@@ -80,7 +81,10 @@ export default function Practice() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
-  const reviewMode = searchParams.get('mode') === 'review';
+  const modeParam = searchParams.get('mode');
+  const reviewMode = modeParam === 'review';
+  const masteryMode = modeParam === 'mastery' || modeParam === 'validation';
+  const isValidationMode = modeParam === 'validation';
   const difficultyParam = (searchParams.get('difficulty') || 'all') as 'easy' | 'medium' | 'hard' | 'all';
   const { user } = useAuth();
   const [learningState, setLearningState] = useState<LearningState | null>(null);
@@ -994,12 +998,21 @@ export default function Practice() {
 
     // Unified Learning State refresh — recompute next_action / weak topics / progress.
     try {
+      // MASTERY LOOP: advance phase machine BEFORE generic recompute.
+      if (masteryMode && q.topic) {
+        await advanceMasteryAfterAnswer({
+          userId: user.id,
+          topic: normalizeAnalyticsTopic(q.topic) || q.topic,
+          isCorrect,
+          isValidation: isValidationMode,
+        });
+      }
       const newState = await updateLearningState(user.id);
       if (newState) setLearningState(newState);
     } catch (e) {
       console.error('[LEARNING_STATE_HOOK] failed', e);
     }
-  }, [user, sessionId, participantId, motivation]);
+  }, [user, sessionId, participantId, motivation, masteryMode, isValidationMode]);
 
   // Load latest learning state once on mount so the results screen has it ready.
   useEffect(() => {
