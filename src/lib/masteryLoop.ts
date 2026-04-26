@@ -49,7 +49,7 @@ export async function advanceMasteryAfterAnswer(params: {
   topic: string;
   isCorrect: boolean;
   isValidation: boolean;
-}): Promise<{ old_phase: MasteryPhase; new_phase: MasteryPhase; new_topic: string | null } | null> {
+}): Promise<{ changed: boolean; old_phase: MasteryPhase; new_phase: MasteryPhase; new_topic: string | null; streak?: number; reason?: string } | null> {
   const { userId, topic, isCorrect, isValidation } = params;
   console.log('[LEARNING_STEP]', { user_id: userId, topic, isCorrect, isValidation });
 
