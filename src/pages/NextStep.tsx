@@ -4,10 +4,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, ArrowRight, CheckCircle2, Target, RefreshCw, ClipboardList, PlayCircle } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Target, RefreshCw, ClipboardList, PlayCircle, BookOpen, ShieldCheck } from 'lucide-react';
 import { getNextAction, nextActionLabel, type NextStepResult, type NextAction } from '@/lib/nextStepEngine';
 import { useMotivation } from '@/hooks/useMotivation';
 import { getLearningState, nextActionRoute, type LearningState } from '@/lib/learningState';
+import { getMasteryLoopState, masteryPhaseRoute, recomputeMasteryState, type MasteryLoopState } from '@/lib/masteryLoop';
 
 const ICONS: Record<NextAction, React.ReactNode> = {
   test: <ClipboardList className="h-6 w-6" />,
@@ -15,6 +16,13 @@ const ICONS: Record<NextAction, React.ReactNode> = {
   review_errors: <RefreshCw className="h-6 w-6" />,
   completed: <CheckCircle2 className="h-6 w-6" />,
 };
+
+const MASTERY_ICONS = {
+  lesson: <BookOpen className="h-6 w-6" />,
+  practice: <Target className="h-6 w-6" />,
+  validation: <ShieldCheck className="h-6 w-6" />,
+  done: <CheckCircle2 className="h-6 w-6" />,
+} as const;
 
 export default function NextStep() {
   const { user } = useAuth();
