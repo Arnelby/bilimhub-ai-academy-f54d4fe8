@@ -236,10 +236,21 @@ export default function DynamicLessonViewer() {
   const { topicId } = useParams<{ topicId: string }>();
   const { language, setLanguage } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [dbLessons, setDbLessons] = useState<any[]>([]);
   const [dbTopicTitle, setDbTopicTitle] = useState<string>('');
   const [dbLoading, setDbLoading] = useState(false);
+  const [mastery, setMastery] = useState<MasteryLoopState | null>(null);
+  const [completingLesson, setCompletingLesson] = useState(false);
+
+  // Fetch mastery state to know if this topic is in lesson phase.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancel = false;
+    void getMasteryLoopState(user.id).then(s => { if (!cancel) setMastery(s); });
+    return () => { cancel = true; };
+  }, [user?.id]);
   
   // Normalize topicId to handle singular/plural variants and slug mappings
   const normalizedTopicId = topicId === 'exponent' ? 'exponents' 
