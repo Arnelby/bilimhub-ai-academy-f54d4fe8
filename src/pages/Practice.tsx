@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey, toLatinKey, TEST_CONFIG } from '@/lib/mathTestConfig';
-import { normalizeAnalyticsTopic, normalizePracticeTopic, translateTopic } from '@/lib/topicTranslations';
+import { normalizeAnalyticsTopic, normalizePracticeTopic, translateTopic, topicToLessonSlug } from '@/lib/topicTranslations';
 import { buildDeterministicPlan } from '@/lib/deterministicPlan';
 import { normalizeAnswer, compareAnswers } from '@/lib/answerNormalization';
 import { QuestionReview } from '@/components/review/QuestionReview';
@@ -1017,7 +1017,7 @@ export default function Practice() {
         const nt = masteryResult.new_topic;
         if (np === 'lesson') {
           toast('Возврат к уроку — закрепим основу', { icon: '📘' });
-          const slug = nt ? (await import('@/lib/topicTranslations')).topicToLessonSlug(nt) : null;
+          const slug = nt ? topicToLessonSlug(nt) : null;
           setTimeout(() => navigate(slug ? `/lessons/topic/${encodeURIComponent(slug)}` : '/lessons'), 900);
         } else if (np === 'validation') {
           toast.success('2 верно подряд — переходим к проверке темы');
