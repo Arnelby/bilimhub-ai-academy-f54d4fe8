@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,8 @@ import { Language } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getMasteryLoopState, completeMasteryLesson, type MasteryLoopState } from '@/lib/masteryLoop';
+import { topicToLessonSlug, normalizeAnalyticsTopic } from '@/lib/topicTranslations';
 
 // Import exponent images
 import exponentRulesCheatsheet from '@/assets/lessons/exponent-rules-cheatsheet.png';
@@ -234,10 +236,21 @@ export default function DynamicLessonViewer() {
   const { topicId } = useParams<{ topicId: string }>();
   const { language, setLanguage } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [dbLessons, setDbLessons] = useState<any[]>([]);
   const [dbTopicTitle, setDbTopicTitle] = useState<string>('');
   const [dbLoading, setDbLoading] = useState(false);
+  const [mastery, setMastery] = useState<MasteryLoopState | null>(null);
+  const [completingLesson, setCompletingLesson] = useState(false);
+
+  // Fetch mastery state to know if this topic is in lesson phase.
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancel = false;
+    void getMasteryLoopState(user.id).then(s => { if (!cancel) setMastery(s); });
+    return () => { cancel = true; };
+  }, [user?.id]);
   
   // Normalize topicId to handle singular/plural variants and slug mappings
   const normalizedTopicId = topicId === 'exponent' ? 'exponents' 
@@ -715,6 +728,50 @@ export default function DynamicLessonViewer() {
             </div>
           </div>
         </div>
+
+        {/* Mastery Loop Banner: shows when user is in 'lesson' phase for THIS topic */}
+        {(() => {
+          if (!mastery || mastery.mastery_phase !== 'lesson' || !mastery.phase_topic) return null;
+          const phaseSlug = topicToLessonSlug(mastery.phase_topic);
+          if (phaseSlug !== normalizedTopicId) return null;
+          const phaseTopicRu = mastery.phase_topic;
+          const handleDone = async () => {
+            if (!user?.id) return;
+            setCompletingLesson(true);
+            try {
+              const enTopic = normalizeAnalyticsTopic(phaseTopicRu) || phaseTopicRu;
+              await completeMasteryLesson(user.id, enTopic);
+              toast.success('Урок завершён — переходим к практике');
+              navigate(`/practice?topic=${encodeURIComponent(enTopic)}&mode=mastery`);
+            } catch (e) {
+              console.error('[MASTERY_LESSON_COMPLETE_FAIL]', e);
+              toast.error('Не удалось перейти к практике');
+            } finally {
+              setCompletingLesson(false);
+            }
+          };
+          return (
+            <Card className="mb-6 border-2 border-primary/40 bg-primary/5">
+              <CardContent className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-primary/15 p-2 text-primary shrink-0">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-foreground">Шаг 1 из 3 — Урок по теме «{phaseTopicRu}»</p>
+                    <p className="text-sm text-muted-foreground">
+                      Изучи материал, затем начни практику (5 задач). Без ошибок — переход на проверку.
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={handleDone} disabled={completingLesson} size="lg" className="shrink-0">
+                  {completingLesson ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
+                  К практике
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

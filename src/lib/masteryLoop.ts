@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { topicToLessonSlug } from '@/lib/topicTranslations';
 
 /**
  * Mastery Loop — детерминированная машина состояний:
@@ -48,7 +49,7 @@ export async function advanceMasteryAfterAnswer(params: {
   topic: string;
   isCorrect: boolean;
   isValidation: boolean;
-}): Promise<{ old_phase: MasteryPhase; new_phase: MasteryPhase; new_topic: string | null } | null> {
+}): Promise<{ changed: boolean; old_phase: MasteryPhase; new_phase: MasteryPhase; new_topic: string | null; streak?: number; reason?: string } | null> {
   const { userId, topic, isCorrect, isValidation } = params;
   console.log('[LEARNING_STEP]', { user_id: userId, topic, isCorrect, isValidation });
 
@@ -123,10 +124,12 @@ export async function getMasteryLoopState(userId: string): Promise<MasteryLoopSt
  */
 export function masteryPhaseRoute(state: MasteryLoopState): { route: string; label: string; icon: 'lesson' | 'practice' | 'validation' | 'done' } {
   const t = state.phase_topic;
+  const slug = topicToLessonSlug(t);
   switch (state.mastery_phase) {
     case 'lesson':
       return {
-        route: t ? `/lessons?topic=${encodeURIComponent(t)}` : '/lessons',
+        // Prefer DynamicLessonViewer (slug). Fallback to filtered lessons list.
+        route: slug ? `/lessons/topic/${encodeURIComponent(slug)}` : (t ? `/lessons?topic=${encodeURIComponent(t)}` : '/lessons'),
         label: 'Смотреть урок',
         icon: 'lesson',
       };
