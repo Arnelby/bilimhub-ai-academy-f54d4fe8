@@ -207,6 +207,19 @@ export function normalizePracticeTopic(topic: string): string {
 }
 
 /**
+ * Convert a topic name (RU or EN, any case) to the lowercase English slug
+ * used by `/lessons/topic/:topicId` (DynamicLessonViewer).
+ * Examples: "Дроби" → "fractions", "Algebra" → "algebra", "Координатная геометрия" → "coordinate geometry".
+ * Returns null if no English mapping is known.
+ */
+export function topicToLessonSlug(topic: string | null | undefined): string | null {
+  if (!topic) return null;
+  const en = normalizeAnalyticsTopic(topic);
+  if (!en) return null;
+  return en.toLowerCase().trim();
+}
+
+/**
  * Parse a question_id like "mq_3_1" into { variant, questionNumber }.
  * Returns null if format doesn't match.
  */
