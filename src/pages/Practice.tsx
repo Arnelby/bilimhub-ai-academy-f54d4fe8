@@ -80,7 +80,10 @@ export default function Practice() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
-  const reviewMode = searchParams.get('mode') === 'review';
+  const modeParam = searchParams.get('mode');
+  const reviewMode = modeParam === 'review';
+  const masteryMode = modeParam === 'mastery' || modeParam === 'validation';
+  const isValidationMode = modeParam === 'validation';
   const difficultyParam = (searchParams.get('difficulty') || 'all') as 'easy' | 'medium' | 'hard' | 'all';
   const { user } = useAuth();
   const [learningState, setLearningState] = useState<LearningState | null>(null);
