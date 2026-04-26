@@ -1423,8 +1423,13 @@ export type Database = {
           errors_count: number
           last_activity_at: string | null
           last_activity_date: string | null
+          mastery_phase: string
           next_action: string
           next_reason: string | null
+          phase_attempts: Json
+          phase_correct_streak: number
+          phase_topic: string | null
+          recent_attempts_by_topic: Json
           streak: number
           strong_topics: Json
           topic_stats: Json
@@ -1445,8 +1450,13 @@ export type Database = {
           errors_count?: number
           last_activity_at?: string | null
           last_activity_date?: string | null
+          mastery_phase?: string
           next_action?: string
           next_reason?: string | null
+          phase_attempts?: Json
+          phase_correct_streak?: number
+          phase_topic?: string | null
+          recent_attempts_by_topic?: Json
           streak?: number
           strong_topics?: Json
           topic_stats?: Json
@@ -1467,8 +1477,13 @@ export type Database = {
           errors_count?: number
           last_activity_at?: string | null
           last_activity_date?: string | null
+          mastery_phase?: string
           next_action?: string
           next_reason?: string | null
+          phase_attempts?: Json
+          phase_correct_streak?: number
+          phase_topic?: string | null
+          recent_attempts_by_topic?: Json
           streak?: number
           strong_topics?: Json
           topic_stats?: Json
@@ -2019,6 +2034,15 @@ export type Database = {
       }
     }
     Functions: {
+      advance_mastery_phase: {
+        Args: {
+          _is_correct: boolean
+          _is_validation?: boolean
+          _topic: string
+          _user_id: string
+        }
+        Returns: Json
+      }
       apply_pq_explanations: { Args: never; Returns: number }
       apply_practice_explanations: { Args: { _payload: Json }; Returns: number }
       check_rate_limit: {
@@ -2028,6 +2052,10 @@ export type Database = {
           _user_id: string
           _window_minutes: number
         }
+        Returns: Json
+      }
+      complete_mastery_lesson: {
+        Args: { _topic: string; _user_id: string }
         Returns: Json
       }
       extract_answer_letter: { Args: { _text: string }; Returns: string }
@@ -2064,6 +2092,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recompute_learning_state: { Args: { _user_id: string }; Returns: Json }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: Json
