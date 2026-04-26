@@ -158,7 +158,7 @@ export default function NextStep() {
               {isCompleted ? 'Готово на сегодня!' : 'Твой следующий шаг'}
             </h1>
             <p className="text-muted-foreground">
-              {state?.next_reason || step.reason}
+              {ctaReason}
             </p>
           </div>
 
