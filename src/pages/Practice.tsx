@@ -22,6 +22,7 @@ import { selectPracticeQuestions, SESSION_SIZE } from '@/lib/practiceSelection';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { updateLearningState, getLearningState, type LearningState } from '@/lib/learningState';
+import { advanceMasteryAfterAnswer } from '@/lib/masteryLoop';
 import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesBlock';
 import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
 import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
