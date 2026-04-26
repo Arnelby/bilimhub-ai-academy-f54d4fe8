@@ -43,7 +43,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { getMasteryLoopState, completeMasteryLesson, type MasteryLoopState } from '@/lib/masteryLoop';
 import { topicToLessonSlug, normalizeAnalyticsTopic } from '@/lib/topicTranslations';
-import { Sparkles as SparklesIcon } from 'lucide-react';
 
 // Import exponent images
 import exponentRulesCheatsheet from '@/assets/lessons/exponent-rules-cheatsheet.png';
