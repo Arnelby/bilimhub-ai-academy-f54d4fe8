@@ -112,19 +112,24 @@ export default function NextStep() {
     }
   };
 
-  // CTA label/icon — mastery wins.
+  // CTA label/icon — forced mode dominates.
+  const hasForced = !!forced.session;
   const isWatchLesson = state?.next_action_type === 'watch_lesson';
-  const ctaIcon = masteryActive && masteryRoute
-    ? MASTERY_ICONS[masteryRoute.icon]
-    : isWatchLesson
-      ? <PlayCircle className="h-6 w-6" />
-      : (step ? ICONS[step.next_action] : null);
-  const ctaLabel = masteryActive && masteryRoute
-    ? masteryRoute.label
-    : isWatchLesson ? 'Смотреть урок' : 'Продолжить обучение';
-  const ctaReason = masteryActive
-    ? mastery!.next_reason ?? `Тема: ${mastery!.phase_topic}`
-    : (state?.next_reason || step?.reason || '');
+  const ctaIcon = hasForced
+    ? <Target className="h-6 w-6" />
+    : masteryActive && masteryRoute
+      ? MASTERY_ICONS[masteryRoute.icon]
+      : isWatchLesson
+        ? <PlayCircle className="h-6 w-6" />
+        : (step ? ICONS[step.next_action] : null);
+  const ctaLabel = hasForced
+    ? 'Продолжить обучение'
+    : 'Начать обучение';
+  const ctaReason = hasForced
+    ? `Сессия активна · ${forced.session!.questions_answered}/${forced.session!.max_questions}`
+    : (mastery?.phase_topic
+        ? `Тема: ${mastery.phase_topic}`
+        : (mastery?.weak_topics?.[0] ? `Слабая тема: ${mastery.weak_topics[0]}` : 'Готов начать?'));
 
   if (loading || !step) {
     return (
