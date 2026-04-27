@@ -28,6 +28,7 @@ const MASTERY_ICONS = {
 export default function NextStep() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const forced = useForcedLearning();
   const [step, setStep] = useState<NextStepResult | null>(null);
   const [state, setState] = useState<LearningState | null>(null);
   const [mastery, setMastery] = useState<MasteryLoopState | null>(null);
@@ -70,8 +71,19 @@ export default function NextStep() {
   const masteryActive = !!mastery && mastery.mastery_phase !== 'idle' && !!mastery.phase_topic;
   const masteryRoute = mastery ? masteryPhaseRoute(mastery) : null;
 
-  const handleContinue = () => {
-    // PRIORITY 0: mastery loop — strict lesson→practice→validation cycle.
+  const handleContinue = async () => {
+    // PRIORITY -1: forced learning session — always go to /learn (resume).
+    if (forced.session) {
+      console.log('[NEXT_STEP_NAV]', { source: 'forced_resume', session_id: forced.session.id });
+      navigate('/learn');
+      return;
+    }
+    // No active session → start a forced learning loop on the current weak topic (or none).
+    const topic = mastery?.phase_topic ?? mastery?.weak_topics?.[0] ?? null;
+    await forced.start(topic);
+    console.log('[NEXT_STEP_NAV]', { source: 'forced_start', topic });
+    navigate('/learn');
+    return;
     if (masteryActive && masteryRoute) {
       console.log('[NEXT_STEP_NAV]', { source: 'mastery', phase: mastery!.mastery_phase, topic: mastery!.phase_topic, route: masteryRoute.route });
       navigate(masteryRoute.route);
