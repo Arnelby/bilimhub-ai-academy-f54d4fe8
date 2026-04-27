@@ -36,6 +36,9 @@ import DynamicLessonViewer from "./pages/DynamicLessonViewer";
 import MathTestTaking from "./pages/MathTestTaking";
 import Practice from "./pages/Practice";
 import NextStep from "./pages/NextStep";
+import ForcedLearn from "./pages/ForcedLearn";
+import { ForcedLearningProvider } from "@/hooks/useForcedLearning";
+import { ForcedModeGuard } from "@/components/forced/ForcedModeGuard";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -54,11 +57,13 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <LanguageProvider>
         <AuthProvider>
+          <ForcedLearningProvider>
           <GamificationProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <ForcedModeGuard />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
@@ -81,6 +86,7 @@ const App = () => (
                   <Route path="/tests/math-test/:testId" element={<ProtectedRoute skipDiagnosticCheck><MathTestTaking /></ProtectedRoute>} />
                   <Route path="/practice" element={<ProtectedRoute><Practice /></ProtectedRoute>} />
                   <Route path="/next" element={<ProtectedRoute><NextStep /></ProtectedRoute>} />
+                  <Route path="/learn" element={<ProtectedRoute><ForcedLearn /></ProtectedRoute>} />
                   <Route path="/math-lessons" element={<ProtectedRoute requireAI><MathLessons /></ProtectedRoute>} />
                   <Route path="/lessons/fractions" element={<ProtectedRoute requireAI><FractionsLesson /></ProtectedRoute>} />
                   <Route path="/lessons/topic/:topicId" element={<ProtectedRoute requireAI><DynamicLessonViewer /></ProtectedRoute>} />
@@ -102,6 +108,7 @@ const App = () => (
               </BrowserRouter>
             </TooltipProvider>
           </GamificationProvider>
+          </ForcedLearningProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

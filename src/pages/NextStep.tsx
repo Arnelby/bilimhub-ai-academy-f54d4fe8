@@ -9,6 +9,7 @@ import { getNextAction, nextActionLabel, type NextStepResult, type NextAction } 
 import { useMotivation } from '@/hooks/useMotivation';
 import { getLearningState, nextActionRoute, type LearningState } from '@/lib/learningState';
 import { getMasteryLoopState, masteryPhaseRoute, recomputeMasteryState, type MasteryLoopState } from '@/lib/masteryLoop';
+import { useForcedLearning } from '@/hooks/useForcedLearning';
 
 const ICONS: Record<NextAction, React.ReactNode> = {
   test: <ClipboardList className="h-6 w-6" />,
@@ -27,6 +28,7 @@ const MASTERY_ICONS = {
 export default function NextStep() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const forced = useForcedLearning();
   const [step, setStep] = useState<NextStepResult | null>(null);
   const [state, setState] = useState<LearningState | null>(null);
   const [mastery, setMastery] = useState<MasteryLoopState | null>(null);
@@ -69,8 +71,19 @@ export default function NextStep() {
   const masteryActive = !!mastery && mastery.mastery_phase !== 'idle' && !!mastery.phase_topic;
   const masteryRoute = mastery ? masteryPhaseRoute(mastery) : null;
 
-  const handleContinue = () => {
-    // PRIORITY 0: mastery loop — strict lesson→practice→validation cycle.
+  const handleContinue = async () => {
+    // PRIORITY -1: forced learning session — always go to /learn (resume).
+    if (forced.session) {
+      console.log('[NEXT_STEP_NAV]', { source: 'forced_resume', session_id: forced.session.id });
+      navigate('/learn');
+      return;
+    }
+    // No active session → start a forced learning loop on the current weak topic (or none).
+    const topic = mastery?.phase_topic ?? mastery?.weak_topics?.[0] ?? null;
+    await forced.start(topic);
+    console.log('[NEXT_STEP_NAV]', { source: 'forced_start', topic });
+    navigate('/learn');
+    return;
     if (masteryActive && masteryRoute) {
       console.log('[NEXT_STEP_NAV]', { source: 'mastery', phase: mastery!.mastery_phase, topic: mastery!.phase_topic, route: masteryRoute.route });
       navigate(masteryRoute.route);
@@ -99,19 +112,24 @@ export default function NextStep() {
     }
   };
 
-  // CTA label/icon — mastery wins.
+  // CTA label/icon — forced mode dominates.
+  const hasForced = !!forced.session;
   const isWatchLesson = state?.next_action_type === 'watch_lesson';
-  const ctaIcon = masteryActive && masteryRoute
-    ? MASTERY_ICONS[masteryRoute.icon]
-    : isWatchLesson
-      ? <PlayCircle className="h-6 w-6" />
-      : (step ? ICONS[step.next_action] : null);
-  const ctaLabel = masteryActive && masteryRoute
-    ? masteryRoute.label
-    : isWatchLesson ? 'Смотреть урок' : 'Продолжить обучение';
-  const ctaReason = masteryActive
-    ? mastery!.next_reason ?? `Тема: ${mastery!.phase_topic}`
-    : (state?.next_reason || step?.reason || '');
+  const ctaIcon = hasForced
+    ? <Target className="h-6 w-6" />
+    : masteryActive && masteryRoute
+      ? MASTERY_ICONS[masteryRoute.icon]
+      : isWatchLesson
+        ? <PlayCircle className="h-6 w-6" />
+        : (step ? ICONS[step.next_action] : null);
+  const ctaLabel = hasForced
+    ? 'Продолжить обучение'
+    : 'Начать обучение';
+  const ctaReason = hasForced
+    ? `Сессия активна · ${forced.session!.questions_answered}/${forced.session!.max_questions}`
+    : (mastery?.phase_topic
+        ? `Тема: ${mastery.phase_topic}`
+        : (mastery?.weak_topics?.[0] ? `Слабая тема: ${mastery.weak_topics[0]}` : 'Готов начать?'));
 
   if (loading || !step) {
     return (
