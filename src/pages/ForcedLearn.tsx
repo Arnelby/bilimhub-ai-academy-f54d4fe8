@@ -242,7 +242,7 @@ export default function ForcedLearn() {
                   </span>
                 </div>
                 <div className="rounded-md bg-muted/40 p-3 text-sm leading-relaxed">
-                  <MathRenderer text={evaluated.explanation} />
+                  <MathRenderer content={evaluated.explanation} />
                 </div>
                 <Button size="lg" className="w-full h-12" onClick={onNext} disabled={busy}>
                   Дальше <ArrowRight className="ml-2 h-5 w-5" />
@@ -289,15 +289,15 @@ function ComparisonView({ payload }: { payload: PickedQuestion['payload'] }) {
   const instr = qd.instruction ?? 'Сравни значения и выбери:';
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground"><MathRenderer text={instr} /></p>
+      <p className="text-sm text-muted-foreground"><MathRenderer content={instr} /></p>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-md border p-4 text-center">
           <div className="text-xs text-muted-foreground mb-1">Колонка A</div>
-          <div className="text-base"><MathRenderer text={String(colA)} /></div>
+          <div className="text-base"><MathRenderer content={String(colA)} /></div>
         </div>
         <div className="rounded-md border p-4 text-center">
           <div className="text-xs text-muted-foreground mb-1">Колонка B</div>
-          <div className="text-base"><MathRenderer text={String(colB)} /></div>
+          <div className="text-base"><MathRenderer content={String(colB)} /></div>
         </div>
       </div>
       <ul className="text-xs text-muted-foreground grid grid-cols-2 gap-1 pt-1">
@@ -316,12 +316,12 @@ function McqView({ payload }: { payload: PickedQuestion['payload'] }) {
   const opts = qd.options || {};
   return (
     <div className="space-y-3">
-      <div className="text-base font-medium"><MathRenderer text={String(stem)} /></div>
+      <div className="text-base font-medium"><MathRenderer content={String(stem)} /></div>
       <div className="space-y-1.5 text-sm">
         {Object.entries(opts).map(([k, v]) => (
           <div key={k} className="flex gap-2">
             <span className="font-semibold text-primary">{LATIN_TO_CYRILLIC[k.toUpperCase()] ?? k.toUpperCase()}.</span>
-            <span><MathRenderer text={String(v)} /></span>
+            <span><MathRenderer content={String(v)} /></span>
           </div>
         ))}
       </div>
