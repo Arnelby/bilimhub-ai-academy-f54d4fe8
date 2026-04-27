@@ -57,11 +57,13 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <LanguageProvider>
         <AuthProvider>
+          <ForcedLearningProvider>
           <GamificationProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <ForcedModeGuard />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
