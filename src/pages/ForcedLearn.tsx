@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, CheckCircle2, XCircle, Sparkles, Target, ArrowRight, Trophy } from 'lucide-react';
-import MathRenderer from '@/components/math/MathRenderer';
+import { MathRenderer } from '@/components/math/MathRenderer';
 import { translateTopic } from '@/lib/topicTranslations';
 import {
   pickNextQuestion,
