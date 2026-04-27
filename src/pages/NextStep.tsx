@@ -9,6 +9,7 @@ import { getNextAction, nextActionLabel, type NextStepResult, type NextAction } 
 import { useMotivation } from '@/hooks/useMotivation';
 import { getLearningState, nextActionRoute, type LearningState } from '@/lib/learningState';
 import { getMasteryLoopState, masteryPhaseRoute, recomputeMasteryState, type MasteryLoopState } from '@/lib/masteryLoop';
+import { useForcedLearning } from '@/hooks/useForcedLearning';
 
 const ICONS: Record<NextAction, React.ReactNode> = {
   test: <ClipboardList className="h-6 w-6" />,
