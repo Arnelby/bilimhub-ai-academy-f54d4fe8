@@ -307,6 +307,75 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_sessions: {
+        Row: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_count?: number
+          current_question_id?: string | null
+          current_question_payload?: Json | null
+          current_question_source?: string | null
+          id?: string
+          is_active?: boolean
+          last_answer_correct?: boolean | null
+          last_answer_explanation?: string | null
+          last_correct_answer?: string | null
+          last_user_answer?: string | null
+          max_questions?: number
+          paused_at?: string | null
+          questions_answered?: number
+          started_at?: string
+          status?: string
+          step?: string
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_count?: number
+          current_question_id?: string | null
+          current_question_payload?: Json | null
+          current_question_source?: string | null
+          id?: string
+          is_active?: boolean
+          last_answer_correct?: boolean | null
+          last_answer_explanation?: string | null
+          last_correct_answer?: string | null
+          last_user_answer?: string | null
+          max_questions?: number
+          paused_at?: string | null
+          questions_answered?: number
+          started_at?: string
+          status?: string
+          step?: string
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           content: Json | null
@@ -2034,6 +2103,37 @@ export type Database = {
       }
     }
     Functions: {
+      advance_learning_step: {
+        Args: never
+        Returns: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learning_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       advance_mastery_phase: {
         Args: {
           _is_correct: boolean
@@ -2054,9 +2154,41 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_learning_session: { Args: never; Returns: undefined }
       complete_mastery_lesson: {
         Args: { _topic: string; _user_id: string }
         Returns: Json
+      }
+      extend_learning_session: {
+        Args: { _extra?: number }
+        Returns: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learning_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       extract_answer_letter: { Args: { _text: string }; Returns: string }
       get_lesson_video_url: {
@@ -2092,7 +2224,106 @@ export type Database = {
         }
         Returns: boolean
       }
+      pause_learning_session: { Args: never; Returns: undefined }
       recompute_learning_state: { Args: { _user_id: string }; Returns: Json }
+      record_learning_answer: {
+        Args: {
+          _correct_answer: string
+          _explanation: string
+          _is_correct: boolean
+          _user_answer: string
+        }
+        Returns: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learning_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_learning_current_question: {
+        Args: { _payload: Json; _question_id: string; _source: string }
+        Returns: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learning_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_or_resume_learning_session: {
+        Args: { _topic?: string }
+        Returns: {
+          completed_at: string | null
+          correct_count: number
+          current_question_id: string | null
+          current_question_payload: Json | null
+          current_question_source: string | null
+          id: string
+          is_active: boolean
+          last_answer_correct: boolean | null
+          last_answer_explanation: string | null
+          last_correct_answer: string | null
+          last_user_answer: string | null
+          max_questions: number
+          paused_at: string | null
+          questions_answered: number
+          started_at: string
+          status: string
+          step: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "learning_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
         Returns: Json
