@@ -37,6 +37,7 @@ import MathTestTaking from "./pages/MathTestTaking";
 import Practice from "./pages/Practice";
 import NextStep from "./pages/NextStep";
 import ForcedLearn from "./pages/ForcedLearn";
+import LeaderboardPage from "./pages/Leaderboard";
 import { ForcedLearningProvider } from "@/hooks/useForcedLearning";
 import { ForcedModeGuard } from "@/components/forced/ForcedModeGuard";
 
@@ -77,7 +78,8 @@ const App = () => (
                   <Route path="/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
                   <Route path="/tests/:testId" element={<ProtectedRoute><TestTaking /></ProtectedRoute>} />
                   <Route path="/tests/:testId/results/:attemptId" element={<ProtectedRoute><TestResults /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                 <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
                   <Route path="/diagnostic-test" element={<ProtectedRoute skipDiagnosticCheck><DiagnosticTest /></ProtectedRoute>} />
                   <Route path="/learning-plan" element={<ProtectedRoute requireAI><LearningPlanV2 /></ProtectedRoute>} />
                   <Route path="/ai-tutor" element={<ProtectedRoute requireAI><AISmartTutor /></ProtectedRoute>} />

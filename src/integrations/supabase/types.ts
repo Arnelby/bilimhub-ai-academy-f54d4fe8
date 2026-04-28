@@ -2191,6 +2191,18 @@ export type Database = {
         }
       }
       extract_answer_letter: { Args: { _text: string }; Returns: string }
+      get_global_leaderboard: {
+        Args: never
+        Returns: {
+          accuracy: number
+          avatar_url: string
+          display_name: string
+          rank_position: number
+          ranking_score: number
+          tests_completed: number
+          user_id: string
+        }[]
+      }
       get_lesson_video_url: {
         Args: { expires_in?: number; video_path: string }
         Returns: string

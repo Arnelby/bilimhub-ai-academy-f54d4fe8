@@ -30,7 +30,7 @@ import { LevelBadge } from '@/components/gamification/LevelBadge';
 import { AchievementCard } from '@/components/gamification/AchievementCard';
 import { LearningTree } from '@/components/gamification/LearningTree';
 import { MasteryLevel } from '@/components/gamification/MasteryNode';
-import { Leaderboard } from '@/components/gamification/Leaderboard';
+
 import { loadAchievementsForUser, type AchievementProgress } from '@/lib/achievementsSource';
 
 interface Profile {
@@ -366,10 +366,26 @@ export default function Profile() {
           {/* Sidebar */}
           <div className="space-y-8">
 
-            {/* Leaderboard */}
-            {profile?.leaderboard_visible && (
-              <Leaderboard limit={10} showTabs={false} />
-            )}
+            {/* Leaderboard CTA */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-warning" />
+                  Рейтинг
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Посмотри, кого нужно обогнать, чтобы подняться выше.
+                </p>
+                <Button className="w-full" asChild>
+                  <Link to="/leaderboard">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Посмотреть рейтинг
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Quick Actions */}
             <Card>
