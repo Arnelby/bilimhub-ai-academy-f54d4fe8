@@ -30,7 +30,7 @@ import { LevelBadge } from '@/components/gamification/LevelBadge';
 import { AchievementCard } from '@/components/gamification/AchievementCard';
 import { LearningTree } from '@/components/gamification/LearningTree';
 import { MasteryLevel } from '@/components/gamification/MasteryNode';
-import { Leaderboard } from '@/components/gamification/Leaderboard';
+
 import { loadAchievementsForUser, type AchievementProgress } from '@/lib/achievementsSource';
 
 interface Profile {
