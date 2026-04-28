@@ -37,6 +37,7 @@ import MathTestTaking from "./pages/MathTestTaking";
 import Practice from "./pages/Practice";
 import NextStep from "./pages/NextStep";
 import ForcedLearn from "./pages/ForcedLearn";
+import LeaderboardPage from "./pages/Leaderboard";
 import { ForcedLearningProvider } from "@/hooks/useForcedLearning";
 import { ForcedModeGuard } from "@/components/forced/ForcedModeGuard";
 
