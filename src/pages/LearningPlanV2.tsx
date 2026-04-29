@@ -189,11 +189,11 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{task.label}</p>
         <p className="text-xs text-muted-foreground">
-          {isActive ? 'Сейчас' : isDone ? 'Готово' : 'Заблокировано'}
+          {isActive ? 'Сейчас' : isDone ? 'Готово' : isLocked ? 'Сначала пройди урок' : 'Ожидает'}
         </p>
       </div>
       {isActive && <Badge variant="default">▶ АКТИВНО</Badge>}
-      {isPending && <Lock className="h-4 w-4 text-muted-foreground" />}
+      {(isPending || isLocked) && <Lock className="h-4 w-4 text-muted-foreground" />}
     </div>
   );
 }
