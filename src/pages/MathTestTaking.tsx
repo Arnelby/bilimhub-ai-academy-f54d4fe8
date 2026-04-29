@@ -375,6 +375,11 @@ export default function MathTestTaking() {
 
       if (attemptError) throw attemptError;
 
+      // Research metric log: test 3 maps to mid2_score_pct in research_user_metrics view
+      if (mathTestId === 3) {
+        console.log('[TEST_RESULT_SAVED]', { test_id: 3, column: 'mid2_score_pct', score: correct, total, pct: percentage });
+      }
+
       if (attemptData?.id) {
         const attemptsToInsert = questionAttempts.map(qa => {
           const qaReliable = !!(participantId && qa.user_answer);
