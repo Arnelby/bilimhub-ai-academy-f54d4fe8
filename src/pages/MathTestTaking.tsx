@@ -103,9 +103,13 @@ export default function MathTestTaking() {
             return;
           }
 
+          // GLOBAL OVERRIDE: Test 3 (mid2) is open to all users regardless of group/progress
+          const isTest3Open = mathTestId === 3;
           // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always allow tests 1 & 2
           const isOverride = participantId === 'CTRL-030' && (mathTestId === 1 || mathTestId === 2);
-          if (isOverride) {
+          if (isTest3Open) {
+            console.log('[TEST_ACCESS_OPENED]', { test_id: 3, scope: 'all_users', participant: participantId });
+          } else if (isOverride) {
             console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test: mathTestId, allowed: true });
           } else {
             const { data: access } = await supabase
