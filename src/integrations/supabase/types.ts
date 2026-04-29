@@ -2089,6 +2089,7 @@ export type Database = {
           group_type: string | null
           improvement: number | null
           mid1_score_pct: number | null
+          mid2_score_pct: number | null
           post_score_pct: number | null
           practice_attempts: number | null
           pre_score_pct: number | null

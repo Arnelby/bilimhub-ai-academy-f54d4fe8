@@ -92,6 +92,9 @@ export default function Tests() {
           aMap[2] = true;
           console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test_1: 'allowed', test_2: 'allowed' });
         }
+        // GLOBAL OVERRIDE: Test 3 (mid2) is open to all users regardless of group/progress
+        aMap[3] = true;
+        console.log('[TEST_ACCESS_OPENED]', { test_id: 3, scope: 'all_users' });
         setAccessMap(aMap);
       } catch (err) {
         console.error('Error:', err);

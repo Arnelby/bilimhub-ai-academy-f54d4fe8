@@ -96,16 +96,21 @@ export default function MathTestTaking() {
             .maybeSingle();
 
           const participantId = profile?.participant_id;
-          if (!participantId) {
+          // Test 3 is open globally — no participant_id required
+          if (!participantId && mathTestId !== 3) {
             console.warn('[ACCESS_CONTROL] No participant_id for user', user.id);
             toast({ title: 'Доступ запрещён', description: 'Участник не найден в системе', variant: 'destructive' });
             navigate('/tests');
             return;
           }
 
+          // GLOBAL OVERRIDE: Test 3 (mid2) is open to all users regardless of group/progress
+          const isTest3Open = mathTestId === 3;
           // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always allow tests 1 & 2
           const isOverride = participantId === 'CTRL-030' && (mathTestId === 1 || mathTestId === 2);
-          if (isOverride) {
+          if (isTest3Open) {
+            console.log('[TEST_ACCESS_OPENED]', { test_id: 3, scope: 'all_users', participant: participantId });
+          } else if (isOverride) {
             console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test: mathTestId, allowed: true });
           } else {
             const { data: access } = await supabase
@@ -369,6 +374,11 @@ export default function MathTestTaking() {
         .single();
 
       if (attemptError) throw attemptError;
+
+      // Research metric log: test 3 maps to mid2_score_pct in research_user_metrics view
+      if (mathTestId === 3) {
+        console.log('[TEST_RESULT_SAVED]', { test_id: 3, column: 'mid2_score_pct', score: correct, total, pct: percentage });
+      }
 
       if (attemptData?.id) {
         const attemptsToInsert = questionAttempts.map(qa => {
