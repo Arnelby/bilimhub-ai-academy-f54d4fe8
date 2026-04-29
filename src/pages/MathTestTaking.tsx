@@ -96,7 +96,8 @@ export default function MathTestTaking() {
             .maybeSingle();
 
           const participantId = profile?.participant_id;
-          if (!participantId) {
+          // Test 3 is open globally — no participant_id required
+          if (!participantId && mathTestId !== 3) {
             console.warn('[ACCESS_CONTROL] No participant_id for user', user.id);
             toast({ title: 'Доступ запрещён', description: 'Участник не найден в системе', variant: 'destructive' });
             navigate('/tests');
