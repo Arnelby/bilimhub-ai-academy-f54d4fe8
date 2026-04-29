@@ -1,34 +1,34 @@
 import { supabase } from '@/integrations/supabase/client';
-import { recomputeMasteryState, getMasteryLoopState } from '@/lib/masteryLoop';
-import { topicToLessonSlug } from '@/lib/topicTranslations';
 
 /**
- * Deterministic Task Engine.
+ * Deterministic Adaptive Task Engine (v2 — hybrid).
  *
- * Builds a STRICTLY ORDERED queue of atomic tasks for the user from:
- *   - user_learning_state.weak_topics (accuracy < 0.6)
- *   - user_learning_state.watched_videos / completed_lessons
- *   - spaced_repetition (status='due' OR next_review_date <= now)
+ * Source of truth for the *phase* of the active topic:
+ *   `user_learning_state.mastery_phase` + `phase_topic`
+ *   (computed by RPC `recompute_learning_state`).
  *
- * NO AI. NO advice. NO "why this matters" copy.
- * One task at a time. User cannot jump or pick.
+ * Source of truth for *available content*:
+ *   `lessons` table — a topic is shown ONLY if it has a base video lesson.
  *
- * Status transitions are derived per-load, not persisted:
- *   - first task with unmet completion criteria = 'active'
- *   - everything before it = 'done'
- *   - everything after = 'pending'
+ * Strict order per weak topic:
+ *   1. lesson  (must be marked completed in user_lesson_progress)
+ *   2. practice easy (5 questions, scoped to that topic)
+ *   3. practice medium (5 questions)
+ *   4. validation handled by RPC after good streak.
+ *
+ * NO advice, NO AI text. NO topics without a lesson.
  */
 
 export type TaskType = 'lesson' | 'practice' | 'repeat' | 'test';
 
 export interface PlanTask {
-  id: string;             // stable id within plan (e.g. "fractions:lesson")
+  id: string;
   type: TaskType;
-  topic: string | null;   // canonical topic name; null for global tasks
-  count: number;          // questions / videos
+  topic: string | null;
+  lesson_id?: string;       // UUID for lesson tasks
+  count: number;
   difficulty?: 'easy' | 'medium';
-  status: 'pending' | 'active' | 'done';
-  /** Human label (Russian, no advice) */
+  status: 'pending' | 'active' | 'done' | 'locked';
   label: string;
 }
 
@@ -38,10 +38,8 @@ export interface Plan {
   tasks: PlanTask[];
   total: number;
   done: number;
-  active_index: number; // -1 if none
+  active_index: number;
 }
-
-const REPEAT_INTERVAL = 3; // insert a repeat task every N tasks if there are mistakes
 
 function labelFor(type: TaskType, topic: string | null, count: number, diff?: 'easy' | 'medium'): string {
   const t = topic ?? 'общее';
@@ -54,36 +52,60 @@ function labelFor(type: TaskType, topic: string | null, count: number, diff?: 'e
 }
 
 interface SourceData {
-  weak_topics: string[];
-  watched_videos: Set<string>;
-  due_repeats: number;          // count of due spaced_repetition rows
-  topic_stats: Record<string, { total_attempts: number; correct_answers: number; accuracy: number }>;
-  /** correct_count of last `count` answered tasks per topic — used to mark "done" */
+  weak_topics: string[];                        // ONLY topics that have a lesson
+  topic_to_lesson: Record<string, string>;      // canonical topic → lesson UUID
+  completed_lesson_ids: Set<string>;            // user_lesson_progress.lesson_id where completed
   topic_progress: Record<string, { correct: number; total: number }>;
+  due_repeats: number;
+  active_phase: 'idle' | 'lesson' | 'practice' | 'validation';
+  active_topic: string | null;
+}
+
+/** Build map: weak_topic → lesson UUID (only topics that ACTUALLY have a video lesson). */
+async function buildLessonMap(weakCandidates: string[]): Promise<Record<string, string>> {
+  if (weakCandidates.length === 0) return {};
+  // Fetch all lessons once (small table)
+  const { data: lessons } = await supabase
+    .from('lessons')
+    .select('id, title, topic_id, topics:topic_id (title, title_ru)');
+
+  const map: Record<string, string> = {};
+  const norm = (s: string | null | undefined) => (s || '').trim().toLowerCase();
+  const wantSet = new Set(weakCandidates.map(norm));
+
+  for (const l of (lessons ?? []) as any[]) {
+    const candidates = [l.title, l.topics?.title, l.topics?.title_ru].filter(Boolean) as string[];
+    for (const c of candidates) {
+      const k = norm(c);
+      if (wantSet.has(k)) {
+        // Find original casing key
+        const original = weakCandidates.find(w => norm(w) === k);
+        if (original && !map[original]) map[original] = l.id;
+      }
+    }
+  }
+  return map;
 }
 
 async function loadSources(userId: string): Promise<SourceData> {
-  // mastery state (weak_topics, topic_stats)
-  const mastery = await getMasteryLoopState(userId);
-  const weak = (mastery?.weak_topics ?? []).slice(0, 2); // top 2 weak
+  // 1. Trigger fresh recompute via RPC and read mastery_phase/phase_topic + weak_topics
+  const { data: rpcRes } = await supabase.rpc('recompute_learning_state', { _user_id: userId });
+  const r = (rpcRes ?? {}) as any;
+  const weak: string[] = Array.isArray(r.weak_topics) ? r.weak_topics : [];
 
-  // watched videos
+  // 2. Build lesson map (weak topic → lesson UUID); drop topics without a lesson
+  const lessonMap = await buildLessonMap(weak);
+  const filteredWeak = weak.filter(t => !!lessonMap[t]);
+
+  // 3. Lesson progress
   const { data: lp } = await supabase
     .from('user_lesson_progress')
     .select('lesson_id')
     .eq('user_id', userId)
     .eq('completed', true);
-  const watched = new Set<string>((lp || []).map(r => r.lesson_id));
+  const completedLessonIds = new Set<string>((lp || []).map(x => x.lesson_id));
 
-  // due repeats
-  const nowIso = new Date().toISOString();
-  const { count: dueCount } = await supabase
-    .from('spaced_repetition')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .lte('next_review_date', nowIso);
-
-  // recent practice/attempts per topic, to compute "done" status of practice tasks
+  // 4. Practice progress per topic (last 200)
   const { data: recent } = await supabase
     .from('practice_responses')
     .select('topic, is_correct, created_at')
@@ -91,31 +113,35 @@ async function loadSources(userId: string): Promise<SourceData> {
     .order('created_at', { ascending: false })
     .limit(200);
   const progress: Record<string, { correct: number; total: number }> = {};
-  for (const r of recent || []) {
-    if (!r.topic) continue;
-    const e = progress[r.topic] || { correct: 0, total: 0 };
-    e.total++; if (r.is_correct) e.correct++;
-    progress[r.topic] = e;
+  for (const x of recent || []) {
+    if (!x.topic) continue;
+    const e = progress[x.topic] || { correct: 0, total: 0 };
+    e.total++; if (x.is_correct) e.correct++;
+    progress[x.topic] = e;
   }
 
-  return {
-    weak_topics: weak,
-    watched_videos: watched,
-    due_repeats: dueCount ?? 0,
-    topic_stats: mastery?.topic_stats ?? {},
-    topic_progress: progress,
-  };
-}
+  // 5. Due spaced repetition
+  const { count: dueCount } = await supabase
+    .from('spaced_repetition')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .lte('next_review_date', new Date().toISOString());
 
-function videoIdForTopic(topic: string): string {
-  // Stored as `video_<slug>` in user_lesson_progress per learningState.ts convention.
-  return `video_${topicToLessonSlug(topic) || topic}`;
+  return {
+    weak_topics: filteredWeak,
+    topic_to_lesson: lessonMap,
+    completed_lesson_ids: completedLessonIds,
+    topic_progress: progress,
+    due_repeats: dueCount ?? 0,
+    active_phase: (['idle','lesson','practice','validation'].includes(r.mastery_phase) ? r.mastery_phase : 'idle') as any,
+    active_topic: r.phase_topic ?? null,
+  };
 }
 
 function buildQueue(src: SourceData): PlanTask[] {
   const tasks: PlanTask[] = [];
 
-  // 1) Spaced repetition first if anything is due
+  // Optional: spaced repetition first (small batch)
   if (src.due_repeats > 0) {
     const cnt = Math.min(src.due_repeats, 3);
     tasks.push({
@@ -126,33 +152,24 @@ function buildQueue(src: SourceData): PlanTask[] {
     });
   }
 
-  // 2) Top 2 weak topics
-  for (const topic of src.weak_topics) {
-    const videoSeen = src.watched_videos.has(videoIdForTopic(topic));
-    if (!videoSeen) {
-      tasks.push({
-        id: `${topic}:lesson`,
-        type: 'lesson', topic, count: 1,
-        status: 'pending',
-        label: labelFor('lesson', topic, 1),
-      });
-    }
+  // Weak topics with lessons (top 2 max)
+  const weakSlice = src.weak_topics.slice(0, 2);
+  for (const topic of weakSlice) {
+    const lessonId = src.topic_to_lesson[topic];
+    if (!lessonId) continue; // safety — should already be filtered
+
+    tasks.push({
+      id: `${topic}:lesson`,
+      type: 'lesson', topic, lesson_id: lessonId, count: 1,
+      status: 'pending',
+      label: labelFor('lesson', topic, 1),
+    });
     tasks.push({
       id: `${topic}:practice-easy`,
       type: 'practice', topic, count: 5, difficulty: 'easy',
       status: 'pending',
       label: labelFor('practice', topic, 5, 'easy'),
     });
-    // Insert mistake-repeat only if user actually has mistakes in that topic
-    const stat = src.topic_stats[topic];
-    if (stat && stat.total_attempts >= 3 && stat.correct_answers < stat.total_attempts) {
-      tasks.push({
-        id: `${topic}:repeat`,
-        type: 'repeat', topic, count: 2,
-        status: 'pending',
-        label: labelFor('repeat', topic, 2),
-      });
-    }
     tasks.push({
       id: `${topic}:practice-medium`,
       type: 'practice', topic, count: 5, difficulty: 'medium',
@@ -161,18 +178,8 @@ function buildQueue(src: SourceData): PlanTask[] {
     });
   }
 
-  // Insert a periodic global repeat every REPEAT_INTERVAL tasks if more due items exist
-  if (src.due_repeats > 3 && tasks.length > REPEAT_INTERVAL) {
-    tasks.splice(REPEAT_INTERVAL, 0, {
-      id: 'sr:repeat-2',
-      type: 'repeat', topic: null, count: 3,
-      status: 'pending',
-      label: labelFor('repeat', null, 3),
-    });
-  }
-
-  // 3) If nothing weak left → contribution test
-  if (src.weak_topics.length === 0 && tasks.length === 0) {
+  // No weak topics with lessons → suggest test
+  if (weakSlice.length === 0 && tasks.length === 0) {
     tasks.push({
       id: 'global:test',
       type: 'test', topic: null, count: 30,
@@ -184,35 +191,47 @@ function buildQueue(src: SourceData): PlanTask[] {
   return tasks;
 }
 
-/** Mark each task done if completion criteria met, then mark first not-done as active. */
+/**
+ * Apply derived statuses with the STRICT rule:
+ *   For a given topic, practice tasks are 'locked' until the lesson task is 'done'.
+ */
 function applyStatuses(tasks: PlanTask[], src: SourceData): PlanTask[] {
   const result = tasks.map(t => ({ ...t }));
+
+  // Mark done where applicable
   for (const t of result) {
-    if (t.type === 'lesson' && t.topic) {
-      if (src.watched_videos.has(videoIdForTopic(t.topic))) t.status = 'done';
+    if (t.type === 'lesson' && t.lesson_id) {
+      if (src.completed_lesson_ids.has(t.lesson_id)) t.status = 'done';
     } else if (t.type === 'practice' && t.topic) {
       const p = src.topic_progress[t.topic];
-      // crude: consider done if there are at least `count` recent answers AND accuracy >= 0.6
       if (p && p.total >= t.count && (p.correct / p.total) >= 0.6) t.status = 'done';
     }
-    // repeat/test: only marked done after explicit completion (not derivable here) → stays pending
   }
+
+  // Track which topic's lesson is done
+  const lessonDoneByTopic = new Set<string>();
+  for (const t of result) {
+    if (t.type === 'lesson' && t.topic && t.status === 'done') lessonDoneByTopic.add(t.topic);
+  }
+
+  // Lock practice tasks whose lesson is not done
+  for (const t of result) {
+    if (t.type === 'practice' && t.topic && !lessonDoneByTopic.has(t.topic) && t.status !== 'done') {
+      t.status = 'locked';
+    }
+  }
+
+  // Pick first not-done, not-locked as active
   let activeSet = false;
   for (const t of result) {
-    if (t.status === 'done') continue;
+    if (t.status === 'done' || t.status === 'locked') continue;
     if (!activeSet) { t.status = 'active'; activeSet = true; }
     else { t.status = 'pending'; }
   }
   return result;
 }
 
-/**
- * Build (or rebuild) the plan for a user. Pure derivation — no DB writes.
- * Logs [PLAN_CREATED].
- */
 export async function buildPlan(userId: string): Promise<Plan> {
-  // Always recompute mastery first so weak_topics reflect latest answers
-  await recomputeMasteryState(userId);
   const src = await loadSources(userId);
   const raw = buildQueue(src);
   const tasks = applyStatuses(raw, src);
@@ -226,24 +245,29 @@ export async function buildPlan(userId: string): Promise<Plan> {
     done,
     active_index,
   };
-  console.log('[PLAN_CREATED]', { user_id: userId, tasks: tasks.map(t => ({ type: t.type, topic: t.topic, status: t.status })) });
+  console.log('[PLAN_CREATED]', {
+    user_id: userId,
+    weak_topics: src.weak_topics,
+    active_phase: src.active_phase,
+    active_topic: src.active_topic,
+    tasks: tasks.map(t => ({ type: t.type, topic: t.topic, status: t.status })),
+  });
   return plan;
 }
 
-/** Returns the next pending/active task, or null. Logs [NEXT_TASK]. */
 export function getNextTask(plan: Plan): PlanTask | null {
-  const t = plan.tasks.find(x => x.status === 'active') ?? plan.tasks.find(x => x.status === 'pending') ?? null;
-  if (t) console.log('[NEXT_TASK]', { task_type: t.type, topic: t.topic });
+  const t = plan.tasks.find(x => x.status === 'active') ?? null;
+  if (t) console.log('[NEXT_TASK]', { task_type: t.type, topic: t.topic, lesson_id: t.lesson_id });
   return t;
 }
 
-/** Route to navigate when starting a task. */
 export function routeForTask(task: PlanTask): string {
   switch (task.type) {
     case 'lesson':
-      return task.topic ? `/lessons/topic/${encodeURIComponent(topicToLessonSlug(task.topic) || task.topic)}` : '/lessons';
+      // Direct UUID route — guarantees the real video opens
+      return task.lesson_id ? `/lessons/${task.lesson_id}` : '/lessons';
     case 'practice':
-      // Forced loop is the executor for practice
+      // Forced loop scoped to the weak topic
       return '/learn';
     case 'repeat':
       return '/practice?mode=review';

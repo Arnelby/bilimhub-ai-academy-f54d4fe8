@@ -167,6 +167,7 @@ export default function LearningPlanV2() {
 function TaskRow({ task, index }: { task: PlanTask; index: number }) {
   const isDone = task.status === 'done';
   const isActive = task.status === 'active';
+  const isLocked = task.status === 'locked';
   const isPending = task.status === 'pending';
 
   return (
@@ -175,6 +176,7 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
         'flex items-center gap-3 rounded-lg border p-3 transition-colors',
         isActive ? 'border-primary/60 bg-primary/5' : '',
         isDone ? 'opacity-60' : '',
+        isLocked ? 'opacity-50' : '',
         isPending ? 'opacity-70' : '',
       ].join(' ')}
     >
@@ -187,11 +189,11 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{task.label}</p>
         <p className="text-xs text-muted-foreground">
-          {isActive ? 'Сейчас' : isDone ? 'Готово' : 'Заблокировано'}
+          {isActive ? 'Сейчас' : isDone ? 'Готово' : isLocked ? 'Сначала пройди урок' : 'Ожидает'}
         </p>
       </div>
       {isActive && <Badge variant="default">▶ АКТИВНО</Badge>}
-      {isPending && <Lock className="h-4 w-4 text-muted-foreground" />}
+      {(isPending || isLocked) && <Lock className="h-4 w-4 text-muted-foreground" />}
     </div>
   );
 }
