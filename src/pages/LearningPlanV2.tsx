@@ -167,6 +167,7 @@ export default function LearningPlanV2() {
 function TaskRow({ task, index }: { task: PlanTask; index: number }) {
   const isDone = task.status === 'done';
   const isActive = task.status === 'active';
+  const isLocked = task.status === 'locked';
   const isPending = task.status === 'pending';
 
   return (
@@ -175,6 +176,7 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
         'flex items-center gap-3 rounded-lg border p-3 transition-colors',
         isActive ? 'border-primary/60 bg-primary/5' : '',
         isDone ? 'opacity-60' : '',
+        isLocked ? 'opacity-50' : '',
         isPending ? 'opacity-70' : '',
       ].join(' ')}
     >
