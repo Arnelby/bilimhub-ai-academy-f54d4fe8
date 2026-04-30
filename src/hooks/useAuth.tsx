@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setTimeout(() => {
             fetchProfile(session.user.id);
+            enforceAccess(session.user.email);
           }, 0);
         } else {
           setProfile(null);
@@ -58,12 +59,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+        enforceAccess(session.user.email);
       }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const enforceAccess = async (email?: string | null) => {
+    if (!email) return;
+    try {
+      const { data, error } = await supabase
+        .from('beta_whitelist')
+        .select('is_active')
+        .ilike('email', email)
+        .maybeSingle();
+      if (error) return;
+      if (!data || data.is_active === false) {
+        console.log('[USER_BLOCKED]', { email });
+        await supabase.auth.signOut();
+        toast({
+          title: 'Доступ к платформе завершён',
+          description: 'Ваши данные сохранены. Свяжитесь с администратором.',
+          variant: 'destructive',
+        });
+      }
+    } catch (e) {
+      console.error('enforceAccess error', e);
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
