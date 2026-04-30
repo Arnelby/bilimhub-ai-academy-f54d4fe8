@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setTimeout(() => {
             fetchProfile(session.user.id);
+            enforceAccess(session.user.email);
           }, 0);
         } else {
           setProfile(null);
