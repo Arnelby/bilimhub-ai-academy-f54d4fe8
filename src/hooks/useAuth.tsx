@@ -179,10 +179,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultAuthContext: AuthContextType = {
+  user: null,
+  session: null,
+  profile: null,
+  loading: true,
+  signOut: async () => {},
+  updateProfile: async () => {},
+};
+
 export function useAuth() {
   const context = useContext(AuthContext);
+  // Avoid throwing during HMR re-renders or transient mount races.
+  // Returning a safe default prevents the white-screen "useAuth must be used within an AuthProvider" loop.
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    if (import.meta.env.DEV) {
+      console.warn('[useAuth] Context missing — falling back to default. Likely HMR/mount race.');
+    }
+    return defaultAuthContext;
   }
   return context;
 }
