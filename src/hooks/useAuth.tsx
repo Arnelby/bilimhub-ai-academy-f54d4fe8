@@ -72,11 +72,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('beta_whitelist')
-        .select('is_active')
+        .select('is_active, email')
         .ilike('email', email)
         .maybeSingle();
-      if (error) return;
-      if (!data || data.is_active === false) {
+
+      const whitelistStatus = error
+        ? 'error'
+        : !data
+        ? 'not_in_whitelist'
+        : data.is_active
+        ? 'active'
+        : 'inactive';
+
+      // Блокируем ТОЛЬКО если есть запись и она явно деактивирована.
+      // Отсутствие записи в whitelist НЕ блокирует (доступ контролируется на логине).
+      const finalDecision =
+        whitelistStatus === 'inactive' ? 'blocked' : 'allowed';
+
+      console.log('[ACCESS_DEBUG]', {
+        user_email: email,
+        whitelist_status: whitelistStatus,
+        access_status: data?.is_active ?? null,
+        final_decision: finalDecision,
+      });
+
+      if (finalDecision === 'blocked') {
         console.log('[USER_BLOCKED]', { email });
         await supabase.auth.signOut();
         toast({
