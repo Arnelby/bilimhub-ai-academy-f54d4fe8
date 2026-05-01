@@ -397,26 +397,27 @@ export async function updateLearningState(userId: string): Promise<LearningState
   if (!userId) return null;
 
   try {
+    // STEP 2 — single planner: delegate next_action / weak_topics / phase to RPC.
+    // resolveNext() and buildPlan() are kept only for legacy UI helpers (plan list).
+    await supabase.rpc('recompute_learning_state' as any, { _user_id: userId });
+
     const [snap, forced] = await Promise.all([
       computeSnapshot(userId),
       selectForcedTopic(userId),
     ]);
-    const next = resolveNext(snap, forced);
+    const next = resolveNext(snap, forced); // legacy helper for client-side hints only
     const plan = buildPlan(snap, next);
     const currentProgress = forced ? computeProgress(forced) : null;
 
+    // Update only client-derived helper fields. The RPC owns:
+    //   weak_topics, strong_topics, mastery_phase, phase_topic,
+    //   next_action, next_reason, current_step, topic_stats.
     const payload = {
       user_id: userId,
-      topic_stats: snap.topic_stats as any,
-      weak_topics: snap.weak_topics as any,
-      strong_topics: snap.strong_topics as any,
       completed_lessons: snap.completed_lessons as any,
       watched_videos: snap.watched_videos as any,
       completed_tests: snap.completed_tests,
       current_plan: plan as any,
-      next_action: next.next_action,
-      next_reason: next.next_reason,
-      current_step: next.current_step,
       current_topic: next.current_topic,
       daily_goal: snap.daily_goal,
       daily_progress: snap.daily_progress,
@@ -441,11 +442,9 @@ export async function updateLearningState(userId: string): Promise<LearningState
       user_id: userId,
       forced_topic: forced?.topic ?? null,
       mastery_lock: !!forced,
-      next_action: next.next_action_type,
-      target: next.next_target,
+      next_action: (data as any)?.next_action,
+      planner: 'rpc:recompute_learning_state',
     });
-    console.log('[PLAN_UPDATED]', { plan });
-    console.log('[NEXT_ACTION]', next.next_action_type);
 
     const row = data as any;
     return {
