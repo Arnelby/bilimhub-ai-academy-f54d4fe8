@@ -608,6 +608,7 @@ export type Database = {
           correct_answer: string
           correct_explanation: string | null
           created_at: string
+          difficulty: string | null
           explanation_a: string | null
           explanation_b: string | null
           explanation_c: string | null
@@ -627,6 +628,7 @@ export type Database = {
           correct_answer: string
           correct_explanation?: string | null
           created_at?: string
+          difficulty?: string | null
           explanation_a?: string | null
           explanation_b?: string | null
           explanation_c?: string | null
@@ -646,6 +648,7 @@ export type Database = {
           correct_answer?: string
           correct_explanation?: string | null
           created_at?: string
+          difficulty?: string | null
           explanation_a?: string | null
           explanation_b?: string | null
           explanation_c?: string | null
@@ -2013,6 +2016,16 @@ export type Database = {
       }
     }
     Views: {
+      practice_question_stats: {
+        Row: {
+          correct_attempts: number | null
+          question_id: string | null
+          success_rate: number | null
+          topic: string | null
+          total_attempts: number | null
+        }
+        Relationships: []
+      }
       research_clean_attempts: {
         Row: {
           correct_answer: string | null
@@ -2427,12 +2440,37 @@ export type Database = {
           topic: string
         }[]
       }
+      get_practice_questions_v2: {
+        Args: { _difficulty?: string; _limit?: number; _topic: string }
+        Returns: {
+          correct_answer: string
+          correct_explanation: string
+          difficulty: string
+          explanation_a: string
+          explanation_b: string
+          explanation_c: string
+          explanation_d: string
+          explanation_e: string
+          id: string
+          question_data: Json
+          question_type: string
+          topic: string
+        }[]
+      }
       has_beta_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_mastered_topic: {
+        Args: { _accuracy: number; _attempts: number }
+        Returns: boolean
+      }
+      is_weak_topic: {
+        Args: { _accuracy: number; _attempts: number }
         Returns: boolean
       }
       normalize_topic: { Args: { _raw: string }; Returns: string }
@@ -2474,6 +2512,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      seeded_random: { Args: { _seed: string }; Returns: number }
       set_learning_current_question: {
         Args: { _payload: Json; _question_id: string; _source: string }
         Returns: {
@@ -2535,6 +2574,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      start_practice_session: {
+        Args: { _practice_type?: string; _topic?: string }
+        Returns: Json
+      }
+      topic_classification: {
+        Args: { _accuracy: number; _attempts: number }
+        Returns: string
       }
       use_invite_code: {
         Args: { _code: string; _user_id: string }
