@@ -620,6 +620,7 @@ export type Database = {
           question_type: string
           source: string
           topic: string
+          topic_normalized: string | null
           user_id: string
         }
         Insert: {
@@ -638,6 +639,7 @@ export type Database = {
           question_type?: string
           source?: string
           topic: string
+          topic_normalized?: string | null
           user_id: string
         }
         Update: {
@@ -656,7 +658,68 @@ export type Database = {
           question_type?: string
           source?: string
           topic?: string
+          topic_normalized?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      practice_questions_backup: {
+        Row: {
+          _backup_at: string | null
+          correct_answer: string | null
+          correct_explanation: string | null
+          created_at: string | null
+          explanation_a: string | null
+          explanation_b: string | null
+          explanation_c: string | null
+          explanation_d: string | null
+          explanation_e: string | null
+          id: string | null
+          quality_reason: string | null
+          quality_status: string | null
+          question_data: Json | null
+          question_type: string | null
+          source: string | null
+          topic: string | null
+          user_id: string | null
+        }
+        Insert: {
+          _backup_at?: string | null
+          correct_answer?: string | null
+          correct_explanation?: string | null
+          created_at?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
+          id?: string | null
+          quality_reason?: string | null
+          quality_status?: string | null
+          question_data?: Json | null
+          question_type?: string | null
+          source?: string | null
+          topic?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          _backup_at?: string | null
+          correct_answer?: string | null
+          correct_explanation?: string | null
+          created_at?: string | null
+          explanation_a?: string | null
+          explanation_b?: string | null
+          explanation_c?: string | null
+          explanation_d?: string | null
+          explanation_e?: string | null
+          id?: string | null
+          quality_reason?: string | null
+          quality_status?: string | null
+          question_data?: Json | null
+          question_type?: string | null
+          source?: string | null
+          topic?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -676,6 +739,7 @@ export type Database = {
           session_id: string
           time_spent_seconds: number | null
           topic: string | null
+          topic_normalized: string | null
           user_answer: string | null
           user_id: string
         }
@@ -694,6 +758,7 @@ export type Database = {
           session_id: string
           time_spent_seconds?: number | null
           topic?: string | null
+          topic_normalized?: string | null
           user_answer?: string | null
           user_id: string
         }
@@ -712,6 +777,7 @@ export type Database = {
           session_id?: string
           time_spent_seconds?: number | null
           topic?: string | null
+          topic_normalized?: string | null
           user_answer?: string | null
           user_id?: string
         }
@@ -731,6 +797,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      practice_responses_backup: {
+        Row: {
+          _backup_at: string | null
+          correct_answer: string | null
+          created_at: string | null
+          data_version: string | null
+          difficulty: string | null
+          id: string | null
+          is_correct: boolean | null
+          is_reliable: boolean | null
+          participant_id: string | null
+          question_data: Json | null
+          question_id: string | null
+          question_index: number | null
+          session_id: string | null
+          time_spent_seconds: number | null
+          topic: string | null
+          user_answer: string | null
+          user_id: string | null
+        }
+        Insert: {
+          _backup_at?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_data?: Json | null
+          question_id?: string | null
+          question_index?: number | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          _backup_at?: string | null
+          correct_answer?: string | null
+          created_at?: string | null
+          data_version?: string | null
+          difficulty?: string | null
+          id?: string | null
+          is_correct?: boolean | null
+          is_reliable?: boolean | null
+          participant_id?: string | null
+          question_data?: Json | null
+          question_id?: string | null
+          question_index?: number | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          topic?: string | null
+          user_answer?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       practice_session_questions: {
         Row: {
@@ -1177,6 +1303,24 @@ export type Database = {
         }
         Relationships: []
       }
+      topic_canonical_map: {
+        Row: {
+          canonical_en: string
+          created_at: string
+          raw_topic: string
+        }
+        Insert: {
+          canonical_en: string
+          created_at?: string
+          raw_topic: string
+        }
+        Update: {
+          canonical_en?: string
+          created_at?: string
+          raw_topic?: string
+        }
+        Relationships: []
+      }
       topic_mastery_state: {
         Row: {
           accuracy: number
@@ -1189,6 +1333,7 @@ export type Database = {
           needs_lesson: boolean
           status: Database["public"]["Enums"]["topic_mastery_status"]
           topic: string
+          topic_normalized: string | null
           total_attempts: number
           updated_at: string
           user_id: string
@@ -1204,6 +1349,7 @@ export type Database = {
           needs_lesson?: boolean
           status?: Database["public"]["Enums"]["topic_mastery_status"]
           topic: string
+          topic_normalized?: string | null
           total_attempts?: number
           updated_at?: string
           user_id: string
@@ -1219,9 +1365,61 @@ export type Database = {
           needs_lesson?: boolean
           status?: Database["public"]["Enums"]["topic_mastery_status"]
           topic?: string
+          topic_normalized?: string | null
           total_attempts?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      topic_mastery_state_backup: {
+        Row: {
+          _backup_at: string | null
+          accuracy: number | null
+          consecutive_wrong: number | null
+          correct_answers: number | null
+          created_at: string | null
+          id: string | null
+          last_lesson_watched_at: string | null
+          mastered_at: string | null
+          needs_lesson: boolean | null
+          status: Database["public"]["Enums"]["topic_mastery_status"] | null
+          topic: string | null
+          total_attempts: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          _backup_at?: string | null
+          accuracy?: number | null
+          consecutive_wrong?: number | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string | null
+          last_lesson_watched_at?: string | null
+          mastered_at?: string | null
+          needs_lesson?: boolean | null
+          status?: Database["public"]["Enums"]["topic_mastery_status"] | null
+          topic?: string | null
+          total_attempts?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          _backup_at?: string | null
+          accuracy?: number | null
+          consecutive_wrong?: number | null
+          correct_answers?: number | null
+          created_at?: string | null
+          id?: string | null
+          last_lesson_watched_at?: string | null
+          mastered_at?: string | null
+          needs_lesson?: boolean | null
+          status?: Database["public"]["Enums"]["topic_mastery_status"] | null
+          topic?: string | null
+          total_attempts?: number | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2237,6 +2435,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_topic: { Args: { _raw: string }; Returns: string }
       pause_learning_session: { Args: never; Returns: undefined }
       recompute_learning_state: { Args: { _user_id: string }; Returns: Json }
       record_learning_answer: {
