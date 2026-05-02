@@ -145,6 +145,33 @@ export default function Practice() {
     }
 
 
+    // ===== BACKEND GATE: lesson-before-practice (server-side enforcement) =====
+    // Only when a topic is focused and not in review/mastery mode.
+    if (!reviewMode && !masteryMode && focusedTopic) {
+      try {
+        const { data: gate, error: gateErr } = await supabase.rpc(
+          'start_practice_session' as any,
+          { _topic: focusedTopic, _practice_type: isAI ? 'personalized' : 'general' },
+        );
+        if (gateErr) {
+          console.warn('[PRACTICE_GATE] RPC error (non-blocking)', gateErr);
+        } else if (gate && (gate as any).allowed === false) {
+          const reason = (gate as any).reason;
+          const lessonId = (gate as any).lesson_id;
+          console.log('[PRACTICE_GATE] blocked', gate);
+          if (reason === 'lesson_required' && lessonId) {
+            toast.info('Сначала посмотри урок по этой теме');
+            navigate(`/lessons/${lessonId}`, { replace: true });
+            return;
+          }
+        } else {
+          console.log('[PRACTICE_GATE] allowed', gate);
+        }
+      } catch (e) {
+        console.warn('[PRACTICE_GATE] exception (non-blocking)', e);
+      }
+    }
+
     // === REVIEW MODE — AI group only. Control must never see mistake-review flow. ===
     if (reviewMode && !isAI) {
       console.log('[REVIEW_MODE] blocked for non-AI group — redirecting to general practice');
