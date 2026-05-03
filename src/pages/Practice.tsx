@@ -1537,14 +1537,19 @@ export default function Practice() {
                     { key: 'C', label: 'Величины равны' },
                     { key: 'D', label: 'Недостаточно информации' },
                   ].map(opt => {
+                    const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === opt.key;
                     return (
                       <button
                         key={opt.key}
                         onClick={() => handleAnswer(opt.key)}
+                        disabled={fixed}
+                        aria-disabled={fixed}
                         className={`w-full rounded-lg border p-4 text-left transition-all ${
                           isSelected
                             ? 'border-accent bg-accent/10 ring-2 ring-accent'
+                            : fixed
+                            ? 'border-border opacity-50 cursor-not-allowed'
                             : 'border-border hover:border-accent/50 hover:bg-muted/50'
                         }`}
                       >
@@ -1568,14 +1573,19 @@ export default function Practice() {
 
                 <div className="space-y-3">
                   {Object.entries(currentQ.options).map(([key, value]) => {
+                    const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === key;
                     return (
                       <button
                         key={key}
                         onClick={() => handleAnswer(key)}
+                        disabled={fixed}
+                        aria-disabled={fixed}
                         className={`w-full rounded-lg border p-4 text-left transition-all ${
                           isSelected
                             ? 'border-accent bg-accent/10 ring-2 ring-accent'
+                            : fixed
+                            ? 'border-border opacity-50 cursor-not-allowed'
                             : 'border-border hover:border-accent/50 hover:bg-muted/50'
                         }`}
                       >
