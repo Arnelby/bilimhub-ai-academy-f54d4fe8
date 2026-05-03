@@ -154,7 +154,7 @@ export function MistakesBlock({
 
               {m.instruction && (
                 <div className="text-sm">
-                  <MathRenderer content={m.instruction} />
+                  <SafeMath content={sanitizeReviewText(m.instruction) ?? m.instruction} />
                 </div>
               )}
 
@@ -162,11 +162,11 @@ export function MistakesBlock({
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="rounded border border-border bg-muted/30 p-2">
                     <p className="text-xs text-muted-foreground mb-1">A</p>
-                    <MathRenderer content={m.columnA || ''} />
+                    <SafeMath content={m.columnA || ''} />
                   </div>
                   <div className="rounded border border-border bg-muted/30 p-2">
                     <p className="text-xs text-muted-foreground mb-1">B</p>
-                    <MathRenderer content={m.columnB || ''} />
+                    <SafeMath content={m.columnB || ''} />
                   </div>
                 </div>
               )}
