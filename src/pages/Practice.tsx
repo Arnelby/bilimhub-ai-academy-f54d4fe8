@@ -994,22 +994,19 @@ export default function Practice() {
       console.error('[MASTERY_HOOK] failed', e);
     }
 
-    // ENGAGEMENT: micro-feedback toast — every action gets a reaction.
+    // PREMATURE-FEEDBACK FIX: do NOT reveal correctness during the session.
+    // Per-answer toasts (✓ / ✗) used to leak the answer state, which both
+    // (a) let users brute-force by re-clicking and (b) created "spam errors".
+    // We now stay silent until the final results screen.
+    // (Mastery progression toast for closed topics is still useful, but only
+    // when the topic is fully mastered — never per-answer correctness.)
     try {
       if (isCorrect) {
         const normTopic = normalizeAnalyticsTopic(q.topic || '');
         const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
         if (row && row.status === 'mastered') {
           toast.success(`🎯 Тема «${row.topic}» закрыта!`);
-        } else if (row) {
-          const left = Math.max(0, 10 - row.total_attempts);
-          if (left > 0 && left <= 3) toast.success(`+1 шаг • осталось ${left} до закрытия`);
-          else toast.success('+1 шаг к закрытию темы');
-        } else {
-          toast.success('+1 шаг к закрытию темы');
         }
-      } else {
-        toast('Ошибка — вернёмся к этому позже', { icon: '↻' });
       }
     } catch (e) {
       console.warn('[MICRO_FEEDBACK] failed', e);
