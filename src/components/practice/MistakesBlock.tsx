@@ -176,25 +176,54 @@ export function MistakesBlock({
               </div>
 
               <div className="flex flex-wrap gap-2 pt-1">
-                {m.linkedLessonId ? (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    onClick={() => navigate(`/lessons/${m.linkedLessonId}`)}
-                  >
-                    <PlayCircle className="mr-1 h-4 w-4" />
-                    Смотреть видео
-                  </Button>
-                ) : m.topic ? (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    onClick={() => navigate(`/lessons?topic=${encodeURIComponent(m.topic!)}`)}
-                  >
-                    <PlayCircle className="mr-1 h-4 w-4" />
-                    Смотреть видео
-                  </Button>
-                ) : null}
+                {(() => {
+                  // 1. Real lesson explicitly linked → open lesson page.
+                  if (m.linkedLessonId) {
+                    return (
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        onClick={() => navigate(`/lessons/${m.linkedLessonId}`)}
+                      >
+                        <PlayCircle className="mr-1 h-4 w-4" />
+                        Смотреть видео
+                      </Button>
+                    );
+                  }
+                  // 2. Basic video catalog → deep-link to /video/:id (single video).
+                  const basic = basicVideoForTopic(m.topic ?? null);
+                  if (basic) {
+                    return (
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        onClick={() => navigate(
+                          `/video/${basic.id}?topic=${encodeURIComponent(translateTopic(m.topic || '', 'ru') || '')}`,
+                        )}
+                      >
+                        <PlayCircle className="mr-1 h-4 w-4" />
+                        Базовый урок: {basic.title}
+                      </Button>
+                    );
+                  }
+                  // 3. No video at all → AI tutor with question context (no fake button).
+                  const params = new URLSearchParams({
+                    question: (m.instruction || (m.columnA && m.columnB ? `Сравните: А = ${m.columnA}, Б = ${m.columnB}` : '')).slice(0, 1000),
+                    user_answer: m.userAnswer || '',
+                    correct_answer: m.correctAnswer || '',
+                    topic: m.topic ? translateTopic(m.topic, 'ru') : '',
+                  });
+                  return (
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={() => navigate(`/ai-tutor?${params.toString()}`)}
+                    >
+                      <Bot className="mr-1 h-4 w-4" />
+                      Открыть AI-наставника
+                    </Button>
+                  );
+                })()}
                 <Button
                   size="sm"
                   variant="outline"
