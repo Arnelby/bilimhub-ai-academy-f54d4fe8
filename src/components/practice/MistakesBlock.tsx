@@ -84,6 +84,7 @@ export function MistakesBlock({
     mistakes.find(m => m.linkedLessonId)?.linkedLessonId ||
     (state?.next_action_type === 'watch_lesson' ? state?.next_target ?? null : null);
   const ctaTopic = mistakes[0]?.topic || state?.current_topic || null;
+  const ctaBasic = ctaLessonId ? null : basicVideoForTopic(ctaTopic);
 
   return (
     <div className="mb-6 space-y-4">
@@ -107,14 +108,16 @@ export function MistakesBlock({
                 <PlayCircle className="mr-2 h-4 w-4" />
                 Смотреть урок
               </Button>
-            ) : ctaTopic ? (
+            ) : ctaBasic ? (
               <Button
                 variant="accent"
-                onClick={() => navigate(`/lessons?topic=${encodeURIComponent(ctaTopic)}`)}
+                onClick={() => navigate(
+                  `/video/${ctaBasic.id}?topic=${encodeURIComponent(translateTopic(ctaTopic || '', 'ru') || '')}`,
+                )}
                 className="shrink-0"
               >
                 <PlayCircle className="mr-2 h-4 w-4" />
-                Смотреть урок
+                Базовый урок
               </Button>
             ) : null}
           </CardContent>
