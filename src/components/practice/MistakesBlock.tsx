@@ -2,12 +2,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, PlayCircle, BookOpen, RefreshCw, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, PlayCircle, BookOpen, RefreshCw, ArrowRight, CheckCircle2, Bot } from 'lucide-react';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 import type { LearningState } from '@/lib/learningState';
 import { nextActionRoute } from '@/lib/learningState';
+import { basicVideoForTopic } from '@/lib/basicVideos';
 
 export interface MistakeItem {
   questionId: string;
