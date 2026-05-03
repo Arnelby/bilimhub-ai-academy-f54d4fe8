@@ -293,51 +293,53 @@ export function QuestionReview({ data, groupMode = "ai" }: QuestionReviewProps) 
             </div>
           </div>
 
-          {/* AI hint button (cache-only, AI group only) */}
-          {canShowAiBtn && (
+          {/* AI tutor handoff (AI group, only on mistakes) — always navigates to /ai-tutor
+              with full question context. No silent failures. */}
+          {groupMode === 'ai' && !data.isCorrect && (
             <div className="pt-1 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={loadCachedAiHint}
-                disabled={aiLoading}
-                className="border-accent/40 text-accent hover:bg-accent/10"
-              >
-                {aiLoading ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-1 h-3.5 w-3.5" />
-                )}
-                {aiOpen ? "Скрыть AI-разбор" : "Разбор с AI"}
+              <Button asChild size="sm" variant="outline" className="border-accent/40 text-accent hover:bg-accent/10">
+                <Link
+                  to={`/ai-tutor?${new URLSearchParams({
+                    question: (data.instruction || (data.column_a && data.column_b ? `Сравните: А = ${data.column_a}, Б = ${data.column_b}` : '')).slice(0, 1000),
+                    user_answer: data.userAnswer || '',
+                    correct_answer: data.correctAnswer || '',
+                    topic: data.topic ? translateTopic(data.topic, 'ru') : '',
+                  }).toString()}`}
+                >
+                  <Bot className="mr-1 h-3.5 w-3.5" />
+                  Разобрать с AI-наставником
+                </Link>
               </Button>
 
-              {/* Open in full AI Tutor with question pre-loaded */}
-              {groupMode === 'ai' && !data.isCorrect && (
-                <Button asChild size="sm" variant="outline" className="border-accent/40 text-accent hover:bg-accent/10">
-                  <Link
-                    to={`/ai-tutor?${new URLSearchParams({
-                      question: (data.instruction || (data.column_a && data.column_b ? `Сравните: А = ${data.column_a}, Б = ${data.column_b}` : '')).slice(0, 1000),
-                      user_answer: data.userAnswer || '',
-                      correct_answer: data.correctAnswer || '',
-                      topic: data.topic ? translateTopic(data.topic, 'ru') : '',
-                    }).toString()}`}
+              {/* Optional cached hint — shown only when actually present, no fake button. */}
+              {canShowAiBtn && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={loadCachedAiHint}
+                    disabled={aiLoading}
+                    className="border-accent/40 text-accent hover:bg-accent/10"
                   >
-                    <Bot className="mr-1 h-3.5 w-3.5" />
-                    Спросить AI-тренера
-                  </Link>
-                </Button>
-              )}
-
-              {aiOpen && !aiLoading && (
-                <div className="mt-2 w-full rounded-md border border-accent/20 bg-accent/5 p-3 text-sm overflow-hidden">
-                  {aiError ? (
-                    <p className="text-muted-foreground">{aiError}</p>
-                  ) : aiHint ? (
-                    <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
-                      <SafeMath content={aiHint} />
+                    {aiLoading ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    {aiOpen ? 'Скрыть короткий разбор' : 'Короткий разбор'}
+                  </Button>
+                  {aiOpen && !aiLoading && (
+                    <div className="mt-2 w-full rounded-md border border-accent/20 bg-accent/5 p-3 text-sm overflow-hidden">
+                      {aiError ? (
+                        <p className="text-muted-foreground">{aiError}</p>
+                      ) : aiHint ? (
+                        <div className="text-foreground/90 break-words [&_.katex-display]:overflow-x-auto [&_.katex-display]:max-w-full">
+                          <SafeMath content={aiHint} />
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
+                  )}
+                </>
               )}
             </div>
           )}

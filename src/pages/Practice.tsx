@@ -994,22 +994,19 @@ export default function Practice() {
       console.error('[MASTERY_HOOK] failed', e);
     }
 
-    // ENGAGEMENT: micro-feedback toast — every action gets a reaction.
+    // PREMATURE-FEEDBACK FIX: do NOT reveal correctness during the session.
+    // Per-answer toasts (✓ / ✗) used to leak the answer state, which both
+    // (a) let users brute-force by re-clicking and (b) created "spam errors".
+    // We now stay silent until the final results screen.
+    // (Mastery progression toast for closed topics is still useful, but only
+    // when the topic is fully mastered — never per-answer correctness.)
     try {
       if (isCorrect) {
         const normTopic = normalizeAnalyticsTopic(q.topic || '');
         const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
         if (row && row.status === 'mastered') {
           toast.success(`🎯 Тема «${row.topic}» закрыта!`);
-        } else if (row) {
-          const left = Math.max(0, 10 - row.total_attempts);
-          if (left > 0 && left <= 3) toast.success(`+1 шаг • осталось ${left} до закрытия`);
-          else toast.success('+1 шаг к закрытию темы');
-        } else {
-          toast.success('+1 шаг к закрытию темы');
         }
-      } else {
-        toast('Ошибка — вернёмся к этому позже', { icon: '↻' });
       }
     } catch (e) {
       console.warn('[MICRO_FEEDBACK] failed', e);
@@ -1068,6 +1065,11 @@ export default function Practice() {
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
     if (!q) return;
+    // LOCK: an answer is fixed exactly once. No re-selection, no second attempts.
+    if (answers[qKey(q)]) {
+      console.log('[ANSWER_LOCK] ignoring re-click — answer already fixed', { qid: qKey(q) });
+      return;
+    }
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
     void persistAnswer(q, latinKey, currentIndex);
     // Reset timer for next question
@@ -1217,6 +1219,11 @@ export default function Practice() {
     } catch (err) {
       console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
+    // PLAN PROGRESS: tell any open LearningPlan tab to refresh.
+    try {
+      localStorage.setItem('plan:invalidate', String(Date.now()));
+      window.dispatchEvent(new Event('plan:invalidate'));
+    } catch { /* ignore */ }
   }, [user, questions, answers, sessionId, participantId]);
 
   const currentQ = questions[currentIndex];
@@ -1535,14 +1542,19 @@ export default function Practice() {
                     { key: 'C', label: 'Величины равны' },
                     { key: 'D', label: 'Недостаточно информации' },
                   ].map(opt => {
+                    const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === opt.key;
                     return (
                       <button
                         key={opt.key}
                         onClick={() => handleAnswer(opt.key)}
+                        disabled={fixed}
+                        aria-disabled={fixed}
                         className={`w-full rounded-lg border p-4 text-left transition-all ${
                           isSelected
                             ? 'border-accent bg-accent/10 ring-2 ring-accent'
+                            : fixed
+                            ? 'border-border opacity-50 cursor-not-allowed'
                             : 'border-border hover:border-accent/50 hover:bg-muted/50'
                         }`}
                       >
@@ -1566,14 +1578,19 @@ export default function Practice() {
 
                 <div className="space-y-3">
                   {Object.entries(currentQ.options).map(([key, value]) => {
+                    const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === key;
                     return (
                       <button
                         key={key}
                         onClick={() => handleAnswer(key)}
+                        disabled={fixed}
+                        aria-disabled={fixed}
                         className={`w-full rounded-lg border p-4 text-left transition-all ${
                           isSelected
                             ? 'border-accent bg-accent/10 ring-2 ring-accent'
+                            : fixed
+                            ? 'border-border opacity-50 cursor-not-allowed'
                             : 'border-border hover:border-accent/50 hover:bg-muted/50'
                         }`}
                       >

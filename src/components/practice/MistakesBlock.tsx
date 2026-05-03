@@ -2,12 +2,15 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, PlayCircle, BookOpen, RefreshCw, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, PlayCircle, BookOpen, RefreshCw, ArrowRight, CheckCircle2, Bot } from 'lucide-react';
 import { MathRenderer } from '@/components/math/MathRenderer';
+import { SafeMath } from '@/components/review/SafeMath';
+import { sanitizeReviewText } from '@/lib/reviewFormatting';
 import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 import type { LearningState } from '@/lib/learningState';
 import { nextActionRoute } from '@/lib/learningState';
+import { basicVideoForTopic } from '@/lib/basicVideos';
 
 export interface MistakeItem {
   questionId: string;
@@ -83,6 +86,7 @@ export function MistakesBlock({
     mistakes.find(m => m.linkedLessonId)?.linkedLessonId ||
     (state?.next_action_type === 'watch_lesson' ? state?.next_target ?? null : null);
   const ctaTopic = mistakes[0]?.topic || state?.current_topic || null;
+  const ctaBasic = ctaLessonId ? null : basicVideoForTopic(ctaTopic);
 
   return (
     <div className="mb-6 space-y-4">
@@ -106,14 +110,16 @@ export function MistakesBlock({
                 <PlayCircle className="mr-2 h-4 w-4" />
                 Смотреть урок
               </Button>
-            ) : ctaTopic ? (
+            ) : ctaBasic ? (
               <Button
                 variant="accent"
-                onClick={() => navigate(`/lessons?topic=${encodeURIComponent(ctaTopic)}`)}
+                onClick={() => navigate(
+                  `/video/${ctaBasic.id}?topic=${encodeURIComponent(translateTopic(ctaTopic || '', 'ru') || '')}`,
+                )}
                 className="shrink-0"
               >
                 <PlayCircle className="mr-2 h-4 w-4" />
-                Смотреть урок
+                Базовый урок
               </Button>
             ) : null}
           </CardContent>
@@ -148,7 +154,7 @@ export function MistakesBlock({
 
               {m.instruction && (
                 <div className="text-sm">
-                  <MathRenderer content={m.instruction} />
+                  <SafeMath content={sanitizeReviewText(m.instruction) ?? m.instruction} />
                 </div>
               )}
 
@@ -156,11 +162,11 @@ export function MistakesBlock({
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="rounded border border-border bg-muted/30 p-2">
                     <p className="text-xs text-muted-foreground mb-1">A</p>
-                    <MathRenderer content={m.columnA || ''} />
+                    <SafeMath content={m.columnA || ''} />
                   </div>
                   <div className="rounded border border-border bg-muted/30 p-2">
                     <p className="text-xs text-muted-foreground mb-1">B</p>
-                    <MathRenderer content={m.columnB || ''} />
+                    <SafeMath content={m.columnB || ''} />
                   </div>
                 </div>
               )}
@@ -175,25 +181,54 @@ export function MistakesBlock({
               </div>
 
               <div className="flex flex-wrap gap-2 pt-1">
-                {m.linkedLessonId ? (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    onClick={() => navigate(`/lessons/${m.linkedLessonId}`)}
-                  >
-                    <PlayCircle className="mr-1 h-4 w-4" />
-                    Смотреть видео
-                  </Button>
-                ) : m.topic ? (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    onClick={() => navigate(`/lessons?topic=${encodeURIComponent(m.topic!)}`)}
-                  >
-                    <PlayCircle className="mr-1 h-4 w-4" />
-                    Смотреть видео
-                  </Button>
-                ) : null}
+                {(() => {
+                  // 1. Real lesson explicitly linked → open lesson page.
+                  if (m.linkedLessonId) {
+                    return (
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        onClick={() => navigate(`/lessons/${m.linkedLessonId}`)}
+                      >
+                        <PlayCircle className="mr-1 h-4 w-4" />
+                        Смотреть видео
+                      </Button>
+                    );
+                  }
+                  // 2. Basic video catalog → deep-link to /video/:id (single video).
+                  const basic = basicVideoForTopic(m.topic ?? null);
+                  if (basic) {
+                    return (
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        onClick={() => navigate(
+                          `/video/${basic.id}?topic=${encodeURIComponent(translateTopic(m.topic || '', 'ru') || '')}`,
+                        )}
+                      >
+                        <PlayCircle className="mr-1 h-4 w-4" />
+                        Базовый урок: {basic.title}
+                      </Button>
+                    );
+                  }
+                  // 3. No video at all → AI tutor with question context (no fake button).
+                  const params = new URLSearchParams({
+                    question: (m.instruction || (m.columnA && m.columnB ? `Сравните: А = ${m.columnA}, Б = ${m.columnB}` : '')).slice(0, 1000),
+                    user_answer: m.userAnswer || '',
+                    correct_answer: m.correctAnswer || '',
+                    topic: m.topic ? translateTopic(m.topic, 'ru') : '',
+                  });
+                  return (
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={() => navigate(`/ai-tutor?${params.toString()}`)}
+                    >
+                      <Bot className="mr-1 h-4 w-4" />
+                      Открыть AI-наставника
+                    </Button>
+                  );
+                })()}
                 <Button
                   size="sm"
                   variant="outline"
