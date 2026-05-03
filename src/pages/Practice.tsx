@@ -1219,6 +1219,11 @@ export default function Practice() {
     } catch (err) {
       console.error('[PRACTICE_SESSION] Failed to finalize:', err);
     }
+    // PLAN PROGRESS: tell any open LearningPlan tab to refresh.
+    try {
+      localStorage.setItem('plan:invalidate', String(Date.now()));
+      window.dispatchEvent(new Event('plan:invalidate'));
+    } catch { /* ignore */ }
   }, [user, questions, answers, sessionId, participantId]);
 
   const currentQ = questions[currentIndex];
