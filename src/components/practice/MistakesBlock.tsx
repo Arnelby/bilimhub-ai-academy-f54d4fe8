@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, PlayCircle, BookOpen, RefreshCw, ArrowRight, CheckCircle2, Bot } from 'lucide-react';
 import { MathRenderer } from '@/components/math/MathRenderer';
+import { SafeMath } from '@/components/review/SafeMath';
+import { sanitizeReviewText } from '@/lib/reviewFormatting';
 import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { translateTopic } from '@/lib/topicTranslations';
 import type { LearningState } from '@/lib/learningState';
