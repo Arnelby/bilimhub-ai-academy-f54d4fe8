@@ -47,8 +47,17 @@ export default function LearningPlanV2() {
     };
     void load();
     const onFocus = () => { void load(); };
+    const onInvalidate = () => { void load(); };
+    const onStorage = (e: StorageEvent) => { if (e.key === 'plan:invalidate') void load(); };
     window.addEventListener('focus', onFocus);
-    return () => { cancel = true; window.removeEventListener('focus', onFocus); };
+    window.addEventListener('plan:invalidate', onInvalidate);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      cancel = true;
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('plan:invalidate', onInvalidate);
+      window.removeEventListener('storage', onStorage);
+    };
   }, [user?.id]);
 
   // Control group: no plan engine
