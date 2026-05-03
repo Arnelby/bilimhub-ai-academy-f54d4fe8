@@ -1068,6 +1068,11 @@ export default function Practice() {
   const handleAnswer = (latinKey: string) => {
     const q = questions[currentIndex];
     if (!q) return;
+    // LOCK: an answer is fixed exactly once. No re-selection, no second attempts.
+    if (answers[qKey(q)]) {
+      console.log('[ANSWER_LOCK] ignoring re-click — answer already fixed', { qid: qKey(q) });
+      return;
+    }
     setAnswers(prev => ({ ...prev, [qKey(q)]: latinKey }));
     void persistAnswer(q, latinKey, currentIndex);
     // Reset timer for next question
