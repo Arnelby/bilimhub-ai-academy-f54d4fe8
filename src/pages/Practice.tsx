@@ -1387,6 +1387,7 @@ export default function Practice() {
           <div className="flex gap-3 justify-center mb-6 flex-wrap">
             <Button
               onClick={() => {
+                // Explicit user intent → start a NEW session (only legal regeneration trigger).
                 if (isAI && focusedTopic && weakTopics.length > 0) {
                   const normalizedFocused = normalizeAnalyticsTopic(focusedTopic);
                   const idx = weakTopics.findIndex(
@@ -1394,15 +1395,15 @@ export default function Practice() {
                   );
                   const next = weakTopics[(idx + 1) % weakTopics.length];
                   if (next && normalizeAnalyticsTopic(next) !== normalizedFocused) {
-                    setSearchParams({ topic: next });
+                    setSearchParams({ topic: next, new: '1' });
                     return;
                   }
                 }
                 if (focusedTopic) {
-                  setSearchParams({});
+                  setSearchParams({ new: '1' });
                   return;
                 }
-                loadPractice(true);
+                setSearchParams({ new: '1' });
               }}
               variant="outline"
             >
