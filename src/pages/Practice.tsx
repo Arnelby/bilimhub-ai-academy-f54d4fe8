@@ -905,9 +905,23 @@ export default function Practice() {
   }, [user, group, groupLoading, isAI, isControl, focusedTopic, reviewMode, setSearchParams, difficultyParam]);
 
   useEffect(() => {
-    // When user navigates with ?topic=... or ?mode=review, always start a fresh session.
-    if (user && !groupLoading) loadPractice(!!focusedTopic || reviewMode);
-  }, [user, groupLoading, loadPractice, focusedTopic, reviewMode]);
+    // PRACTICE NEVER RESETS:
+    // - resume any active session (questions are immutable until completion)
+    // - only force a brand-new session on explicit ?new=1 (the "Новая практика"
+    //   button) or when entering review mode (mistake-only loop)
+    // Switching topics or revisiting the page must NOT regenerate questions.
+    const forceNew = searchParams.get('new') === '1' || reviewMode;
+    if (user && !groupLoading) {
+      void loadPractice(forceNew).then(() => {
+        if (forceNew && searchParams.get('new') === '1') {
+          const next = new URLSearchParams(searchParams);
+          next.delete('new');
+          setSearchParams(next, { replace: true });
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, groupLoading, focusedTopic, reviewMode]);
 
   // Reset per-question timer whenever the visible question changes
   useEffect(() => {
