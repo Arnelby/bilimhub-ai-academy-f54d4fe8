@@ -1,4 +1,4 @@
-// Basic video lessons mapped by Russian topic name (canonical keys lowercase).
+import { translateTopic, normalizePracticeTopic } from './topicTranslations';
 // Source: user-provided list. Each entry maps to a YouTube short URL.
 // Used by Practice mistake review + /video/:videoId route to redirect users
 // directly to the foundation lesson for a topic where they failed.
@@ -12,7 +12,7 @@ export interface BasicVideo {
 
 export const BASIC_VIDEOS: BasicVideo[] = [
   { id: 'basic-quadratic-equations', title: 'Квадратные уравнения', url: 'https://youtu.be/UciJkU2Ngb8', topicKeys: ['квадратные уравнения', 'quadratic equations'] },
-  { id: 'basic-linear-equations',    title: 'Линейные уравнения',   url: 'https://youtu.be/asOUdTALdUw', topicKeys: ['линейные уравнения', 'linear equations'] },
+  { id: 'basic-linear-equations',    title: 'Линейные уравнения',   url: 'https://youtu.be/asOUdTALdUw', topicKeys: ['линейные уравнения', 'linear equations', 'equations', 'уравнения'] },
   { id: 'basic-systems-equations',   title: 'Системы уравнений',    url: 'https://youtu.be/Zc9nK7chxQs', topicKeys: ['системы уравнений', 'systems of equations'] },
   { id: 'basic-inequalities',        title: 'Неравенства',          url: 'https://youtu.be/IMeg4mZ0DN0', topicKeys: ['неравенства', 'inequalities'] },
   { id: 'basic-functions',           title: 'Функция',              url: 'https://youtu.be/29oLLo-k32E', topicKeys: ['функция', 'функции', 'functions'] },
@@ -38,12 +38,14 @@ export const BASIC_VIDEOS: BasicVideo[] = [
   { id: 'basic-natural-numbers',     title: 'Натуральные числа',    url: 'https://youtu.be/hCE4T8rYFp0', topicKeys: ['натуральные числа', 'natural numbers'] },
   { id: 'basic-fractions',           title: 'Дроби',                url: 'https://youtu.be/oQbi7zsUGSY', topicKeys: ['дроби', 'fractions'] },
   { id: 'basic-decimals',            title: 'Десятичные дроби',     url: 'https://youtu.be/mgFJZFTeql0', topicKeys: ['десятичные дроби', 'decimals'] },
-  { id: 'basic-algebraic',           title: 'Алгебраические выражения', url: 'https://youtu.be/af14KS8TzeU', topicKeys: ['алгебраические выражения', 'algebraic expressions'] },
+  { id: 'basic-algebraic',           title: 'Алгебраические выражения', url: 'https://youtu.be/af14KS8TzeU', topicKeys: ['алгебраические выражения', 'algebraic expressions', 'algebra', 'алгебра', 'expressions', 'выражения'] },
+  { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
+  { id: 'basic-fsu',                 title: 'Формулы сокращённого умножения', url: 'https://youtu.be/dsu-qvRj1L0', topicKeys: ['фсу', 'формулы сокращенного умножения', 'формулы сокращённого умножения'] },
   { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
   { id: 'basic-fsu',                 title: 'Формулы сокращённого умножения', url: 'https://youtu.be/dsu-qvRj1L0', topicKeys: ['фсу', 'формулы сокращенного умножения', 'формулы сокращённого умножения'] },
   { id: 'basic-rational',            title: 'Рациональные выражения', url: 'https://youtu.be/e3hWliu1IHs', topicKeys: ['рациональные выражения'] },
-  { id: 'basic-ratios',              title: 'Отношения и пропорции', url: 'https://youtu.be/N1q2YKHCKic', topicKeys: ['отношения и пропорции', 'пропорции', 'ratios', 'proportions'] },
-  { id: 'basic-percentages',         title: 'Проценты',             url: 'https://youtu.be/3zhKBuugdi4', topicKeys: ['проценты', 'percentages'] },
+  { id: 'basic-ratios',              title: 'Отношения и пропорции', url: 'https://youtu.be/N1q2YKHCKic', topicKeys: ['отношения и пропорции', 'пропорции', 'ratios', 'proportions', 'ratio'] },
+  { id: 'basic-percentages',         title: 'Проценты',             url: 'https://youtu.be/3zhKBuugdi4', topicKeys: ['проценты', 'percentages', 'percent', 'percentage'] },
 ];
 
 const norm = (s: string | null | undefined) => (s || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
@@ -58,10 +60,28 @@ const TOPIC_INDEX: Record<string, BasicVideo> = (() => {
 
 const ID_INDEX: Record<string, BasicVideo> = Object.fromEntries(BASIC_VIDEOS.map(v => [v.id, v]));
 
-/** Resolve a basic video by topic name (RU or EN). Returns null when none exists. */
+/**
+ * Resolve a basic video by topic name (RU or EN). Tries direct match first,
+ * then runs the topic through the project topic-translation layer to handle
+ * English DB names like "Geometry" → "Геометрия". Returns null if no match.
+ */
 export function basicVideoForTopic(topic: string | null | undefined): BasicVideo | null {
   if (!topic) return null;
-  return TOPIC_INDEX[norm(topic)] ?? null;
+  const direct = TOPIC_INDEX[norm(topic)];
+  if (direct) return direct;
+  try {
+    const ru = translateTopic(topic, 'ru');
+    if (ru && ru !== topic) {
+      const viaRu = TOPIC_INDEX[norm(ru)];
+      if (viaRu) return viaRu;
+    }
+    const practiceRu = normalizePracticeTopic(topic);
+    if (practiceRu && practiceRu !== topic) {
+      const viaPractice = TOPIC_INDEX[norm(practiceRu)];
+      if (viaPractice) return viaPractice;
+    }
+  } catch { /* translation unavailable */ }
+  return null;
 }
 
 /** Resolve a basic video by stable id (used in /video/:videoId route). */

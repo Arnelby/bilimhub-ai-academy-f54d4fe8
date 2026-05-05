@@ -212,6 +212,7 @@ export function MistakesBlock({
                     );
                   }
                   // 3. No video at all → AI tutor with question context (no fake button).
+                  console.warn('[VIDEO_MAPPING_FAILED]', { topic: m.topic, questionId: m.questionId });
                   const params = new URLSearchParams({
                     question: (m.instruction || (m.columnA && m.columnB ? `Сравните: А = ${m.columnA}, Б = ${m.columnB}` : '')).slice(0, 1000),
                     user_answer: m.userAnswer || '',
