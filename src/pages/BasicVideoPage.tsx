@@ -1,36 +1,39 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/layout/Layout';
-import { basicVideoById, toYouTubeEmbed } from '@/lib/basicVideos';
+import { basicVideoById, basicVideoForTopic, toYouTubeEmbed } from '@/lib/basicVideos';
 
 /**
  * Stable per-video page so the rest of the app can deep-link straight into a
  * single basic lesson (e.g. from a wrong practice answer) instead of dumping
  * users on a long list. Route: /video/:videoId
+ *
+ * If the videoId is unknown, we DO NOT render an empty page — we either fall
+ * back to a topic-based lookup (when ?topic=... is present) or send the user
+ * straight to the AI tutor for that topic.
  */
 export default function BasicVideoPage() {
   const { videoId } = useParams<{ videoId: string }>();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const video = basicVideoById(videoId);
   const fromTopic = params.get('topic');
+  const video = basicVideoById(videoId) ?? basicVideoForTopic(fromTopic);
 
-  if (!video) {
-    return (
-      <Layout>
-        <div className="container mx-auto max-w-2xl px-4 py-12 text-center">
-          <h1 className="text-xl font-bold mb-2">Видео не найдено</h1>
-          <p className="text-muted-foreground mb-6">
-            Запрошенный базовый урок недоступен.
-          </p>
-          <Button onClick={() => navigate('/lessons')}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> К урокам
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
+  // No video resolved → never show an empty page. Redirect to AI tutor
+  // (or the lessons hub if no topic is known) using effect to avoid render-time nav.
+  useEffect(() => {
+    if (!video) {
+      console.warn('[VIDEO_MAPPING_FAILED]', { videoId, topic: fromTopic });
+      const target = fromTopic
+        ? `/ai-tutor?topic=${encodeURIComponent(fromTopic)}`
+        : '/lessons';
+      navigate(target, { replace: true });
+    }
+  }, [video, videoId, fromTopic, navigate]);
+
+  if (!video) return null;
 
   return (
     <Layout>
