@@ -69,10 +69,7 @@ export function basicVideoForTopic(topic: string | null | undefined): BasicVideo
   if (!topic) return null;
   const direct = TOPIC_INDEX[norm(topic)];
   if (direct) return direct;
-  // Lazy import to avoid circular deps; topicTranslations has no runtime deps on this file.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { translateTopic, normalizePracticeTopic } = require('./topicTranslations') as typeof import('./topicTranslations');
     const ru = translateTopic(topic, 'ru');
     if (ru && ru !== topic) {
       const viaRu = TOPIC_INDEX[norm(ru)];
@@ -83,7 +80,7 @@ export function basicVideoForTopic(topic: string | null | undefined): BasicVideo
       const viaPractice = TOPIC_INDEX[norm(practiceRu)];
       if (viaPractice) return viaPractice;
     }
-  } catch { /* topicTranslations unavailable */ }
+  } catch { /* translation unavailable */ }
   return null;
 }
 
