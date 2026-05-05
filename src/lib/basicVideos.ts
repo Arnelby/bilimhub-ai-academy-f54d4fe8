@@ -38,7 +38,7 @@ export const BASIC_VIDEOS: BasicVideo[] = [
   { id: 'basic-natural-numbers',     title: 'Натуральные числа',    url: 'https://youtu.be/hCE4T8rYFp0', topicKeys: ['натуральные числа', 'natural numbers'] },
   { id: 'basic-fractions',           title: 'Дроби',                url: 'https://youtu.be/oQbi7zsUGSY', topicKeys: ['дроби', 'fractions'] },
   { id: 'basic-decimals',            title: 'Десятичные дроби',     url: 'https://youtu.be/mgFJZFTeql0', topicKeys: ['десятичные дроби', 'decimals'] },
-  { id: 'basic-algebraic',           title: 'Алгебраические выражения', url: 'https://youtu.be/af14KS8TzeU', topicKeys: ['алгебраические выражения', 'algebraic expressions'] },
+  { id: 'basic-algebraic',           title: 'Алгебраические выражения', url: 'https://youtu.be/af14KS8TzeU', topicKeys: ['алгебраические выражения', 'algebraic expressions', 'algebra', 'алгебра', 'expressions', 'выражения'] },
   { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
   { id: 'basic-fsu',                 title: 'Формулы сокращённого умножения', url: 'https://youtu.be/dsu-qvRj1L0', topicKeys: ['фсу', 'формулы сокращенного умножения', 'формулы сокращённого умножения'] },
   { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
