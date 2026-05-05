@@ -1,4 +1,4 @@
-// Basic video lessons mapped by Russian topic name (canonical keys lowercase).
+import { translateTopic, normalizePracticeTopic } from './topicTranslations';
 // Source: user-provided list. Each entry maps to a YouTube short URL.
 // Used by Practice mistake review + /video/:videoId route to redirect users
 // directly to the foundation lesson for a topic where they failed.
