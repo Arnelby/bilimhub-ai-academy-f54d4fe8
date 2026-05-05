@@ -90,11 +90,20 @@ export default function Tests() {
         if (participantId === 'CTRL-030') {
           aMap[1] = true;
           aMap[2] = true;
-          console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test_1: 'allowed', test_2: 'allowed' });
         }
-        // GLOBAL OVERRIDE: Test 3 (mid2) is open to all users regardless of group/progress
-        aMap[3] = true;
-        console.log('[TEST_ACCESS_OPENED]', { test_id: 3, scope: 'all_users' });
+        // GLOBAL TEMPORARY OVERRIDE — unlock all tests for all users.
+        // Set to false to restore existing test_access logic.
+        const GLOBAL_TEST_ACCESS_OVERRIDE = true;
+        if (GLOBAL_TEST_ACCESS_OVERRIDE) {
+          console.log('[GLOBAL_TEST_OVERRIDE_ENABLED]', { user_id: user.id, participant_id: participantId });
+          for (const id of [1, 2, 3, 4]) {
+            aMap[id] = true;
+            console.log('[TEST_ACCESS_GRANTED_OVERRIDE]', { test_id: id });
+          }
+        } else {
+          // Legacy override: Test 3 (mid2) open to everyone
+          aMap[3] = true;
+        }
         setAccessMap(aMap);
       } catch (err) {
         console.error('Error:', err);
