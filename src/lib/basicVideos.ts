@@ -60,10 +60,31 @@ const TOPIC_INDEX: Record<string, BasicVideo> = (() => {
 
 const ID_INDEX: Record<string, BasicVideo> = Object.fromEntries(BASIC_VIDEOS.map(v => [v.id, v]));
 
-/** Resolve a basic video by topic name (RU or EN). Returns null when none exists. */
+/**
+ * Resolve a basic video by topic name (RU or EN). Tries direct match first,
+ * then runs the topic through the project topic-translation layer to handle
+ * English DB names like "Geometry" → "Геометрия". Returns null if no match.
+ */
 export function basicVideoForTopic(topic: string | null | undefined): BasicVideo | null {
   if (!topic) return null;
-  return TOPIC_INDEX[norm(topic)] ?? null;
+  const direct = TOPIC_INDEX[norm(topic)];
+  if (direct) return direct;
+  // Lazy import to avoid circular deps; topicTranslations has no runtime deps on this file.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { translateTopic, normalizePracticeTopic } = require('./topicTranslations') as typeof import('./topicTranslations');
+    const ru = translateTopic(topic, 'ru');
+    if (ru && ru !== topic) {
+      const viaRu = TOPIC_INDEX[norm(ru)];
+      if (viaRu) return viaRu;
+    }
+    const practiceRu = normalizePracticeTopic(topic);
+    if (practiceRu && practiceRu !== topic) {
+      const viaPractice = TOPIC_INDEX[norm(practiceRu)];
+      if (viaPractice) return viaPractice;
+    }
+  } catch { /* topicTranslations unavailable */ }
+  return null;
 }
 
 /** Resolve a basic video by stable id (used in /video/:videoId route). */
