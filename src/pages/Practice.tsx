@@ -128,10 +128,32 @@ export default function Practice() {
       } catch { /* sessionStorage may be unavailable */ }
     }
 
-    // ===== MASTERY LOCK (AI group only) =====
-    // If there is an unmastered topic and the user did NOT request review mode,
-    // force them onto the weakest topic. No free choice.
-    if (!reviewMode && isAI) {
+    // ===== ACTIVE SESSION GUARD (highest priority) =====
+    // If the user has an ACTIVE practice session, ALWAYS resume it — even if the
+    // URL ?topic= no longer matches the session's locked topic. Topic switching
+    // and forced-mastery redirects MUST NOT kill an in-flight session.
+    // Only forceNew (explicit "Новая практика") or reviewMode bypass this.
+    let hasActiveSession = false;
+    if (!forceNew && !reviewMode) {
+      const { data: activeSess } = await supabase
+        .from('practice_sessions')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (activeSess) {
+        hasActiveSession = true;
+        console.log('[SESSION_LOADED_EXISTING]', { session_id: activeSess.id, urlTopic: focusedTopic });
+        if (focusedTopic) {
+          console.log('[SESSION_IGNORED_TOPIC_CHANGE]', { urlTopic: focusedTopic, session_id: activeSess.id });
+        }
+      }
+    }
+
+    // ===== MASTERY LOCK (AI group only) — disabled during an active session =====
+    if (!reviewMode && isAI && !hasActiveSession) {
       try {
         const forced = await selectForcedTopic(user.id);
         if (forced && normalizeAnalyticsTopic(focusedTopic || '') !== forced.topic) {
@@ -142,6 +164,8 @@ export default function Practice() {
       } catch (e) {
         console.error('[MASTERY_LOCK] check failed', e);
       }
+    } else if (hasActiveSession && isAI && !reviewMode) {
+      console.log('[MASTERY_LOCK_BLOCKED] active session in progress');
     }
 
 
