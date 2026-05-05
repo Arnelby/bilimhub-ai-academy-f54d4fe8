@@ -41,9 +41,11 @@ export const BASIC_VIDEOS: BasicVideo[] = [
   { id: 'basic-algebraic',           title: 'Алгебраические выражения', url: 'https://youtu.be/af14KS8TzeU', topicKeys: ['алгебраические выражения', 'algebraic expressions'] },
   { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
   { id: 'basic-fsu',                 title: 'Формулы сокращённого умножения', url: 'https://youtu.be/dsu-qvRj1L0', topicKeys: ['фсу', 'формулы сокращенного умножения', 'формулы сокращённого умножения'] },
+  { id: 'basic-monomials',           title: 'Одночлены и многочлены', url: 'https://youtu.be/8rMSv8JwPCo', topicKeys: ['одночлены и многочлены', 'многочлены', 'polynomials'] },
+  { id: 'basic-fsu',                 title: 'Формулы сокращённого умножения', url: 'https://youtu.be/dsu-qvRj1L0', topicKeys: ['фсу', 'формулы сокращенного умножения', 'формулы сокращённого умножения'] },
   { id: 'basic-rational',            title: 'Рациональные выражения', url: 'https://youtu.be/e3hWliu1IHs', topicKeys: ['рациональные выражения'] },
-  { id: 'basic-ratios',              title: 'Отношения и пропорции', url: 'https://youtu.be/N1q2YKHCKic', topicKeys: ['отношения и пропорции', 'пропорции', 'ratios', 'proportions'] },
-  { id: 'basic-percentages',         title: 'Проценты',             url: 'https://youtu.be/3zhKBuugdi4', topicKeys: ['проценты', 'percentages'] },
+  { id: 'basic-ratios',              title: 'Отношения и пропорции', url: 'https://youtu.be/N1q2YKHCKic', topicKeys: ['отношения и пропорции', 'пропорции', 'ratios', 'proportions', 'ratio'] },
+  { id: 'basic-percentages',         title: 'Проценты',             url: 'https://youtu.be/3zhKBuugdi4', topicKeys: ['проценты', 'percentages', 'percent', 'percentage'] },
 ];
 
 const norm = (s: string | null | undefined) => (s || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
