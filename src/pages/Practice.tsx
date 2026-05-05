@@ -611,14 +611,13 @@ export default function Practice() {
           .map(qid => bankByQid.get(qid))
           .filter(Boolean)
           .map(b => ({ ...b!.q, _qid: b!.qid } as any as PracticeQuestion));
-        const mismatchedFocusedTopic = !!focusRu && restored.some(q => normalizePracticeTopic(q.topic) !== focusRu);
-
-        if (hasTestQids || hasRepeatedSessionQids || mismatchedFocusedTopic || (orderedQids.length > 0 && restored.length === 0)) {
+        // NOTE: focused-topic mismatch is NO LONGER an invalidation reason.
+        // Active sessions are immutable until completion or explicit "Новая практика".
+        if (hasTestQids || hasRepeatedSessionQids || (orderedQids.length > 0 && restored.length === 0)) {
           console.warn('[SESSION_INVALIDATED]', {
             session_id: latestSess.id,
             hasTestQids,
             hasRepeatedSessionQids,
-            mismatchedFocusedTopic,
             restoredCount: restored.length,
           });
           if (latestSess.status === 'active') {
