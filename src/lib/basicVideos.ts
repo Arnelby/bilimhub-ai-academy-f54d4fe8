@@ -12,7 +12,7 @@ export interface BasicVideo {
 
 export const BASIC_VIDEOS: BasicVideo[] = [
   { id: 'basic-quadratic-equations', title: 'Квадратные уравнения', url: 'https://youtu.be/UciJkU2Ngb8', topicKeys: ['квадратные уравнения', 'quadratic equations'] },
-  { id: 'basic-linear-equations',    title: 'Линейные уравнения',   url: 'https://youtu.be/asOUdTALdUw', topicKeys: ['линейные уравнения', 'linear equations'] },
+  { id: 'basic-linear-equations',    title: 'Линейные уравнения',   url: 'https://youtu.be/asOUdTALdUw', topicKeys: ['линейные уравнения', 'linear equations', 'equations', 'уравнения'] },
   { id: 'basic-systems-equations',   title: 'Системы уравнений',    url: 'https://youtu.be/Zc9nK7chxQs', topicKeys: ['системы уравнений', 'systems of equations'] },
   { id: 'basic-inequalities',        title: 'Неравенства',          url: 'https://youtu.be/IMeg4mZ0DN0', topicKeys: ['неравенства', 'inequalities'] },
   { id: 'basic-functions',           title: 'Функция',              url: 'https://youtu.be/29oLLo-k32E', topicKeys: ['функция', 'функции', 'functions'] },
