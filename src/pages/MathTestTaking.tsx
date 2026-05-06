@@ -13,6 +13,7 @@ import { saveUserAnswer } from '@/lib/saveUserAnswer';
 import { MathRenderer } from '@/components/math/MathRenderer';
 import { QuestionImage } from '@/components/math/QuestionImage';
 import { TEST_CONFIG, toCyrillicKey, toLatinKey } from '@/lib/mathTestConfig';
+import { GLOBAL_TEST_ACCESS_OVERRIDE } from '@/lib/testAccessOverride';
 import { updateLearningState } from '@/lib/learningState';
 import {
   AlertDialog,
@@ -86,47 +87,29 @@ export default function MathTestTaking() {
     async function fetchQuestions() {
       if (!user) return;
       try {
-        // BACKEND ENFORCEMENT: check test_access table
-        {
-          // Get participant_id from profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('participant_id')
-            .eq('id', user.id)
-            .maybeSingle();
+        const { data: accessResult, error: accessError } = await supabase.rpc(
+          'can_open_math_test' as any,
+          { _test_id: mathTestId } as any,
+        );
+        const access = accessResult as any;
+        console.log('[BACKEND_ACCESS_CHECK]', { test_id: mathTestId, access, error: accessError });
 
-          const participantId = profile?.participant_id;
-          // Test 3 is open globally — no participant_id required
-          if (!participantId && mathTestId !== 3) {
-            console.warn('[ACCESS_CONTROL] No participant_id for user', user.id);
-            toast({ title: 'Доступ запрещён', description: 'Участник не найден в системе', variant: 'destructive' });
-            navigate('/tests');
-            return;
-          }
+        if (accessError && !GLOBAL_TEST_ACCESS_OVERRIDE) {
+          console.warn('[ACCESS_DENIED_SOURCE]', { source: 'RPC', reason: accessError.message, test_id: mathTestId });
+          toast({ title: 'Тест заблокирован', description: 'Не удалось подтвердить доступ к тесту', variant: 'destructive' });
+          navigate('/tests');
+          return;
+        }
 
-          // GLOBAL OVERRIDE: Test 3 (mid2) is open to all users regardless of group/progress
-          const isTest3Open = mathTestId === 3;
-          // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always allow tests 1 & 2
-          const isOverride = participantId === 'CTRL-030' && (mathTestId === 1 || mathTestId === 2);
-          if (isTest3Open) {
-            console.log('[TEST_ACCESS_OPENED]', { test_id: 3, scope: 'all_users', participant: participantId });
-          } else if (isOverride) {
-            console.log('[TEST_ACCESS_OVERRIDE]', { user_id: 'CTRL-030', override: true, test: mathTestId, allowed: true });
-          } else {
-            const { data: access } = await supabase
-              .from('test_access')
-              .select('is_allowed')
-              .eq('participant_id', participantId)
-              .eq('test_id', mathTestId)
-              .maybeSingle();
+        if (!access?.allow_access && !GLOBAL_TEST_ACCESS_OVERRIDE) {
+          console.warn('[ACCESS_DENIED_SOURCE]', access || { source: 'VALIDATION', reason: 'LOCK_SOURCE_DETECTED', test_id: mathTestId });
+          toast({ title: 'Тест заблокирован', description: 'Доступ к этому тесту не разрешён', variant: 'destructive' });
+          navigate('/tests');
+          return;
+        }
 
-            if (!access || !access.is_allowed) {
-              console.warn('[ACCESS_CONTROL] Test blocked via test_access:', mathTestId, 'participant:', participantId);
-              toast({ title: 'Тест заблокирован', description: 'Доступ к этому тесту не разрешён', variant: 'destructive' });
-              navigate('/tests');
-              return;
-            }
-          }
+        if (GLOBAL_TEST_ACCESS_OVERRIDE) {
+          console.log('[OVERRIDE_APPLIED]', { test_id: mathTestId, source: access?.source || 'FRONTEND_FORCE_OPEN' });
         }
 
         if (config.table === 'math_test_questions') {
