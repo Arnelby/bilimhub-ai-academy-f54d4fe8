@@ -2357,6 +2357,7 @@ export type Database = {
       }
       apply_pq_explanations: { Args: never; Returns: number }
       apply_practice_explanations: { Args: { _payload: Json }; Returns: number }
+      can_open_math_test: { Args: { _test_id: number }; Returns: Json }
       check_rate_limit: {
         Args: {
           _endpoint: string
@@ -2457,6 +2458,7 @@ export type Database = {
           topic: string
         }[]
       }
+      global_test_access_override: { Args: never; Returns: boolean }
       has_beta_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
