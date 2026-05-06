@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TEST_CONFIG, formatDurationMinutes } from '@/lib/mathTestConfig';
 import { parseScore } from '@/lib/scoreUtils';
+import { GLOBAL_TEST_ACCESS_OVERRIDE } from '@/lib/testAccessOverride';
 
 const TEST_VARIANTS = Object.entries(TEST_CONFIG).map(([id, c]) => ({
   mathTestId: parseInt(id),
@@ -91,9 +92,6 @@ export default function Tests() {
           aMap[1] = true;
           aMap[2] = true;
         }
-        // GLOBAL TEMPORARY OVERRIDE — unlock all tests for all users.
-        // Set to false to restore existing test_access logic.
-        const GLOBAL_TEST_ACCESS_OVERRIDE = true;
         if (GLOBAL_TEST_ACCESS_OVERRIDE) {
           console.log('[GLOBAL_TEST_OVERRIDE_ENABLED]', { user_id: user.id, participant_id: participantId });
           for (const id of [1, 2, 3, 4]) {
@@ -115,6 +113,7 @@ export default function Tests() {
   }, [user]);
 
   const handleStartTest = (mathTestId: number) => {
+    console.log('[TEST_CLICKED]', { test_id: mathTestId, override: GLOBAL_TEST_ACCESS_OVERRIDE });
     localStorage.removeItem('testing58_answers');
     localStorage.removeItem('testing58_currentPage');
     localStorage.removeItem('testing58_startTime');
