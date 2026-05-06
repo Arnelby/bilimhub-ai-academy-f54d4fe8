@@ -161,6 +161,10 @@ export default function MathTestTaking() {
               }
             }
           }
+          if (mathTestId === 4 && unique.length === 0) {
+            console.warn('[TEST4_MISSING_OR_INVALID]', { test_id: 4, question_count: 0 });
+          }
+          console.log(`[TEST_OPENED: ${mathTestId}]`, { test_id: mathTestId, question_count: unique.length });
           setQuestions(unique);
         } else {
           const { data, error } = await supabase
@@ -190,9 +194,11 @@ export default function MathTestTaking() {
               });
             }
           }
+          console.log(`[TEST_OPENED: ${mathTestId}]`, { test_id: mathTestId, question_count: unique.length });
           setQuestions(unique);
         }
       } catch (err) {
+        console.warn('[ACCESS_DENIED_SOURCE]', { source: 'RLS | RPC | VALIDATION', reason: err, test_id: mathTestId });
         console.error('Error loading questions:', err);
         toast({ title: 'Ошибка', description: 'Не удалось загрузить вопросы', variant: 'destructive' });
         navigate('/tests');
