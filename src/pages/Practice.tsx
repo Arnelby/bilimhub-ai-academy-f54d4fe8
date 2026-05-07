@@ -174,7 +174,9 @@ export default function Practice() {
 
     // ===== BACKEND GATE: lesson-before-practice (server-side enforcement) =====
     // Only when a topic is focused and not in review/mastery mode.
-    if (!reviewMode && !masteryMode && focusedTopic) {
+    // SKIP when resuming an active session — the RPC creates a new session row,
+    // which would violate active-session immutability.
+    if (!reviewMode && !masteryMode && focusedTopic && !hasActiveSession) {
       try {
         const { data: gate, error: gateErr } = await supabase.rpc(
           'start_practice_session' as any,
