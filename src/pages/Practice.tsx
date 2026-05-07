@@ -134,6 +134,7 @@ export default function Practice() {
     // and forced-mastery redirects MUST NOT kill an in-flight session.
     // Only forceNew (explicit "Новая практика") or reviewMode bypass this.
     let hasActiveSession = false;
+    let activeSessionId: string | null = null;
     if (!forceNew && !reviewMode) {
       const { data: activeSess } = await supabase
         .from('practice_sessions')
@@ -145,6 +146,8 @@ export default function Practice() {
         .maybeSingle();
       if (activeSess) {
         hasActiveSession = true;
+        activeSessionId = activeSess.id;
+        console.log('[PRACTICE_RESUME]', { session_id: activeSess.id, urlTopic: focusedTopic });
         console.log('[SESSION_LOADED_EXISTING]', { session_id: activeSess.id, urlTopic: focusedTopic });
         if (focusedTopic) {
           console.log('[SESSION_IGNORED_TOPIC_CHANGE]', { urlTopic: focusedTopic, session_id: activeSess.id });
@@ -171,7 +174,9 @@ export default function Practice() {
 
     // ===== BACKEND GATE: lesson-before-practice (server-side enforcement) =====
     // Only when a topic is focused and not in review/mastery mode.
-    if (!reviewMode && !masteryMode && focusedTopic) {
+    // SKIP when resuming an active session — the RPC creates a new session row,
+    // which would violate active-session immutability.
+    if (!reviewMode && !masteryMode && focusedTopic && !hasActiveSession) {
       try {
         const { data: gate, error: gateErr } = await supabase.rpc(
           'start_practice_session' as any,
@@ -596,40 +601,68 @@ export default function Practice() {
       });
       console.log('[PRACTICE_FILTER] exclusion reasons:', reasons);
 
-      if (!forceNew && latestSess) {
+      // Resume target: the ACTIVE session detected at the top of loadPractice.
+      // We deliberately do NOT use the most-recently-started session (which may be completed),
+      // because that caused active sessions to be skipped and regenerated.
+      const resumeSessionId = activeSessionId || (latestSess && latestSess.status === 'active' ? latestSess.id : null);
+      const resumeSessionRow = activeSessionId ? { id: activeSessionId, status: 'active', weak_topics: [] as any } : latestSess;
+
+      if (!forceNew && resumeSessionId && resumeSessionRow) {
         const { data: sessQs } = await supabase
           .from('practice_session_questions')
           .select('question_id, order_index')
-          .eq('session_id', latestSess.id)
+          .eq('session_id', resumeSessionId)
           .order('order_index', { ascending: true });
 
         const orderedQids = (sessQs || []).map(sq => sq.question_id).filter(Boolean);
         const uniqueOrderedQids = Array.from(new Set(orderedQids));
         const hasTestQids = orderedQids.some(qid => typeof qid === 'string' && (qid.startsWith('mq_') || qid.startsWith('mtq_')));
         const hasRepeatedSessionQids = uniqueOrderedQids.length !== orderedQids.length;
+        // CRITICAL: restore from the FULL quality bank (bankAll), not the difficulty-filtered bank.
+        // A difficulty filter must never invalidate an active session's question set.
+        const bankAllByQid = new Map(bankAll.map(b => [b.qid, b]));
         const restored = uniqueOrderedQids
-          .map(qid => bankByQid.get(qid))
+          .map(qid => bankAllByQid.get(qid))
           .filter(Boolean)
           .map(b => ({ ...b!.q, _qid: b!.qid } as any as PracticeQuestion));
-        // NOTE: focused-topic mismatch is NO LONGER an invalidation reason.
-        // Active sessions are immutable until completion or explicit "Новая практика".
-        if (hasTestQids || hasRepeatedSessionQids || (orderedQids.length > 0 && restored.length === 0)) {
+
+        // ACTIVE-SESSION IMMUTABILITY:
+        // Only invalidate on TRUE corruption (test question IDs leaked in, or duplicates).
+        // Missing rows (restored.length === 0 with non-empty orderedQids) is treated as a
+        // transient bank/load issue — we do NOT silently complete an active session.
+        const isCorrupted = hasTestQids || hasRepeatedSessionQids;
+
+        if (isCorrupted) {
           console.warn('[SESSION_INVALIDATED]', {
-            session_id: latestSess.id,
+            session_id: resumeSessionId,
             hasTestQids,
             hasRepeatedSessionQids,
             restoredCount: restored.length,
           });
-          if (latestSess.status === 'active') {
+          if (resumeSessionRow.status === 'active') {
             await supabase
               .from('practice_sessions')
               .update({ status: 'completed', ended_at: new Date().toISOString() })
-              .eq('id', latestSess.id);
+              .eq('id', resumeSessionId);
           }
+        } else if (restored.length === 0 && orderedQids.length > 0 && resumeSessionRow.status === 'active') {
+          // Active session exists but bank didn't return its questions right now.
+          // DO NOT regenerate. Show a soft empty state and keep the session alive.
+          console.warn('[PRACTICE_INVALIDATION_BLOCKED]', {
+            session_id: resumeSessionId,
+            reason: 'restore_failed_but_session_active',
+            orderedQids,
+          });
+          setSessionId(resumeSessionId);
+          setQuestions([]);
+          setLoading(false);
+          return;
         } else if (restored.length > 0) {
-          setSessionId(latestSess.id);
+          setSessionId(resumeSessionId);
           setQuestions(restored);
-          const wt = Array.isArray(latestSess.weak_topics) ? (latestSess.weak_topics as string[]) : [];
+          console.log('[QUESTION_SET_REUSED]', { session_id: resumeSessionId, count: restored.length });
+          console.log('[PRACTICE_RESTORED]', { session_id: resumeSessionId, count: restored.length });
+          const wt = Array.isArray(resumeSessionRow.weak_topics) ? (resumeSessionRow.weak_topics as string[]) : [];
           setWeakTopics(wt);
           setLatestTestName(focusRu ? `Практика: ${focusRu}` : (isAI ? 'Персональная практика' : 'Общая практика ОРТ'));
           setLatestTestType(restored[0].type);
@@ -637,7 +670,7 @@ export default function Practice() {
           const { data: priorResp } = await supabase
             .from('practice_responses')
             .select('question_id, user_answer')
-            .eq('session_id', latestSess.id);
+            .eq('session_id', resumeSessionId);
 
           const restoredAnswers: Record<string, string> = {};
           const qidToKey = new Map(restored.map(q => [(q as any)._qid as string, `${q.type}_${q.id}`]));
@@ -648,16 +681,18 @@ export default function Practice() {
           }
           setAnswers(restoredAnswers);
 
-          if (latestSess.status === 'completed') {
+          if (resumeSessionRow.status === 'completed') {
             setCurrentIndex(restored.length - 1);
             setShowResults(true);
           } else {
             const firstUnanswered = restored.findIndex(q => !restoredAnswers[`${q.type}_${q.id}`]);
-            setCurrentIndex(firstUnanswered === -1 ? restored.length - 1 : firstUnanswered);
+            const restoredIndex = firstUnanswered === -1 ? restored.length - 1 : firstUnanswered;
+            setCurrentIndex(restoredIndex);
+            console.log('[CURRENT_INDEX_RESTORED]', { session_id: resumeSessionId, index: restoredIndex });
           }
 
           console.log('[SELECTION_DEBUG]', {
-            session_id: latestSess.id,
+            session_id: resumeSessionId,
             requested_count: requestedCount,
             actual_selected: restored.length,
             unique_question_ids: uniqueOrderedQids,
@@ -672,6 +707,7 @@ export default function Practice() {
           .update({ status: 'completed', ended_at: new Date().toISOString() })
           .eq('user_id', user.id)
           .eq('status', 'active');
+        console.log('[NEW_PRACTICE_GENERATED]', { user_id: user.id, reason: 'forceNew' });
       }
 
       let weak: string[] = [];
