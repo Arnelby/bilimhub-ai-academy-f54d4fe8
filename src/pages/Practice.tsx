@@ -134,6 +134,7 @@ export default function Practice() {
     // and forced-mastery redirects MUST NOT kill an in-flight session.
     // Only forceNew (explicit "Новая практика") or reviewMode bypass this.
     let hasActiveSession = false;
+    let activeSessionId: string | null = null;
     if (!forceNew && !reviewMode) {
       const { data: activeSess } = await supabase
         .from('practice_sessions')
@@ -145,6 +146,8 @@ export default function Practice() {
         .maybeSingle();
       if (activeSess) {
         hasActiveSession = true;
+        activeSessionId = activeSess.id;
+        console.log('[PRACTICE_RESUME]', { session_id: activeSess.id, urlTopic: focusedTopic });
         console.log('[SESSION_LOADED_EXISTING]', { session_id: activeSess.id, urlTopic: focusedTopic });
         if (focusedTopic) {
           console.log('[SESSION_IGNORED_TOPIC_CHANGE]', { urlTopic: focusedTopic, session_id: activeSess.id });
