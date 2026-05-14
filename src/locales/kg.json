@@ -654,35 +654,74 @@
     "noDataBody": "[KG] Take a test to see analytics.",
     "takeTest": "[KG] Take a test",
     "quick": {
-      "lessons": "[KG] Lessons", "lessonsSub": "[KG] Continue", "tests": "[KG] Tests", "testsSub": "[KG] Take a test",
-      "aiTutor": "[KG] AI Tutor", "aiTutorSub": "[KG] Ask", "myPlan": "[KG] My Plan", "myPlanSub": "[KG] AI plan", "go": "[KG] Open"
+      "lessons": "[KG] Lessons",
+      "lessonsSub": "[KG] Continue",
+      "tests": "[KG] Tests",
+      "testsSub": "[KG] Take a test",
+      "aiTutor": "[KG] AI Tutor",
+      "aiTutorSub": "[KG] Ask",
+      "myPlan": "[KG] My Plan",
+      "myPlanSub": "[KG] AI plan",
+      "go": "[KG] Open"
     },
     "improvement": {
-      "title": "[KG] Progress", "first": "[KG] First", "firstSub": "[KG] Initial",
-      "latest": "[KG] Latest", "latestSub": "[KG] Current", "delta": "[KG] Improvement",
-      "deltaSubGrowth": "[KG] {{value}}% growth", "deltaSubNeed": "[KG] Take 2+ tests"
+      "title": "[KG] Progress",
+      "first": "[KG] First",
+      "firstSub": "[KG] Initial",
+      "latest": "[KG] Latest",
+      "latestSub": "[KG] Current",
+      "delta": "[KG] Improvement",
+      "deltaSubGrowth": "[KG] {{value}}% growth",
+      "deltaSubNeed": "[KG] Take 2+ tests"
     },
-    "variants": { "title": "[KG] By variant", "noAttempts": "[KG] No attempts", "attempts": "[KG] Attempts", "best": "[KG] Best", "average": "[KG] Avg" },
-    "trend": { "title": "[KG] Trend", "subtitle": "[KG] {{count}} tests" },
-    "topicAccuracy": { "title": "[KG] Accuracy by topic", "subtitle": "[KG] Weak to strong" },
+    "variants": {
+      "title": "[KG] By variant",
+      "noAttempts": "[KG] No attempts",
+      "attempts": "[KG] Attempts",
+      "best": "[KG] Best",
+      "average": "[KG] Avg"
+    },
+    "trend": {
+      "title": "[KG] Trend",
+      "subtitle": "[KG] {{count}} tests"
+    },
+    "topicAccuracy": {
+      "title": "[KG] Accuracy by topic",
+      "subtitle": "[KG] Weak to strong"
+    },
     "errors": {
-      "title": "[KG] Error analysis", "totalQuestions": "[KG] Total", "correctSuffix": "[KG] {{n}} correct",
-      "errors": "[KG] Errors", "errorsPercent": "[KG] {{n}}% errors", "noData": "[KG] No data",
-      "weakTopicsTitle": "[KG] Weak topics (<60%)", "allGood": "[KG] All above 60%"
+      "title": "[KG] Error analysis",
+      "totalQuestions": "[KG] Total",
+      "correctSuffix": "[KG] {{n}} correct",
+      "errors": "[KG] Errors",
+      "errorsPercent": "[KG] {{n}}% errors",
+      "noData": "[KG] No data",
+      "weakTopicsTitle": "[KG] Weak topics (<60%)",
+      "allGood": "[KG] All above 60%"
     },
     "efficiency": {
-      "title": "[KG] Efficiency", "questionsSolved": "[KG] Solved", "avgTime": "[KG] Avg time",
-      "sessionTime": "[KG] Session time", "testsCompleted": "[KG] Tests done"
+      "title": "[KG] Efficiency",
+      "questionsSolved": "[KG] Solved",
+      "avgTime": "[KG] Avg time",
+      "sessionTime": "[KG] Session time",
+      "testsCompleted": "[KG] Tests done"
     },
     "activity": {
-      "title": "[KG] Activity", "streak": "[KG] 🔥 {{days}} days in a row",
-      "testsDone": "[KG] ✅ {{n}} tests", "improved": "[KG] 📈 +{{n}}%",
-      "sessions": "[KG] Sessions", "daysActive": "[KG] Active days",
-      "streakDays": "[KG] Streak", "lastActivity": "[KG] Last activity"
+      "title": "[KG] Activity",
+      "streak": "[KG] 🔥 {{days}} days in a row",
+      "testsDone": "[KG] ✅ {{n}} tests",
+      "improved": "[KG] 📈 +{{n}}%",
+      "sessions": "[KG] Sessions",
+      "daysActive": "[KG] Active days",
+      "streakDays": "[KG] Streak",
+      "lastActivity": "[KG] Last activity"
     },
     "quickActions": {
-      "title": "[KG] Quick actions", "newTest": "[KG] New test", "practice": "[KG] Practice",
-      "aiPlan": "[KG] AI plan", "myProfile": "[KG] My profile"
+      "title": "[KG] Quick actions",
+      "newTest": "[KG] New test",
+      "practice": "[KG] Practice",
+      "aiPlan": "[KG] AI plan",
+      "myProfile": "[KG] My profile"
     },
     "achievementsCollapsed": "[KG] 🏆 Achievements"
   },
@@ -730,5 +769,144 @@
     "qaExplainSimpler": "[KG] Explain simpler please",
     "qaGiveExample": "[KG] Give a practical example",
     "qaGiveMiniTest": "[KG] Give a mini-test"
+  },
+  "lessonsPage": {
+    "title": "[KG] Lessons",
+    "subtitle": "[KG] Video lessons and test solutions",
+    "tabs": {
+      "basic": "[KG] Basic lessons",
+      "videos": "[KG] Test video solutions"
+    },
+    "comingSoon": "[KG] Lessons coming soon",
+    "recommended": "[KG] Recommended lesson",
+    "filters": {
+      "all": "[KG] All topics",
+      "weak": "[KG] ⚠ My weak topics"
+    },
+    "noTopicLessons": "[KG] No lessons for the selected topic.",
+    "noTopic": "[KG] No topic",
+    "watched": "[KG] ✔ Watched",
+    "iWatched": "[KG] I watched it",
+    "play": "[KG] Play: {{title}}",
+    "videosForVariant": "[KG] {{count}} video solutions",
+    "comingSoonShort": "[KG] Coming soon",
+    "completeTest": "[KG] Complete test",
+    "variantLabel": "[KG] Math test variant {{n}}"
+  },
+  "testResultsPage": {
+    "notFound": "[KG] Results not found",
+    "backToTests": "[KG] Back to tests",
+    "completedOn": "[KG] Completed {{date}}",
+    "overall": "[KG] Overall result",
+    "correct": "[KG] Correct",
+    "incorrect": "[KG] Incorrect",
+    "timeTaken": "[KG] Time taken",
+    "perQuestion": "[KG] Question breakdown ({{count}})",
+    "perQuestionDesc": "[KG] Click to view detailed breakdown",
+    "showAll": "[KG] Show all {{count}} questions",
+    "allTests": "[KG] All tests",
+    "myPlan": "[KG] My plan",
+    "lessons": "[KG] Lessons",
+    "badges": {
+      "excellent": "[KG] Excellent!",
+      "good": "[KG] Good",
+      "satisfactory": "[KG] Satisfactory",
+      "needsImprovement": "[KG] Needs improvement"
+    },
+    "perfect": {
+      "title": "[KG] Perfect score!",
+      "description": "[KG] You answered every question correctly!"
+    },
+    "completedDescription": "[KG] {{percent}}% correct"
+  },
+  "notFound": {
+    "title": "[KG] Page not found",
+    "description": "[KG] It looks like this page doesn't exist or has been moved.",
+    "home": "[KG] Home",
+    "back": "[KG] Back"
+  },
+  "adminDashboard": {
+    "heading": "[KG] Dashboard",
+    "subheading": "[KG] BilimHub platform overview",
+    "stats": {
+      "users": "[KG] Users",
+      "usersDesc": "[KG] Registered students",
+      "tests": "[KG] Tests completed",
+      "testsDesc": "[KG] Total test attempts",
+      "sessions": "[KG] Sessions",
+      "sessionsDesc": "[KG] Learning sessions",
+      "ai": "[KG] AI requests",
+      "aiDesc": "[KG] AI interactions"
+    },
+    "quickActions": {
+      "title": "[KG] Quick actions",
+      "desc": "[KG] Main tasks",
+      "analytics": "[KG] Analytics",
+      "settings": "[KG] Settings"
+    },
+    "systemStatus": {
+      "title": "[KG] System status",
+      "desc": "[KG] Current state",
+      "database": "[KG] Database",
+      "ai": "[KG] AI Gateway",
+      "auth": "[KG] Authentication",
+      "connected": "[KG] Connected",
+      "active": "[KG] Active",
+      "enabled": "[KG] Enabled"
+    }
+  },
+  "adminTopics": {
+    "heading": "[KG] Topics management",
+    "subheading": "[KG] Manage learning content",
+    "comingSoon": "[KG] Coming soon",
+    "desc": "[KG] Topics are managed directly via the database",
+    "details": "[KG] Learning topics are configured in the topics table. Use Lovable Cloud to manage data."
+  },
+  "topicSummary": {
+    "title": "[KG] Topic summary",
+    "weak": "[KG] Weak topics",
+    "weakInsufficient": "[KG] (insufficient data)",
+    "noWeak": "[KG] No weak topics — great job!",
+    "strong": "[KG] Strong topics",
+    "noStrong": "[KG] No mastered topics yet (need ≥80% with ≥3 attempts)."
+  },
+  "mistakes": {
+    "noMistakesTitle": "[KG] No mistakes!",
+    "ofCorrect": "[KG] {{correct}} of {{total}} correct",
+    "nextStep": "[KG] Next step",
+    "keepLearning": "[KG] Keep learning",
+    "continue": "[KG] Continue",
+    "lowAccuracyTitle": "[KG] You haven't mastered the topic",
+    "lowAccuracyDesc": "[KG] Accuracy {{percent}}%. Watch a lesson before trying again.",
+    "watchLesson": "[KG] Watch lesson",
+    "basicLesson": "[KG] Basic lesson",
+    "mistakesCount": "[KG] Mistakes ({{count}})",
+    "percentCorrect": "[KG] {{percent}}% correct",
+    "errorN": "[KG] Mistake #{{n}}",
+    "yourAnswer": "[KG] Your answer: {{value}}",
+    "correctAnswer": "[KG] Correct: {{value}}",
+    "watchVideo": "[KG] Watch video",
+    "basicLessonNamed": "[KG] Basic lesson: {{name}}",
+    "openTutor": "[KG] Open AI tutor",
+    "readReview": "[KG] Read breakdown",
+    "consolidate": "[KG] Consolidate the material",
+    "consolidateDesc": "[KG] Re-solve your mistakes — this removes them from weak topics.",
+    "repeatMistakes": "[KG] Repeat mistakes",
+    "next": "[KG] Next",
+    "go": "[KG] Go",
+    "compareLabel": "[KG] Compare: A = {{a}}, B = {{b}}"
+  },
+  "topicProgress": {
+    "topic": "[KG] Topic",
+    "closed": "[KG] Closed",
+    "almost": "[KG] Almost there!",
+    "before": "[KG] Before",
+    "after": "[KG] After",
+    "toClose": "[KG] To close the topic",
+    "mastered": "[KG] 🎯 Topic closed at 80%+ with 10+ attempts. Great job!",
+    "leftN": "[KG] {{n}} tasks left to close",
+    "attemptsGoal": "[KG] Attempts: {{n}}/{{target}} • goal: {{goal}}%",
+    "finish": "[KG] 🔥 Finish the topic",
+    "continue": "[KG] Continue topic"
   }
 }

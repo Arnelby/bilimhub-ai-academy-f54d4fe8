@@ -769,5 +769,144 @@
     "qaExplainSimpler": "Объясни проще, пожалуйста",
     "qaGiveExample": "Дай практический пример",
     "qaGiveMiniTest": "Дай мне мини-тест по этой теме"
+  },
+  "lessonsPage": {
+    "title": "Уроки",
+    "subtitle": "Видеоуроки и видеоразборы тестов",
+    "tabs": {
+      "basic": "Базовые уроки",
+      "videos": "Видеоразборы тестов"
+    },
+    "comingSoon": "Уроки скоро появятся",
+    "recommended": "Рекомендованный урок",
+    "filters": {
+      "all": "Все темы",
+      "weak": "⚠ Мои слабые темы"
+    },
+    "noTopicLessons": "Нет уроков по выбранной теме.",
+    "noTopic": "Без темы",
+    "watched": "✔ Просмотрено",
+    "iWatched": "Я посмотрел",
+    "play": "Воспроизвести: {{title}}",
+    "videosForVariant": "{{count}} видеоразборов",
+    "comingSoonShort": "Скоро",
+    "completeTest": "Пройдите тест",
+    "variantLabel": "Математика тест вариант {{n}}"
+  },
+  "testResultsPage": {
+    "notFound": "Результаты не найдены",
+    "backToTests": "Вернуться к тестам",
+    "completedOn": "Завершен {{date}}",
+    "overall": "Общий результат",
+    "correct": "Правильно",
+    "incorrect": "Неправильно",
+    "timeTaken": "Время выполнения",
+    "perQuestion": "Разбор по вопросам ({{count}})",
+    "perQuestionDesc": "Нажмите, чтобы посмотреть подробный разбор",
+    "showAll": "Показать все {{count}} вопросов",
+    "allTests": "Все тесты",
+    "myPlan": "Мой план",
+    "lessons": "Уроки",
+    "badges": {
+      "excellent": "Отлично!",
+      "good": "Хорошо",
+      "satisfactory": "Удовлетворительно",
+      "needsImprovement": "Требуется улучшение"
+    },
+    "perfect": {
+      "title": "Идеальный результат!",
+      "description": "Вы ответили на все вопросы правильно!"
+    },
+    "completedDescription": "{{percent}}% правильно"
+  },
+  "notFound": {
+    "title": "Страница не найдена",
+    "description": "Похоже, эта страница не существует или была перемещена.",
+    "home": "На главную",
+    "back": "Назад"
+  },
+  "adminDashboard": {
+    "heading": "Панель управления",
+    "subheading": "Обзор платформы BilimHub",
+    "stats": {
+      "users": "Пользователи",
+      "usersDesc": "Зарегистрированных студентов",
+      "tests": "Тесты пройдены",
+      "testsDesc": "Всего попыток тестов",
+      "sessions": "Сессии",
+      "sessionsDesc": "Учебных сессий",
+      "ai": "AI Запросы",
+      "aiDesc": "Обращений к AI"
+    },
+    "quickActions": {
+      "title": "Быстрые действия",
+      "desc": "Основные задачи",
+      "analytics": "Аналитика",
+      "settings": "Настройки"
+    },
+    "systemStatus": {
+      "title": "Статус системы",
+      "desc": "Текущее состояние",
+      "database": "База данных",
+      "ai": "AI Gateway",
+      "auth": "Аутентификация",
+      "connected": "Подключена",
+      "active": "Активен",
+      "enabled": "Включена"
+    }
+  },
+  "adminTopics": {
+    "heading": "Управление темами",
+    "subheading": "Управление учебным контентом",
+    "comingSoon": "В разработке",
+    "desc": "Темы управляются напрямую через базу данных",
+    "details": "Учебные темы настроены в таблице topics. Используйте Lovable Cloud для управления данными."
+  },
+  "topicSummary": {
+    "title": "Сводка по темам",
+    "weak": "Слабые темы",
+    "weakInsufficient": "(мало данных)",
+    "noWeak": "Нет слабых тем — отличная работа!",
+    "strong": "Сильные темы",
+    "noStrong": "Пока нет освоенных тем (нужно ≥80% при ≥3 попытках)."
+  },
+  "mistakes": {
+    "noMistakesTitle": "Без ошибок!",
+    "ofCorrect": "{{correct}} из {{total}} правильно",
+    "nextStep": "Следующий шаг",
+    "keepLearning": "Продолжай обучение",
+    "continue": "Продолжить",
+    "lowAccuracyTitle": "Ты не освоил тему",
+    "lowAccuracyDesc": "Точность {{percent}}%. Прежде чем пробовать снова — посмотри урок.",
+    "watchLesson": "Смотреть урок",
+    "basicLesson": "Базовый урок",
+    "mistakesCount": "Ошибки ({{count}})",
+    "percentCorrect": "{{percent}}% правильно",
+    "errorN": "Ошибка #{{n}}",
+    "yourAnswer": "Твой ответ: {{value}}",
+    "correctAnswer": "Правильный: {{value}}",
+    "watchVideo": "Смотреть видео",
+    "basicLessonNamed": "Базовый урок: {{name}}",
+    "openTutor": "Открыть AI-наставника",
+    "readReview": "Читать разбор",
+    "consolidate": "Закрепи материал",
+    "consolidateDesc": "Прорешай свои ошибки заново — это уберёт их из слабых тем.",
+    "repeatMistakes": "Повторить ошибки",
+    "next": "Дальше",
+    "go": "Перейти",
+    "compareLabel": "Сравните: А = {{a}}, Б = {{b}}"
+  },
+  "topicProgress": {
+    "topic": "Тема",
+    "closed": "Закрыта",
+    "almost": "Почти закрыл!",
+    "before": "Было",
+    "after": "Стало",
+    "toClose": "До закрытия темы",
+    "mastered": "🎯 Тема закрыта на 80%+ при 10+ попытках. Отличная работа!",
+    "leftN": "Осталось {{n}} задач до закрытия",
+    "attemptsGoal": "Попыток: {{n}}/{{target}} • цель: {{goal}}%",
+    "finish": "🔥 Добить тему",
+    "continue": "Продолжить тему"
   }
 }
