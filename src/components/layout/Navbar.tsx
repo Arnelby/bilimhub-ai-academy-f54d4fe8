@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, Globe, Moon, Sun, LogOut, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,35 +24,31 @@ const languages: { code: Language; label: string }[] = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const { canAccessAI, canAccessLessons, canAccessDashboard, canAccessTests, canAccessProfile, canAccessPractice } = useUserGroup();
   const location = useLocation();
   const navigate = useNavigate();
-  // Show Back button on every page EXCEPT Home/Dashboard.
   const showBack = !['/', '/dashboard', '/login', '/index'].includes(location.pathname);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  // Главная навигация — только Home + Profile + Dashboard.
-  // Остальные разделы (Tests, Practice, Lessons, AI-Tutor, Plan) скрыты в подменю «Ещё».
   const navLinks = [
-    { href: '/', label: t.nav.home, show: true },
+    { href: '/', label: t('nav.home'), show: true },
     ...(user
       ? [
-          { href: '/dashboard', label: t.nav.dashboard, show: canAccessDashboard },
-          { href: '/profile', label: t.nav.profile, show: canAccessProfile },
+          { href: '/dashboard', label: t('nav.dashboard'), show: canAccessDashboard },
+          { href: '/profile', label: t('nav.profile'), show: canAccessProfile },
         ]
       : []),
   ].filter((link) => link.show);
 
   const moreLinks = user
     ? [
-        { href: '/lessons', label: t.nav.lessons, show: canAccessLessons },
-        { href: '/tests', label: t.nav.tests, show: canAccessTests },
-        { href: '/practice', label: t.nav.practice || 'Практика', show: canAccessPractice },
-        { href: '/ai-tutor', label: t.nav.aiTutor || 'AI Tutor', show: canAccessAI },
-        { href: '/learning-plan', label: t.nav.myPlan || 'My Plan', show: canAccessAI },
+        { href: '/lessons', label: t('nav.lessons'), show: canAccessLessons },
+        { href: '/tests', label: t('nav.tests'), show: canAccessTests },
+        { href: '/practice', label: t('nav.practice'), show: canAccessPractice },
+        { href: '/ai-tutor', label: t('nav.aiTutor'), show: canAccessAI },
+        { href: '/learning-plan', label: t('nav.myPlan'), show: canAccessAI },
       ].filter((link) => link.show)
     : [];
 
@@ -65,14 +62,13 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
-          {/* Back + Logo */}
           <div className="flex items-center gap-2">
             {showBack && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-                aria-label="Назад"
+                aria-label={t('v2.back')}
                 className="h-9 w-9"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -83,7 +79,6 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => (
               <Link
@@ -102,7 +97,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-muted-foreground">
-                    Ещё
+                    {t('v2.more')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -116,9 +111,7 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Right side actions */}
           <div className="flex items-center gap-2">
-            {/* Language Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="hidden sm:flex">
@@ -138,7 +131,6 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Theme Toggle */}
             <Button variant="ghost" size="icon" onClick={() => {
               setIsDark(!isDark);
               document.documentElement.classList.toggle('dark');
@@ -146,21 +138,19 @@ export function Navbar() {
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            {/* Auth Buttons */}
             <div className="hidden items-center gap-2 sm:flex">
               {user ? (
                 <Button variant="ghost" onClick={handleSignOut}>
                   <LogOut className="h-4 w-4 mr-2" />
-                  {t.nav.logout || 'Logout'}
+                  {t('common.logout')}
                 </Button>
               ) : (
                 <Button variant="accent" asChild>
-                  <Link to="/login">Войти</Link>
+                  <Link to="/login">{t('v2.loginCta')}</Link>
                 </Button>
               )}
             </div>
 
-            {/* Mobile menu button */}
             <Button
               variant="ghost"
               size="icon"
@@ -172,7 +162,6 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isOpen && (
           <div className="border-t border-border py-3 md:hidden animate-fade-in max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex flex-col gap-1">
@@ -194,15 +183,14 @@ export function Navbar() {
                 {user ? (
                   <Button variant="outline" className="w-full" onClick={handleSignOut}>
                     <LogOut className="h-4 w-4 mr-2" />
-                    {t.nav.logout || 'Logout'}
+                    {t('common.logout')}
                   </Button>
                 ) : (
                   <Button variant="accent" asChild className="w-full">
-                    <Link to="/login">Войти</Link>
+                    <Link to="/login">{t('v2.loginCta')}</Link>
                   </Button>
                 )}
               </div>
-              {/* Mobile Language Selector */}
               <div className="mt-4 flex gap-2 px-4">
                 {languages.map((lang) => (
                   <Button
