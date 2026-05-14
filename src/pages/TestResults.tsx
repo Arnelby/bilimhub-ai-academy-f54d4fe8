@@ -303,8 +303,8 @@ export default function TestResults() {
               <CollapsibleTrigger className="w-full text-left group">
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <div>
-                    <CardTitle>Разбор по вопросам ({answerDetails.length})</CardTitle>
-                    <CardDescription>Нажмите, чтобы посмотреть подробный разбор</CardDescription>
+                    <CardTitle>{t('testResultsPage.perQuestion', { count: answerDetails.length })}</CardTitle>
+                    <CardDescription>{t('testResultsPage.perQuestionDesc')}</CardDescription>
                   </div>
                   <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CardHeader>
