@@ -6,19 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/bilimhub-logo.png';
 import { z } from 'zod';
 
-const loginSchema = z.object({
-  email: z.string().email('Введите корректный email'),
-  inviteCode: z.string().min(1, 'Введите инвайт-код'),
-});
-
 export default function Login() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
+  const loginSchema = z.object({
+    email: z.string().email(t('loginPage.errors.invalidEmail')),
+    inviteCode: z.string().min(1, t('loginPage.errors.inviteRequired')),
+  });
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
