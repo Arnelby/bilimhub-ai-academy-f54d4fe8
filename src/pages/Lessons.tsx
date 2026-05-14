@@ -363,7 +363,7 @@ export default function Lessons() {
                   <section>
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles className="h-5 w-5 text-accent" />
-                      <h2 className="text-lg font-bold">Рекомендованный урок</h2>
+                      <h2 className="text-lg font-bold">{t('lessonsPage.recommended')}</h2>
                     </div>
                     {learningState?.next_reason && (
                       <p className="text-sm text-muted-foreground mb-3">
