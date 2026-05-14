@@ -176,9 +176,9 @@ export default function TestResults() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold">Результаты не найдены</h1>
+          <h1 className="text-2xl font-bold">{t('testResultsPage.notFound')}</h1>
           <Button asChild className="mt-4">
-            <Link to="/tests">Вернуться к тестам</Link>
+            <Link to="/tests">{t('testResultsPage.backToTests')}</Link>
           </Button>
         </div>
       </Layout>
