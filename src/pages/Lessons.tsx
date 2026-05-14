@@ -264,7 +264,7 @@ export default function Lessons() {
                       <Badge variant="outline" className="text-xs">{topicName}</Badge>
                     )}
                     {isWatched && (
-                      <Badge variant="secondary" className="text-xs">✔ Просмотрено</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('lessonsPage.watched')}</Badge>
                     )}
                   </div>
                 </div>
@@ -277,7 +277,7 @@ export default function Lessons() {
                   onClick={() => markLessonWatched(lesson.id)}
                 >
                   <CheckCircle className="mr-1 h-4 w-4" />
-                  Я посмотрел
+                  {t('lessonsPage.iWatched')}
                 </Button>
               )}
             </div>
