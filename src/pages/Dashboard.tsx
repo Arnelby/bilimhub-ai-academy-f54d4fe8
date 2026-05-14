@@ -502,28 +502,28 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-accent" />
-                      Эффективность
+                      {t('dashboardPage.efficiency.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Вопросов решено</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.questionsSolved')}</span>
                       <span className="font-semibold">{analytics.totalQuestionsSolved}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Ср. время на вопрос</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.avgTime')}</span>
                       <span className="font-semibold">
-                        {analytics.avgTimePerQuestion !== null ? `${analytics.avgTimePerQuestion}с` : '—'}
+                        {analytics.avgTimePerQuestion !== null ? `${analytics.avgTimePerQuestion}${language === 'en' ? 's' : 'с'}` : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Время в сессиях</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.sessionTime')}</span>
                       <span className="font-semibold">
                         {analytics.totalStudySeconds > 0 ? formatDuration(analytics.totalStudySeconds) : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Тестов пройдено</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.testsCompleted')}</span>
                       <span className="font-semibold">{analytics.testHistory.length}</span>
                     </div>
                   </CardContent>
@@ -534,50 +534,49 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-accent" />
-                      Активность
+                      {t('dashboardPage.activity.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* User-facing retention messages */}
                     {analytics.streakDays > 0 && (
                       <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-center">
                         <p className="text-sm font-medium text-accent">
-                          🔥 Вы учитесь {analytics.streakDays} {analytics.streakDays === 1 ? 'день' : analytics.streakDays < 5 ? 'дня' : 'дней'} подряд!
+                          {t('dashboardPage.activity.streak', { days: analytics.streakDays })}
                         </p>
                       </div>
                     )}
                     {analytics.testsCompleted > 0 && (
                       <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
                         <p className="text-sm font-medium text-success">
-                          ✅ Вы прошли {analytics.testsCompleted} {analytics.testsCompleted === 1 ? 'тест' : analytics.testsCompleted < 5 ? 'теста' : 'тестов'}
+                          {t('dashboardPage.activity.testsDone', { n: analytics.testsCompleted })}
                         </p>
                       </div>
                     )}
                     {analytics.improvement !== null && analytics.improvement > 0 && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
                         <p className="text-sm font-medium text-primary">
-                          📈 Вы улучшились на +{analytics.improvement}%
+                          {t('dashboardPage.activity.improved', { n: analytics.improvement })}
                         </p>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Учебных сессий</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.sessions')}</span>
                       <span className="font-semibold">{analytics.totalSessions}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Дней активности</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.daysActive')}</span>
                       <span className="font-semibold">{analytics.daysActive}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Серия дней</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.streakDays')}</span>
                       <span className="font-semibold">{analytics.streakDays}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Последняя активность</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.lastActivity')}</span>
                       <span className="font-semibold text-sm">
                         {analytics.lastActivityAt
-                          ? new Date(analytics.lastActivityAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })
+                          ? new Date(analytics.lastActivityAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ru-RU', { day: '2-digit', month: 'short' })
                           : '—'}
                       </span>
                     </div>
@@ -587,20 +586,20 @@ export default function Dashboard() {
                 {/* Quick links */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Быстрые действия</CardTitle>
+                    <CardTitle>{t('dashboardPage.quickActions.title')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/tests">
                         <Target className="mr-2 h-4 w-4" />
-                        Пройти новый тест
+                        {t('dashboardPage.quickActions.newTest')}
                       </Link>
                     </Button>
                     {isAI && (
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/practice">
                           <Dumbbell className="mr-2 h-4 w-4" />
-                          Практика
+                          {t('dashboardPage.quickActions.practice')}
                         </Link>
                       </Button>
                     )}
@@ -608,14 +607,14 @@ export default function Dashboard() {
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/learning-plan">
                           <Brain className="mr-2 h-4 w-4" />
-                          AI План обучения
+                          {t('dashboardPage.quickActions.aiPlan')}
                         </Link>
                       </Button>
                     )}
                     <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/profile">
                         <BookOpen className="mr-2 h-4 w-4" />
-                        Мой профиль
+                        {t('dashboardPage.quickActions.myProfile')}
                       </Link>
                     </Button>
                   </CardContent>
@@ -626,7 +625,7 @@ export default function Dashboard() {
             {/* Achievements - collapsed by default */}
             <details className="mt-8 group rounded-lg border bg-card">
               <summary className="cursor-pointer p-4 text-sm font-medium flex items-center justify-between select-none hover:bg-muted/50 rounded-lg">
-                <span>🏆 Достижения</span>
+                <span>{t('dashboardPage.achievementsCollapsed')}</span>
                 <span className="text-xs text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
               </summary>
               <div className="p-4 pt-0">
@@ -642,7 +641,7 @@ export default function Dashboard() {
 
 /* ===== Sub-components ===== */
 
-function QuickAction({ icon, title, sub, to, color }: { icon: React.ReactNode; title: string; sub: string; to: string; color: string }) {
+function QuickAction({ icon, title, sub, to, color, goLabel }: { icon: React.ReactNode; title: string; sub: string; to: string; color: string; goLabel: string }) {
   return (
     <Card variant="interactive" className="group">
       <CardContent className="flex items-center gap-4 p-6">
@@ -656,7 +655,7 @@ function QuickAction({ icon, title, sub, to, color }: { icon: React.ReactNode; t
       </CardContent>
       <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
         <Link to={to}>
-          Перейти
+          {goLabel}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
       </Button>
