@@ -278,17 +278,13 @@ export default function AISmartTutor() {
                 <Brain className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">
-                  {language === 'ru' ? 'AI Умный Репетитор' : 'AI Smart Tutor'}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {language === 'ru' ? 'Персонализированная помощь в обучении' : 'Personalized learning assistance'}
-                </p>
+                <h1 className="text-2xl font-bold">{t('aiSmartTutor.title')}</h1>
+                <p className="text-sm text-muted-foreground">{t('aiSmartTutor.subtitle')}</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={clearHistory}>
               <Trash2 className="w-4 h-4 mr-2" />
-              {language === 'ru' ? 'Очистить' : 'Clear'}
+              {t('aiSmartTutor.clear')}
             </Button>
           </div>
 
@@ -299,7 +295,7 @@ export default function AISmartTutor() {
                 <div className="flex items-center gap-2 text-sm">
                   <BookOpen className="w-4 h-4 text-amber-600" />
                   <span className="font-medium text-amber-800 dark:text-amber-200">
-                    {language === 'ru' ? 'Слабые темы:' : 'Weak topics:'}
+                    {t('aiSmartTutor.weakTopics')}
                   </span>
                   <div className="flex gap-1 flex-wrap">
                     {weakTopics.slice(0, 3).map((topic, idx) => (
@@ -318,24 +314,18 @@ export default function AISmartTutor() {
                 {messages.length === 0 && (
                   <div className="text-center py-12">
                     <Bot className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">
-                      {language === 'ru' ? 'Привет! Я твой AI репетитор.' : "Hi! I'm your AI tutor."}
-                    </h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      {language === 'ru' 
-                        ? 'Задай мне любой вопрос по математике или попроси объяснить тему. Я адаптируюсь под твой стиль обучения!'
-                        : 'Ask me any math question or request an explanation. I adapt to your learning style!'}
-                    </p>
+                    <h3 className="text-lg font-medium mb-2">{t('aiSmartTutor.emptyHeading')}</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">{t('aiSmartTutor.emptyBody')}</p>
                     <div className="flex flex-wrap gap-2 justify-center mt-6">
                       {[
-                        language === 'ru' ? '📋 Составь мне план на сегодня' : '📋 Build my plan for today',
-                        language === 'ru' ? '🎯 Дай задачу по слабой теме' : '🎯 Give me a task on my weak topic',
-                        language === 'ru' ? 'Объясни квадратные уравнения' : 'Explain quadratic equations',
-                        language === 'ru' ? 'Помоги с геометрией' : 'Help me with geometry',
+                        t('aiSmartTutor.suggestions.plan'),
+                        t('aiSmartTutor.suggestions.weakTask'),
+                        t('aiSmartTutor.suggestions.quadratic'),
+                        t('aiSmartTutor.suggestions.geometry'),
                       ].map((suggestion, idx) => (
-                        <Button 
-                          key={idx} 
-                          variant="outline" 
+                        <Button
+                          key={idx}
+                          variant="outline"
                           size="sm"
                           onClick={() => sendMessage(suggestion)}
                         >
@@ -371,15 +361,15 @@ export default function AISmartTutor() {
               <div className="px-4 py-2 border-t flex gap-2 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => handleQuickAction('explain_simpler')}>
                   <Lightbulb className="w-4 h-4 mr-1" />
-                  {language === 'ru' ? 'Объясни проще' : 'Explain simpler'}
+                  {t('aiSmartTutor.explainSimpler')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleQuickAction('give_example')}>
                   <HelpCircle className="w-4 h-4 mr-1" />
-                  {language === 'ru' ? 'Дай пример' : 'Give example'}
+                  {t('aiSmartTutor.giveExample')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleQuickAction('give_mini_test')}>
                   <FileQuestion className="w-4 h-4 mr-1" />
-                  {language === 'ru' ? 'Мини-тест' : 'Mini-test'}
+                  {t('aiSmartTutor.miniTest')}
                 </Button>
               </div>
             )}
@@ -391,7 +381,7 @@ export default function AISmartTutor() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder={language === 'ru' ? 'Задай вопрос...' : 'Ask a question...'}
+                  placeholder={t('aiSmartTutor.placeholder')}
                   className="min-h-[60px] resize-none"
                   disabled={loading}
                 />
