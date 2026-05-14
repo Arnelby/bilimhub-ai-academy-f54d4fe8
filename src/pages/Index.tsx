@@ -13,6 +13,7 @@ import {
   PlayCircle,
   ChevronDown,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -34,21 +35,8 @@ const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
   done: <CheckCircle2 className="h-7 w-7" />,
 };
 
-const ACTION_LABEL: Record<NextActionType, string> = {
-  take_test: 'Пройти тест',
-  practice: 'Практика',
-  review_mistakes: 'Повторить ошибки',
-  watch_lesson: 'Посмотреть урок',
-  done: 'Готово',
-};
-
-const PLAN_ITEM_LABEL: Record<PlanItem['type'], string> = {
-  lesson: 'Урок',
-  practice: 'Практика',
-  review: 'Повтор',
-};
-
 function GuestHero() {
+  const { t } = useTranslation();
   return (
     <Layout>
       <section className="container mx-auto px-4 py-16 max-w-3xl text-center space-y-6">
@@ -57,14 +45,14 @@ function GuestHero() {
           BilimHub
         </Badge>
         <h1 className="text-4xl md:text-5xl font-bold">
-          Подготовка к ОРТ — без хаоса
+          {t('v2.home.guestTitle')}
         </h1>
         <p className="text-lg text-muted-foreground">
-          Платформа сама ведёт тебя: один шаг за раз. Тест → урок → практика → повтор.
+          {t('v2.home.guestSubtitle')}
         </p>
         <Button size="lg" asChild>
           <Link to="/login">
-            Начать <ArrowRight className="ml-2 h-5 w-5" />
+            {t('v2.home.guestStart')} <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </Button>
       </section>
@@ -72,43 +60,39 @@ function GuestHero() {
   );
 }
 
-/**
- * CONTROL group home — strictly minimal.
- * No next_action, no weak topics, no plan, no streak, no daily goal,
- * no motivation, no AI navigation. Only the four allowed sections.
- */
 function ControlHome() {
+  const { t } = useTranslation();
   return (
     <Layout>
       <div className="container max-w-3xl mx-auto py-12 px-4 space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">BilimHub</h1>
-          <p className="text-muted-foreground">Подготовка к ОРТ. Выбери раздел.</p>
+          <h1 className="text-3xl font-bold">{t('v2.home.controlTitle')}</h1>
+          <p className="text-muted-foreground">{t('v2.home.controlSubtitle')}</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
             <Link to="/tests">
               <ClipboardList className="mr-3 h-6 w-6" />
-              Тесты
+              {t('v2.home.sectionTests')}
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
             <Link to="/lessons">
               <BookOpen className="mr-3 h-6 w-6" />
-              Уроки
+              {t('v2.home.sectionLessons')}
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
             <Link to="/practice">
               <Target className="mr-3 h-6 w-6" />
-              Практика
+              {t('v2.home.sectionPractice')}
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild className="h-20 text-base justify-start">
             <Link to="/profile">
               <CheckCircle2 className="mr-3 h-6 w-6" />
-              Профиль
+              {t('v2.home.sectionProfile')}
             </Link>
           </Button>
         </div>
@@ -118,11 +102,26 @@ function ControlHome() {
 }
 
 export default function Index() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isControl, loading: groupLoading } = useUserGroup();
   const { state, loading } = useLearningState(user?.id);
   const motivation = useMotivation(user?.id);
+
+  const ACTION_LABEL: Record<NextActionType, string> = {
+    take_test: t('v2.home.sectionTests'),
+    practice: t('v2.home.sectionPractice'),
+    review_mistakes: t('practice.mistakes.title'),
+    watch_lesson: t('v2.home.sectionLessons'),
+    done: t('v2.home.doneToday'),
+  };
+
+  const PLAN_ITEM_LABEL: Record<PlanItem['type'], string> = {
+    lesson: t('v2.home.sectionLessons'),
+    practice: t('v2.home.sectionPractice'),
+    review: t('practice.mistakes.title'),
+  };
 
   if (!user) return <GuestHero />;
 
@@ -136,16 +135,11 @@ export default function Index() {
     );
   }
 
-  // CONTROL group → strictly basic view, no personalization signals.
   if (isControl) return <ControlHome />;
 
   const actionType: NextActionType = (state as any).next_action_type ?? 'take_test';
   const isCompleted = actionType === 'done';
   const route = nextActionRoute(state);
-  const goalPct =
-    state.daily_goal > 0
-      ? Math.min(100, Math.round((state.daily_progress / state.daily_goal) * 100))
-      : 0;
 
   const plan: PlanItem[] = Array.isArray(state.current_plan) ? (state.current_plan as PlanItem[]) : [];
   const weakTopics: string[] = Array.isArray(state.weak_topics) ? (state.weak_topics as string[]) : [];
@@ -158,7 +152,6 @@ export default function Index() {
   return (
     <Layout>
       <div className="container max-w-3xl mx-auto py-10 px-4 space-y-6">
-        {/* Главная карточка */}
         <Card className="border-2 shadow-lg overflow-hidden">
           <CardContent className="p-8 text-center space-y-6">
             <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -167,30 +160,25 @@ export default function Index() {
 
             <div className="space-y-2">
               <h1 className="text-3xl font-bold">
-                {isCompleted ? 'Готово на сегодня!' : 'Продолжить обучение'}
+                {isCompleted ? t('v2.home.doneToday') : t('v2.home.continueLearning')}
               </h1>
               <p className="text-muted-foreground text-base">{state.next_reason}</p>
             </div>
 
-            {/* Mastery progress for the forced/current topic */}
             {!isCompleted && (state as any).current_topic_progress && (
               <div className="rounded-lg border bg-muted/30 p-4 text-left space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">
-                    Тема: {(state as any).current_topic_progress.topic}
+                    {t('v2.home.topic')}: {(state as any).current_topic_progress.topic}
                   </span>
                   <Badge variant={(state as any).current_topic_progress.needs_lesson ? 'destructive' : 'secondary'}>
-                    {Math.round(((state as any).current_topic_progress.accuracy ?? 0) * 100)}% точность
+                    {Math.round(((state as any).current_topic_progress.accuracy ?? 0) * 100)}{t('v2.home.accuracySuffix')}
                   </Badge>
                 </div>
                 <Progress value={(state as any).current_topic_progress.progress_pct} className="h-2" />
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    Попыток: {(state as any).current_topic_progress.total_attempts}/10
-                  </span>
-                  <span>
-                    Осталось: ~{(state as any).current_topic_progress.attempts_left_estimate} подходов
-                  </span>
+                  <span>{t('v2.home.attempts', { n: (state as any).current_topic_progress.total_attempts })}</span>
+                  <span>{t('v2.home.attemptsLeft', { n: (state as any).current_topic_progress.attempts_left_estimate })}</span>
                 </div>
               </div>
             )}
@@ -207,15 +195,14 @@ export default function Index() {
                 onClick={() => navigate('/dashboard')}
                 className="w-full"
               >
-                Открыть прогресс
+                {t('v2.home.openProgress')}
               </Button>
             )}
 
-            {/* План на сегодня */}
             {plan.length > 0 && !isCompleted && (
               <div className="pt-4 border-t">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-                  План сегодня
+                  {t('v2.home.todayPlan')}
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {plan.slice(0, 6).map((p, i) => (
@@ -230,11 +217,10 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        {/* Compact secondary line — keeps signals visible without overload */}
         <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Flame className="h-4 w-4 text-accent" />
-            <span className="font-medium text-foreground">{state.streak}</span> дн.
+            <span className="font-medium text-foreground">{state.streak}</span> {t('v2.home.daysShort')}
           </span>
           <span className="flex items-center gap-1.5">
             <Target className="h-4 w-4" />
@@ -243,19 +229,17 @@ export default function Index() {
           {weakTopics.length > 0 && (
             <span className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-destructive" />
-              <span className="font-medium text-foreground">{weakTopics.length}</span> слаб.
+              <span className="font-medium text-foreground">{weakTopics.length}</span> {t('v2.home.weakShort')}
             </span>
           )}
         </div>
 
-        {/* Подробности (свернуто по умолчанию) */}
         <Collapsible>
           <CollapsibleTrigger className="w-full text-sm text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 select-none group">
-            Подробнее
+            {t('v2.home.moreDetails')}
             <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-4 space-y-4">
-            {/* Mastery + retention motivation */}
             {!motivation.loading && (
               <MotivationWidget
                 streak={motivation.streak}
@@ -267,31 +251,30 @@ export default function Index() {
               />
             )}
 
-            {/* Слабые темы (первые 3, остальные раскрываются) */}
             {weakTopics.length > 0 && (
               <Card>
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <BookOpen className="h-4 w-4" />
-                    Слабые темы ({weakTopics.length})
+                    {t('v2.home.weakTopicsCount', { n: weakTopics.length })}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {weakTopics.slice(0, 3).map((t) => (
-                      <Badge key={t} variant="outline">
-                        {t}
+                    {weakTopics.slice(0, 3).map((tp) => (
+                      <Badge key={tp} variant="outline">
+                        {tp}
                       </Badge>
                     ))}
                   </div>
                   {weakTopics.length > 3 && (
                     <Collapsible>
                       <CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground">
-                        Показать ещё {weakTopics.length - 3} ▾
+                        {t('v2.home.showMore', { n: weakTopics.length - 3 })} ▾
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2">
                         <div className="flex flex-wrap gap-2">
-                          {weakTopics.slice(3).map((t) => (
-                            <Badge key={t} variant="outline">
-                              {t}
+                          {weakTopics.slice(3).map((tp) => (
+                            <Badge key={tp} variant="outline">
+                              {tp}
                             </Badge>
                           ))}
                         </div>
@@ -302,19 +285,18 @@ export default function Index() {
               </Card>
             )}
 
-            {/* Больше разделов */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/lessons">Уроки</Link>
+                <Link to="/lessons">{t('v2.home.sectionLessons')}</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/tests">Тесты</Link>
+                <Link to="/tests">{t('v2.home.sectionTests')}</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/practice">Практика</Link>
+                <Link to="/practice">{t('v2.home.sectionPractice')}</Link>
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard">Панель</Link>
+                <Link to="/dashboard">{t('v2.home.sectionDashboard')}</Link>
               </Button>
             </div>
           </CollapsibleContent>

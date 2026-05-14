@@ -4,6 +4,7 @@ import {
   Target, Clock, CheckCircle, Play, BarChart3,
   Calendar, Trophy, Loader2, RotateCcw, ArrowRight
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +38,7 @@ interface TestAccessRecord {
 }
 
 export default function Tests() {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,6 @@ export default function Tests() {
     async function fetchData() {
       if (!user) return;
       try {
-        // Get participant_id
         const { data: profile } = await supabase
           .from('profiles')
           .select('participant_id')
@@ -81,25 +82,18 @@ export default function Tests() {
           4: new Set((q4Res.data || []).map(q => q.id)).size,
         });
 
-        // Build access map from test_access table
         const aMap: Record<number, boolean> = { 1: false, 2: false, 3: false, 4: false };
         const accessData = (accessRes as any).data as TestAccessRecord[] || [];
         for (const row of accessData) {
           aMap[row.test_id] = row.is_allowed;
         }
-        // HOTFIX OVERRIDE: CTRL-030 (Канатова Адина) — always unlock tests 1 & 2
         if (participantId === 'CTRL-030') {
           aMap[1] = true;
           aMap[2] = true;
         }
         if (GLOBAL_TEST_ACCESS_OVERRIDE) {
-          console.log('[GLOBAL_TEST_OVERRIDE_ENABLED]', { user_id: user.id, participant_id: participantId });
-          for (const id of [1, 2, 3, 4]) {
-            aMap[id] = true;
-            console.log('[TEST_ACCESS_GRANTED_OVERRIDE]', { test_id: id });
-          }
+          for (const id of [1, 2, 3, 4]) aMap[id] = true;
         } else {
-          // Legacy override: Test 3 (mid2) open to everyone
           aMap[3] = true;
         }
         setAccessMap(aMap);
@@ -113,7 +107,6 @@ export default function Tests() {
   }, [user]);
 
   const handleStartTest = (mathTestId: number) => {
-    console.log('[TEST_CLICKED]', { test_id: mathTestId, override: GLOBAL_TEST_ACCESS_OVERRIDE });
     localStorage.removeItem('testing58_answers');
     localStorage.removeItem('testing58_currentPage');
     localStorage.removeItem('testing58_startTime');
@@ -139,6 +132,8 @@ export default function Tests() {
     ? Math.round(attempts.reduce((s, a) => s + getScoreParsed(a).percentage, 0) / attempts.length)
     : 0;
 
+  const dateLocale = i18n.language === 'ru' ? 'ru-RU' : i18n.language === 'kg' ? 'ky-KG' : 'en-US';
+
   if (loading) {
     return (
       <Layout>
@@ -153,11 +148,10 @@ export default function Tests() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Тестирование</h1>
-          <p className="text-muted-foreground">Пройдите диагностический тест для анализа знаний</p>
+          <h1 className="text-3xl font-bold">{t('v2.tests.pageTitle')}</h1>
+          <p className="text-muted-foreground">{t('v2.tests.pageSubtitle')}</p>
         </div>
 
-        {/* Global Stats */}
         {totalAttempts > 0 && (
           <div className="mb-8 grid gap-4 sm:grid-cols-3">
             <Card>
@@ -167,7 +161,7 @@ export default function Tests() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{totalAttempts}</p>
-                  <p className="text-sm text-muted-foreground">Попыток пройдено</p>
+                  <p className="text-sm text-muted-foreground">{t('v2.tests.attemptsCompleted')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -178,7 +172,7 @@ export default function Tests() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{overallAvg}%</p>
-                  <p className="text-sm text-muted-foreground">Средний балл</p>
+                  <p className="text-sm text-muted-foreground">{t('v2.tests.averageScore')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -189,57 +183,55 @@ export default function Tests() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{overallBest}%</p>
-                  <p className="text-sm text-muted-foreground">Лучший результат</p>
+                  <p className="text-sm text-muted-foreground">{t('v2.tests.bestResult')}</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Test Cards */}
         <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold">Доступные тесты</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t('v2.tests.available')}</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {TEST_VARIANTS.map((variant) => {
               const testAttempts = getAttemptsForTest(variant.uuid);
               const qCount = questionCounts[variant.mathTestId] || 0;
-              // Access controlled by test_access table (backend source of truth)
               const isLocked = !accessMap[variant.mathTestId];
               return (
                 <Card key={variant.mathTestId} variant="interactive" className={isLocked ? 'opacity-60' : ''}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <Badge variant="accent">Вариант {variant.mathTestId}</Badge>
+                      <Badge variant="accent">{t('v2.tests.variant', { n: variant.mathTestId })}</Badge>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>{variant.durationMinutes} мин</span>
+                        <span>{variant.durationMinutes} {t('v2.tests.minutesShort')}</span>
                       </div>
                     </div>
                     <CardTitle className="text-lg">{variant.name}</CardTitle>
-                    <CardDescription>{qCount} вопросов · {variant.description}</CardDescription>
+                    <CardDescription>{qCount} {t('v2.tests.questionsSuffix')} · {variant.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {testAttempts.length > 0 && (
                       <div className="mb-4 flex items-center gap-4 text-sm">
                         <span className="text-muted-foreground">
-                          Попыток: <strong>{testAttempts.length}</strong>
+                          {t('v2.tests.attemptsCount')} <strong>{testAttempts.length}</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Лучший: <strong className="text-accent">{getBestPct(testAttempts)}%</strong>
+                          {t('v2.tests.bestPrefix')} <strong className="text-accent">{getBestPct(testAttempts)}%</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Средний: <strong>{getAvgPct(testAttempts)}%</strong>
+                          {t('v2.tests.averagePrefix')} <strong>{getAvgPct(testAttempts)}%</strong>
                         </span>
                       </div>
                     )}
                     {isLocked ? (
                       <Button variant="outline" className="w-full" disabled>
-                        🔒 Тест заблокирован
+                        {t('v2.tests.locked')}
                       </Button>
                     ) : (
                       <Button variant="accent" className="w-full" onClick={() => handleStartTest(variant.mathTestId)}>
                         <Play className="mr-2 h-4 w-4" />
-                        {testAttempts.length > 0 ? 'Пройти снова' : 'Начать тест'}
+                        {testAttempts.length > 0 ? t('v2.tests.retake') : t('v2.tests.start')}
                       </Button>
                     )}
                   </CardContent>
@@ -249,10 +241,9 @@ export default function Tests() {
           </div>
         </div>
 
-        {/* Past Attempts */}
         {attempts.length > 0 && (
           <div>
-            <h2 className="mb-4 text-xl font-semibold">История попыток</h2>
+            <h2 className="mb-4 text-xl font-semibold">{t('v2.tests.history')}</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {attempts.map((attempt) => {
                 const variant = TEST_VARIANTS.find(v => v.uuid === attempt.test_id);
@@ -262,18 +253,18 @@ export default function Tests() {
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary">
                           <CheckCircle className="mr-1 h-3 w-3" />
-                          Завершено
+                          {t('v2.tests.completed')}
                         </Badge>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString('ru-RU') : ''}</span>
+                          <span>{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString(dateLocale) : ''}</span>
                         </div>
                       </div>
-                      <CardTitle className="text-base">{variant?.name || 'Тест'}</CardTitle>
+                      <CardTitle className="text-base">{variant?.name || t('v2.tests.fallbackName')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="mb-4 flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Результат</span>
+                        <span className="text-sm text-muted-foreground">{t('v2.tests.resultLabel')}</span>
                         <div className="text-right">
                           <span className={`text-2xl font-bold ${
                             getScoreParsed(attempt).percentage >= 80 ? 'text-success' : getScoreParsed(attempt).percentage >= 60 ? 'text-warning' : 'text-destructive'
@@ -287,12 +278,12 @@ export default function Tests() {
                       </div>
                       <div className="flex gap-2">
                         <Button variant="outline" className="flex-1" onClick={() => navigate(`/tests/${attempt.test_id}/results/${attempt.id}`)}>
-                          Результаты
+                          {t('v2.tests.viewResults')}
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                         <Button variant="accent" className="flex-1 gap-2" onClick={() => handleStartTest(variant?.mathTestId || 1)}>
                           <RotateCcw className="h-4 w-4" />
-                          Пересдать
+                          {t('v2.tests.retake')}
                         </Button>
                       </div>
                     </CardContent>
@@ -306,8 +297,8 @@ export default function Tests() {
         {attempts.length === 0 && (
           <div className="py-8 text-center">
             <Target className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">Вы ещё не проходили тест</h3>
-            <p className="text-muted-foreground">Пройдите диагностический тест для анализа ваших знаний</p>
+            <h3 className="mt-4 text-lg font-semibold">{t('v2.tests.notTakenTitle')}</h3>
+            <p className="text-muted-foreground">{t('v2.tests.notTakenBody')}</p>
           </div>
         )}
       </div>

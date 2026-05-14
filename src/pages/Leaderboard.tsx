@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Crown, Medal, Trophy, Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,6 +24,7 @@ interface Row {
 const PAGE_SIZE = 20;
 
 export default function LeaderboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -40,49 +42,39 @@ export default function LeaderboardPage() {
       if (cancelled) return;
       if (error) {
         console.error('[LEADERBOARD_ERROR]', error);
-        setError('Не удалось загрузить рейтинг');
+        setError(t('v2.leaderboard.loadError'));
         setRows([]);
       } else {
         const list = (data || []) as Row[];
         setRows(list);
-        const me = user ? list.find(r => r.user_id === user.id) : undefined;
-        console.log('[LEADERBOARD_LOADED]', {
-          user_id: user?.id ?? null,
-          position: me?.rank_position ?? null,
-          total_users: list.length,
-        });
       }
       setLoading(false);
     }
     load();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, t]);
 
   const me = useMemo(
     () => (user ? rows.find(r => r.user_id === user.id) : undefined),
     [rows, user]
   );
 
-  // Ensure current user is included in visible window even if outside it
   useEffect(() => {
     if (!me) return;
     if (me.rank_position > visible) {
-      // expand visible to include me
       setVisible(Math.max(visible, me.rank_position));
     }
   }, [me, visible]);
 
-  // Auto-scroll to current user once visible
   useEffect(() => {
     if (!loading && me && meRowRef.current) {
-      const t = setTimeout(() => {
+      const tm = setTimeout(() => {
         meRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 400);
-      return () => clearTimeout(t);
+      return () => clearTimeout(tm);
     }
   }, [loading, me]);
 
-  // Infinite scroll
   useEffect(() => {
     if (!sentinelRef.current) return;
     const el = sentinelRef.current;
@@ -97,8 +89,8 @@ export default function LeaderboardPage() {
 
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3, visible);
-
-  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean) as Row[]; // 2,1,3
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean) as Row[];
+  const studentFallback = t('v2.leaderboard.studentFallback');
 
   return (
     <Layout>
@@ -107,12 +99,12 @@ export default function LeaderboardPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link to="/profile">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Профиль
+              {t('v2.leaderboard.backProfile')}
             </Link>
           </Button>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Trophy className="h-5 w-5 text-warning" />
-            Рейтинг
+            {t('v2.leaderboard.pageTitle')}
           </h1>
           <div className="w-20" />
         </div>
@@ -127,17 +119,16 @@ export default function LeaderboardPage() {
         ) : rows.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
-              Пока никто не завершил тесты. Будь первым!
+              {t('v2.leaderboard.emptyState')}
             </CardContent>
           </Card>
         ) : (
           <>
-            {/* Podium */}
             <Card className="mb-6 overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Crown className="h-4 w-4 text-warning" />
-                  Топ-3
+                  {t('v2.leaderboard.top3')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -156,11 +147,11 @@ export default function LeaderboardPage() {
                         <Avatar className={cn('h-14 w-14 border-2', isFirst ? 'border-warning' : 'border-muted', isMe && 'ring-2 ring-accent')}>
                           <AvatarImage src={r.avatar_url || undefined} />
                           <AvatarFallback className="bg-accent/10 text-accent font-semibold">
-                            {r.display_name?.charAt(0)?.toUpperCase() || 'У'}
+                            {r.display_name?.charAt(0)?.toUpperCase() || studentFallback.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <p className="text-xs font-medium text-center truncate w-full">
-                          {r.display_name || 'Студент'}{isMe && ' (вы)'}
+                          {r.display_name || studentFallback}{isMe && ' ' + t('v2.leaderboard.youSuffix')}
                         </p>
                         <div className={cn('w-full rounded-t-md border flex flex-col items-center justify-center', heightClass, bg)}>
                           {isFirst ? (
@@ -178,7 +169,6 @@ export default function LeaderboardPage() {
               </CardContent>
             </Card>
 
-            {/* Full list */}
             <div className="space-y-2">
               {rest.map((r) => {
                 const isMe = user?.id === r.user_id;
@@ -197,17 +187,17 @@ export default function LeaderboardPage() {
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={r.avatar_url || undefined} />
                       <AvatarFallback className="bg-accent/10 text-accent">
-                        {r.display_name?.charAt(0)?.toUpperCase() || 'У'}
+                        {r.display_name?.charAt(0)?.toUpperCase() || studentFallback.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">
-                        {r.display_name || 'Студент'}
-                        {isMe && <span className="ml-2 text-xs text-accent">(вы)</span>}
+                        {r.display_name || studentFallback}
+                        {isMe && <span className="ml-2 text-xs text-accent">{t('v2.leaderboard.youSuffix')}</span>}
                       </p>
                       <p className="text-xs text-muted-foreground flex items-center gap-2">
                         <Target className="h-3 w-3" />
-                        {r.accuracy}% • {r.tests_completed} тестов
+                        {t('v2.leaderboard.accuracyTests', { accuracy: r.accuracy, tests: r.tests_completed })}
                       </p>
                     </div>
                     <div className="text-right">
@@ -220,15 +210,14 @@ export default function LeaderboardPage() {
 
               {visible < rows.length && (
                 <div ref={sentinelRef} className="py-6 text-center text-xs text-muted-foreground">
-                  Загрузка…
+                  {t('v2.leaderboard.loadingMore')}
                 </div>
               )}
             </div>
 
-            {/* Sticky my-position footer if outside the visible window */}
             {me && me.rank_position > 3 && (
               <div className="mt-6 rounded-lg bg-accent/10 p-3 text-center text-sm">
-                Ваше место: <span className="font-bold text-accent">#{me.rank_position}</span> из {rows.length} • score {me.ranking_score}
+                {t('v2.leaderboard.yourPosition', { n: me.rank_position, total: rows.length, score: me.ranking_score })}
               </div>
             )}
           </>

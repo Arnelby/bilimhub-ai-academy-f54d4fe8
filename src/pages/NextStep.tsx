@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { Layout } from '@/components/layout/Layout';
@@ -20,6 +21,7 @@ const TYPE_ICON: Record<TaskType, React.ReactNode> = {
 };
 
 export default function NextStep() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isAI, isControl, loading: groupLoading } = useUserGroup();
@@ -47,15 +49,14 @@ export default function NextStep() {
     };
   }, [user?.id]);
 
-  // Control group: no engine
   if (!groupLoading && isControl && !isAI) {
     return (
       <Layout>
         <div className="container max-w-2xl mx-auto py-12 px-4">
           <Card className="p-8 text-center space-y-4">
-            <h1 className="text-xl font-bold">Свободный режим</h1>
-            <p className="text-sm text-muted-foreground">Используй практику и общий контент.</p>
-            <Button className="w-full" onClick={() => navigate('/practice')}>К практике</Button>
+            <h1 className="text-xl font-bold">{t('v2.nextStep.freeModeTitle')}</h1>
+            <p className="text-sm text-muted-foreground">{t('v2.nextStep.freeModeBody')}</p>
+            <Button className="w-full" onClick={() => navigate('/practice')}>{t('v2.nextStep.toPractice')}</Button>
           </Card>
         </div>
       </Layout>
@@ -81,33 +82,26 @@ export default function NextStep() {
 
   const handleContinue = async () => {
     if (!next || !user?.id) return;
-    console.log('[TASK_START]', { task_type: next.type, topic: next.topic });
-
-    // Forced loop is the executor for practice tasks
     if (next.type === 'practice') {
       if (forced.session) { navigate('/learn'); return; }
       await forced.start(next.topic);
       navigate('/learn');
       return;
     }
-    // If a forced session is already active (e.g. user paused), resume it
     if (forced.session) { navigate('/learn'); return; }
     navigate(routeForTask(next));
   };
 
-  const ctaLabel = forced.session ? 'Продолжить обучение' : 'Начать обучение';
+  const ctaLabel = forced.session ? t('v2.nextStep.ctaContinue') : t('v2.nextStep.ctaStart');
   const ctaIcon = next ? TYPE_ICON[next.type] : <CheckCircle2 className="h-6 w-6" />;
-  const ctaReason = isCompleted
-    ? 'План на сегодня выполнен'
-    : next?.label ?? '';
+  const ctaReason = isCompleted ? t('v2.nextStep.planCompleted') : next?.label ?? '';
 
   return (
     <Layout>
       <div className="container max-w-2xl mx-auto py-12 px-4 space-y-6">
-        {/* Micro-progress */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Прогресс плана</span>
+            <span>{t('v2.nextStep.progressLabel')}</span>
             <span>{completed}/{total} · {pct}%</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
@@ -122,7 +116,7 @@ export default function NextStep() {
 
           <div className="space-y-2">
             <h1 className="text-2xl font-bold">
-              {isCompleted ? 'Готово!' : 'Следующая задача'}
+              {isCompleted ? t('v2.nextStep.completedTitle') : t('v2.nextStep.nextTaskTitle')}
             </h1>
             <p className="text-muted-foreground">{ctaReason}</p>
           </div>
@@ -137,13 +131,13 @@ export default function NextStep() {
 
           {isCompleted && (
             <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              Открыть прогресс
+              {t('v2.nextStep.openProgress')}
             </Button>
           )}
 
           {!isCompleted && (
             <div className="pt-4 border-t text-sm text-muted-foreground">
-              Осталось задач: <span className="text-foreground font-medium">{remaining}</span>
+              {t('v2.nextStep.remaining')}: <span className="text-foreground font-medium">{remaining}</span>
             </div>
           )}
         </Card>
