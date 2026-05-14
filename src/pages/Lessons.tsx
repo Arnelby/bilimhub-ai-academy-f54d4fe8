@@ -325,14 +325,8 @@ export default function Lessons() {
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">
-            {language === 'ru' ? 'Уроки' : language === 'kg' ? 'Сабактар' : 'Lessons'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {language === 'ru'
-              ? 'Видеоуроки и видеоразборы тестов'
-              : 'Video lessons and test solutions'}
-          </p>
+          <h1 className="text-3xl font-bold">{t('lessonsPage.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('lessonsPage.subtitle')}</p>
         </div>
 
         {/* Tabs */}
