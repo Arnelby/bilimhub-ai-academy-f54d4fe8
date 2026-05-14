@@ -25,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -44,10 +45,10 @@ interface TestAttempt {
 }
 
 const TEST_VARIANTS = [
-  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Вариант 1' },
-  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Вариант 2' },
-  { uuid: '00000000-0000-0000-0000-000000000003', name: 'Вариант 3' },
-  { uuid: '00000000-0000-0000-0000-000000000004', name: 'Вариант 4' },
+  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Variant 1' },
+  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Variant 2' },
+  { uuid: '00000000-0000-0000-0000-000000000003', name: 'Variant 3' },
+  { uuid: '00000000-0000-0000-0000-000000000004', name: 'Variant 4' },
 ];
 
 interface TopicAccuracy {
@@ -104,7 +105,8 @@ const EMPTY_ANALYTICS: AnalyticsData = {
 };
 
 export default function Dashboard() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { isAI, isControl } = useUserGroup();
@@ -157,10 +159,12 @@ export default function Dashboard() {
       }
 
       // --- Score trend ---
+      const localeMap = { en: 'en-US', ru: 'ru-RU', kg: 'ru-RU' } as const;
+      const dateLocale = localeMap[language as keyof typeof localeMap] || 'en-US';
       const testHistory = tests.map(t => {
         const p = parseScore(t.score, t.total_questions);
         return {
-          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
+          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' }) : '',
           score: p.correct,
           total: p.total,
           percentage: p.percentage,
@@ -169,12 +173,13 @@ export default function Dashboard() {
 
       // --- Topic performance from question_attempts + user_answers ---
       const topicMap = new Map<string, { correct: number; total: number }>();
+      const noTopicLabel = t('topics.noTopic');
       const addToTopicMap = (topic: string | null, isCorrect: boolean) => {
-        const t = topic || 'Без темы';
-        const entry = topicMap.get(t) || { correct: 0, total: 0 };
+        const tk = topic || noTopicLabel;
+        const entry = topicMap.get(tk) || { correct: 0, total: 0 };
         entry.total++;
         if (isCorrect) entry.correct++;
-        topicMap.set(t, entry);
+        topicMap.set(tk, entry);
       };
       questionAttempts.forEach(a => addToTopicMap(a.topic, a.is_correct));
       userAnswers.forEach(a => addToTopicMap(a.topic, a.is_correct));
@@ -253,8 +258,8 @@ export default function Dashboard() {
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}ч ${m}м`;
-    return `${m}м`;
+    if (h > 0) return language === 'en' ? `${h}h ${m}m` : `${h}ч ${m}м`;
+    return language === 'en' ? `${m}m` : `${m}м`;
   };
 
   if (loading) {
