@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +12,7 @@ interface FullNameModalProps {
 }
 
 export function FullNameModal({ userId, open, onComplete }: FullNameModalProps) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ export function FullNameModal({ userId, open, onComplete }: FullNameModalProps) 
   const handleSave = async () => {
     const trimmed = fullName.trim();
     if (trimmed.length < 2) {
-      setError('Минимум 2 символа');
+      setError(t('onboardingModal.minLength'));
       return;
     }
     setSaving(true);
@@ -31,7 +33,7 @@ export function FullNameModal({ userId, open, onComplete }: FullNameModalProps) 
 
     setSaving(false);
     if (dbError) {
-      setError('Ошибка сохранения. Попробуйте снова.');
+      setError(t('onboardingModal.saveError'));
       return;
     }
     onComplete(trimmed);
@@ -41,20 +43,18 @@ export function FullNameModal({ userId, open, onComplete }: FullNameModalProps) 
     <Dialog open={open}>
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Добро пожаловать в BilimHub! 👋</DialogTitle>
-          <DialogDescription>
-            Укажите ваше имя для персонализации обучения
-          </DialogDescription>
+          <DialogTitle>{t('onboardingModal.title')}</DialogTitle>
+          <DialogDescription>{t('onboardingModal.description')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium">Ваше полное имя</label>
+            <label htmlFor="fullName" className="text-sm font-medium">{t('onboardingModal.label')}</label>
             <input
               id="fullName"
               type="text"
               value={fullName}
               onChange={(e) => { setFullName(e.target.value); setError(''); }}
-              placeholder="Например: Айдана Асанова"
+              placeholder={t('onboardingModal.placeholder')}
               className="w-full rounded-lg border border-input bg-background py-2.5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
@@ -63,7 +63,7 @@ export function FullNameModal({ userId, open, onComplete }: FullNameModalProps) 
           </div>
           <Button onClick={handleSave} variant="accent" className="w-full" disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Продолжить
+            {t('onboardingModal.continue')}
           </Button>
         </div>
       </DialogContent>

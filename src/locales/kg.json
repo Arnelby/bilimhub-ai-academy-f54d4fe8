@@ -594,5 +594,54 @@
       "yourPosition": "[KG] Your position: #{{n}} of {{total}} • score {{score}}",
       "accuracyTests": "{{accuracy}}% • {{tests}} [KG] tests"
     }
+  },
+  "footer": {
+    "tagline": "[KG] Адаптивдик окуу ЖРТ, ЖИТ жана башка экзамендер үчүн.",
+    "platform": "[KG] Платформа",
+    "support": "[KG] Колдоо",
+    "legal": "[KG] Юридикалык",
+    "helpCenter": "[KG] Жардам борбору",
+    "contact": "[KG] Байланыш",
+    "faq": "[KG] FAQ",
+    "privacy": "[KG] Купуялык саясаты",
+    "terms": "[KG] Колдонуу шарттары",
+    "rights": "[KG] Бардык укуктар корголгон."
+  },
+  "loginPage": {
+    "betaBadge": "[KG] Жабык бета",
+    "title": "[KG] BilimHubга кирүү",
+    "description": "[KG] Чакыруу боюнча гана",
+    "emailLabel": "Email",
+    "inviteCodeLabel": "[KG] Чакыруу коду",
+    "inviteCodePlaceholder": "BETA2024-XX",
+    "submit": "[KG] Кирүү",
+    "submitting": "[KG] Кирүү...",
+    "noCodeHint": "[KG] Чакыруу коду жокпу? Администраторго кайрылыңыз.",
+    "errors": {
+      "invalidEmail": "[KG] Туура email киргизиңиз",
+      "inviteRequired": "[KG] Чакыруу кодун киргизиңиз",
+      "accessCheck": "[KG] Текшерүү катасы. Кийинчерээк аракет кылыңыз.",
+      "accessDenied": "[KG] Кирүү чектелген. Туура эмес email же код.",
+      "wrongCodeForEmail": "[KG] Бул email үчүн код туура эмес.",
+      "signupFailed": "[KG] Аккаунт түзүү катасы.",
+      "signinAfterSignup": "[KG] Аккаунт түзүлдү бирок кирүү катасы.",
+      "network": "[KG] Ката кетти. Интернетти текшериңиз."
+    }
+  },
+  "onboardingModal": {
+    "title": "[KG] BilimHubга кош келиңиз! 👋",
+    "description": "[KG] Окууну жекелештирүү үчүн атыңызды жазыңыз",
+    "label": "[KG] Толук атыңыз",
+    "placeholder": "[KG] Мисалы: Айдана Асанова",
+    "continue": "[KG] Улантуу",
+    "minLength": "[KG] Кеминде 2 белги",
+    "saveError": "[KG] Сактоо катасы. Кайра аракет кылыңыз."
+  },
+  "chat": {
+    "title": "[KG] AI Тьютор",
+    "greeting": "[KG] Салам! Мен AI тьютормун. Математикадан суроо бериңиз!",
+    "placeholderLogin": "[KG] Жазуу үчүн кириңиз",
+    "placeholder": "[KG] Суроо бериңиз...",
+    "errorGeneric": "[KG] Кечиресиз, ката кетти."
   }
 }

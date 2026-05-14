@@ -6,19 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/bilimhub-logo.png';
 import { z } from 'zod';
 
-const loginSchema = z.object({
-  email: z.string().email('Введите корректный email'),
-  inviteCode: z.string().min(1, 'Введите инвайт-код'),
-});
-
 export default function Login() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
+  const loginSchema = z.object({
+    email: z.string().email(t('loginPage.errors.invalidEmail')),
+    inviteCode: z.string().min(1, t('loginPage.errors.inviteRequired')),
+  });
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading: authLoading } = useAuth();
@@ -63,7 +62,7 @@ export default function Login() {
 
       if (whitelistError) {
         console.error('Whitelist check error:', whitelistError);
-        setGeneralError('Ошибка проверки доступа. Попробуйте позже.');
+        setGeneralError(t('loginPage.errors.accessCheck'));
         setIsLoading(false);
         return;
       }
@@ -71,7 +70,7 @@ export default function Login() {
       const validation = whitelistResult as { allowed: boolean; error?: string };
 
       if (!validation.allowed) {
-        setGeneralError('Доступ ограничен. Неверный email или инвайт-код.');
+        setGeneralError(t('loginPage.errors.accessDenied'));
         setIsLoading(false);
         return;
       }
@@ -86,7 +85,6 @@ export default function Login() {
       });
 
       if (signInError) {
-        // Only attempt signup if credentials are invalid (user doesn't exist yet)
         if (signInError.message.includes('Invalid login credentials')) {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: trimmedEmail,
@@ -94,25 +92,22 @@ export default function Login() {
           });
 
           if (signUpError) {
-            // If user already exists, don't retry signup
             if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
-              setGeneralError('Неверный инвайт-код для этого email. Попробуйте ещё раз.');
+              setGeneralError(t('loginPage.errors.wrongCodeForEmail'));
             } else {
               console.error('Sign up error:', signUpError);
-              setGeneralError('Ошибка создания аккаунта. Попробуйте позже.');
+              setGeneralError(t('loginPage.errors.signupFailed'));
             }
             setIsLoading(false);
             return;
           }
 
-          // If signUp returned a fake user (email not confirmed / user exists), stop
           if (signUpData?.user?.identities?.length === 0) {
-            setGeneralError('Неверный инвайт-код для этого email.');
+            setGeneralError(t('loginPage.errors.wrongCodeForEmail'));
             setIsLoading(false);
             return;
           }
 
-          // Sign in after successful signup
           const { error: retryError } = await supabase.auth.signInWithPassword({
             email: trimmedEmail,
             password: trimmedCode,
@@ -120,7 +115,7 @@ export default function Login() {
 
           if (retryError) {
             console.error('Sign in after signup error:', retryError);
-            setGeneralError('Аккаунт создан, но не удалось войти. Попробуйте снова.');
+            setGeneralError(t('loginPage.errors.signinAfterSignup'));
             setIsLoading(false);
             return;
           }
@@ -131,10 +126,9 @@ export default function Login() {
         }
       }
 
-      // Step 3: Success — navigate to dashboard
       navigate(from, { replace: true });
     } catch (err) {
-      setGeneralError('Произошла ошибка. Проверьте подключение к интернету.');
+      setGeneralError(t('loginPage.errors.network'));
     } finally {
       setIsLoading(false);
     }
@@ -156,18 +150,16 @@ export default function Login() {
             <img src={logo} alt="BilimHub" className="mx-auto mb-4 h-12" />
             <Badge variant="outline" className="mx-auto mb-3 gap-1">
               <ShieldCheck className="h-3 w-3" />
-              Закрытая бета
+              {t('loginPage.betaBadge')}
             </Badge>
-            <CardTitle className="text-2xl">Вход в BilimHub</CardTitle>
-            <CardDescription>
-              Доступ только по приглашению
-            </CardDescription>
+            <CardTitle className="text-2xl">{t('loginPage.title')}</CardTitle>
+            <CardDescription>{t('loginPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
-                  Email
+                  {t('loginPage.emailLabel')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -190,7 +182,7 @@ export default function Login() {
 
               <div className="space-y-2">
                 <label htmlFor="inviteCode" className="text-sm font-medium">
-                  Инвайт-код
+                  {t('loginPage.inviteCodeLabel')}
                 </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -199,7 +191,7 @@ export default function Login() {
                     type="text"
                     value={inviteCode}
                     onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setErrors(p => ({ ...p, inviteCode: undefined })); }}
-                    placeholder="BETA2024-XX"
+                    placeholder={t('loginPage.inviteCodePlaceholder')}
                     className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-4 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-accent ${
                       errors.inviteCode ? 'border-destructive' : 'border-input'
                     }`}
@@ -227,11 +219,11 @@ export default function Login() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Вход...
+                    {t('loginPage.submitting')}
                   </>
                 ) : (
                   <>
-                    Войти
+                    {t('loginPage.submit')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -239,7 +231,7 @@ export default function Login() {
             </form>
 
             <p className="mt-6 text-center text-xs text-muted-foreground">
-              Нет инвайт-кода? Обратитесь к администратору платформы для получения доступа.
+              {t('loginPage.noCodeHint')}
             </p>
           </CardContent>
         </Card>
