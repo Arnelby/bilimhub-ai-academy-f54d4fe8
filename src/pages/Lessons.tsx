@@ -410,7 +410,7 @@ export default function Lessons() {
                 {/* Lessons grouped by topic — collapsed by default */}
                 {Array.from(lessonsByTopic.entries()).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">
-                    Нет уроков по выбранной теме.
+                    {t('lessonsPage.noTopicLessons')}
                   </p>
                 ) : (
                   Array.from(lessonsByTopic.entries()).map(([topicName, topicLessons]) => {
