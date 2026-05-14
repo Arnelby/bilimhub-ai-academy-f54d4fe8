@@ -299,7 +299,7 @@ export default function Lessons() {
                   type="button"
                   onClick={() => setPlayingLesson(lesson.id)}
                   className="relative aspect-video w-full bg-muted overflow-hidden group"
-                  aria-label={`Воспроизвести: ${title}`}
+                  aria-label={t('lessonsPage.play', { title })}
                 >
                   <img
                     src={getYoutubeThumbnail(youtubeUrl)}
