@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus, Target, Sparkles, ArrowRight } from 'lucide-react';
 import { getMasteryForTopic, computeProgress, MASTERY_TARGET_ACCURACY, MASTERY_MIN_ATTEMPTS } from '@/lib/masteryEngine';
 import { normalizeAnalyticsTopic } from '@/lib/topicTranslations';
+import { useTopicName } from '@/hooks/useTopicName';
 
 /**
  * Engagement result block — shown after a practice session.
