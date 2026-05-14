@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Bot, Loader2, Sparkles, X, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { cn } from '@/lib/utils';
 import { ChatMessage } from './ChatMessage';
 
 interface Message {
@@ -19,6 +19,7 @@ interface AIChatTutorProps {
 }
 
 export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProps) {
+  const { t } = useTranslation();
   const { user, session } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
