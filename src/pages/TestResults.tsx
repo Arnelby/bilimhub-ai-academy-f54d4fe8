@@ -135,7 +135,7 @@ export default function TestResults() {
           triggerEvent({
             type: 'test_completed',
             value: pointsEarned,
-            description: `${percentage}% правильно`,
+            description: t('testResultsPage.completedDescription', { percent: percentage }),
           });
         }, 500);
 
@@ -143,8 +143,8 @@ export default function TestResults() {
           setTimeout(() => {
             triggerEvent({
               type: 'perfect_score',
-              title: 'Идеальный результат!',
-              description: 'Вы ответили на все вопросы правильно!',
+              title: t('testResultsPage.perfect.title'),
+              description: t('testResultsPage.perfect.description'),
             });
             setShowConfetti(true);
           }, 1500);
