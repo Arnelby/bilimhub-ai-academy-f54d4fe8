@@ -23,10 +23,10 @@ interface LessonRow {
 }
 
 const VARIANT_CONFIG = [
-  { variantKey: 'variant1', testConfigId: 1, label: 'Математика тест вариант 1' },
-  { variantKey: 'variant2', testConfigId: 2, label: 'Математика тест вариант 2' },
-  { variantKey: 'variant3', testConfigId: 3, label: 'Математика тест вариант 3' },
-  { variantKey: 'variant4', testConfigId: 4, label: 'Математика тест вариант 4' },
+  { variantKey: 'variant1', testConfigId: 1, n: 1 },
+  { variantKey: 'variant2', testConfigId: 2, n: 2 },
+  { variantKey: 'variant3', testConfigId: 3, n: 3 },
+  { variantKey: 'variant4', testConfigId: 4, n: 4 },
 ];
 
 function testIdToVariantKey(testId: string): string | null {
