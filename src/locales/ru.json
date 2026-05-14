@@ -643,5 +643,131 @@
     "placeholderLogin": "Войдите, чтобы писать",
     "placeholder": "Задайте вопрос...",
     "errorGeneric": "Извините, произошла ошибка. Попробуйте позже."
+  },
+  "achievementsPanel": {
+    "title": "Достижения"
+  },
+  "dashboardPage": {
+    "title": "Аналитика обучения",
+    "subtitle": "Данные на основе реальных результатов",
+    "noDataTitle": "Нет данных для анализа",
+    "noDataBody": "Пройдите тест в разделе «Тесты», чтобы увидеть аналитику вашего обучения.",
+    "takeTest": "Пройти тест",
+    "quick": {
+      "lessons": "Уроки",
+      "lessonsSub": "Продолжить обучение",
+      "tests": "Тесты",
+      "testsSub": "Пройти тест",
+      "aiTutor": "AI Tutor",
+      "aiTutorSub": "Задать вопрос",
+      "myPlan": "Мой план",
+      "myPlanSub": "AI план обучения",
+      "go": "Перейти"
+    },
+    "improvement": {
+      "title": "Прогресс / Улучшение",
+      "first": "Первый тест",
+      "firstSub": "Начальный результат",
+      "latest": "Последний тест",
+      "latestSub": "Текущий результат",
+      "delta": "Улучшение",
+      "deltaSubGrowth": "{{value}}% рост",
+      "deltaSubNeed": "Пройдите 2+ тестов"
+    },
+    "variants": {
+      "title": "Результаты по вариантам",
+      "noAttempts": "Нет попыток",
+      "attempts": "Попыток",
+      "best": "Лучший",
+      "average": "Средний"
+    },
+    "trend": {
+      "title": "Динамика результатов",
+      "subtitle": "{{count}} тестов пройдено"
+    },
+    "topicAccuracy": {
+      "title": "Точность по темам",
+      "subtitle": "От слабых к сильным"
+    },
+    "errors": {
+      "title": "Анализ ошибок",
+      "totalQuestions": "Всего вопросов",
+      "correctSuffix": "{{n}} правильных",
+      "errors": "Ошибки",
+      "errorsPercent": "{{n}}% ошибок",
+      "noData": "Нет данных",
+      "weakTopicsTitle": "Слабые темы (точность < 60%)",
+      "allGood": "Все темы выше 60% — отличный результат!"
+    },
+    "efficiency": {
+      "title": "Эффективность",
+      "questionsSolved": "Вопросов решено",
+      "avgTime": "Ср. время на вопрос",
+      "sessionTime": "Время в сессиях",
+      "testsCompleted": "Тестов пройдено"
+    },
+    "activity": {
+      "title": "Активность",
+      "streak": "🔥 Вы учитесь {{days}} дней подряд!",
+      "testsDone": "✅ Вы прошли {{n}} тестов",
+      "improved": "📈 Вы улучшились на +{{n}}%",
+      "sessions": "Учебных сессий",
+      "daysActive": "Дней активности",
+      "streakDays": "Серия дней",
+      "lastActivity": "Последняя активность"
+    },
+    "quickActions": {
+      "title": "Быстрые действия",
+      "newTest": "Пройти новый тест",
+      "practice": "Практика",
+      "aiPlan": "AI План обучения",
+      "myProfile": "Мой профиль"
+    },
+    "achievementsCollapsed": "🏆 Достижения"
+  },
+  "profilePage": {
+    "studentFallback": "Студент",
+    "memberSince": "Участник с {{date}}",
+    "showInLeaderboard": "Показать в рейтинге",
+    "namePlaceholder": "Имя (ник)",
+    "fullNamePlaceholder": "ФИО (Фамилия Имя Отчество)",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "learningTreeTitle": "Дерево обучения — Математика",
+    "noTopicsYet": "Начните изучать уроки, чтобы увидеть прогресс",
+    "leaderboardTitle": "Рейтинг",
+    "leaderboardBody": "Посмотри, кого нужно обогнать, чтобы подняться выше.",
+    "viewLeaderboard": "Посмотреть рейтинг",
+    "quickActions": "Быстрые действия",
+    "dashboard": "Панель управления",
+    "upgradeToPro": "Перейти на PRO"
+  },
+  "aiSmartTutor": {
+    "title": "AI Умный Репетитор",
+    "subtitle": "Персонализированная помощь в обучении",
+    "clear": "Очистить",
+    "weakTopics": "Слабые темы:",
+    "emptyHeading": "Привет! Я твой AI репетитор.",
+    "emptyBody": "Задай мне любой вопрос по математике или попроси объяснить тему. Я адаптируюсь под твой стиль обучения!",
+    "suggestions": {
+      "plan": "📋 Составь мне план на сегодня",
+      "weakTask": "🎯 Дай задачу по слабой теме",
+      "quadratic": "Объясни квадратные уравнения",
+      "geometry": "Помоги с геометрией"
+    },
+    "explainSimpler": "Объясни проще",
+    "giveExample": "Дай пример",
+    "miniTest": "Мини-тест",
+    "placeholder": "Задай вопрос...",
+    "rateLimit": "Слишком много запросов. Подождите немного.",
+    "historyCleared": "История очищена",
+    "seedPrompt": "Разбери эту задачу со мной по шагам. Объясни, где я ошибся и как решить правильно.",
+    "topicLabel": "Тема",
+    "questionLabel": "Задача",
+    "myAnswerLabel": "Мой ответ",
+    "correctAnswerLabel": "Правильный ответ",
+    "qaExplainSimpler": "Объясни проще, пожалуйста",
+    "qaGiveExample": "Дай практический пример",
+    "qaGiveMiniTest": "Дай мне мини-тест по этой теме"
   }
 }
