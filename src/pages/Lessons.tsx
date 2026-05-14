@@ -447,9 +447,10 @@ export default function Lessons() {
         {/* Section 2: Test Video Solutions */}
         {activeTab === 'videos' && (
           <div className="space-y-4">
-            {VARIANT_CONFIG.map(({ variantKey, label }) => {
+            {VARIANT_CONFIG.map(({ variantKey, n }) => {
               const isUnlocked = completedVariants.has(variantKey);
               const count = videoCounts[variantKey] || 0;
+              const label = t('lessonsPage.variantLabel', { n });
 
               return (
                 <Card
@@ -468,8 +469,8 @@ export default function Lessons() {
                         <p className="font-semibold text-base">{label}</p>
                         <Badge variant={isUnlocked ? 'secondary' : 'outline'} className="text-xs mt-1">
                           {isUnlocked
-                            ? (count > 0 ? `${count} видеоразборов` : 'Скоро')
-                            : (language === 'ru' ? 'Пройдите тест' : 'Complete test')}
+                            ? (count > 0 ? t('lessonsPage.videosForVariant', { count }) : t('lessonsPage.comingSoonShort'))
+                            : t('lessonsPage.completeTest')}
                         </Badge>
                       </div>
                     </div>
