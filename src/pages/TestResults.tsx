@@ -55,6 +55,7 @@ interface TestResult {
 
 export default function TestResults() {
   const { testId, attemptId } = useParams();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { isAI } = useUserGroup();
   const { triggerEvent } = useGamificationEvents();
