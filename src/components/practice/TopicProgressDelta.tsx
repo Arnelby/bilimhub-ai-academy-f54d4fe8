@@ -84,30 +84,30 @@ export function TopicProgressDelta({
       <CardContent className="p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Тема</p>
-            <h2 className="text-xl font-bold leading-tight">{topic}</h2>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('topicProgress.topic')}</p>
+            <h2 className="text-xl font-bold leading-tight">{topicName}</h2>
           </div>
           {mastered ? (
             <Badge className="bg-success text-success-foreground gap-1 shrink-0">
               <Sparkles className="h-3 w-3" />
-              Закрыта
+              {t('topicProgress.closed')}
             </Badge>
           ) : almostThere ? (
             <Badge className="bg-accent text-accent-foreground gap-1 shrink-0 animate-pulse">
-              Почти закрыл!
+              {t('topicProgress.almost')}
             </Badge>
           ) : null}
         </div>
 
-        {/* Было → стало */}
+        {/* Before → After */}
         <div className="rounded-lg bg-muted/40 p-4 flex items-center justify-between">
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Было</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('topicProgress.before')}</p>
             <p className="text-2xl font-semibold tabular-nums">{beforePct ?? afterPct}%</p>
           </div>
           <ArrowRight className="h-5 w-5 text-muted-foreground" />
           <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Стало</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('topicProgress.after')}</p>
             <p className="text-2xl font-semibold tabular-nums">{afterPct}%</p>
           </div>
           <div className={`text-center ${trendColor}`}>
@@ -119,29 +119,33 @@ export function TopicProgressDelta({
           </div>
         </div>
 
-        {/* Прогресс к закрытию темы */}
+        {/* Progress to topic close */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium flex items-center gap-1.5">
               <Target className="h-4 w-4 text-primary" />
-              До закрытия темы
+              {t('topicProgress.toClose')}
             </span>
             <span className="text-muted-foreground tabular-nums">{progressPct}%</span>
           </div>
           <Progress value={progressPct} className="h-2.5" />
           <p className="text-xs text-muted-foreground">
             {mastered
-              ? '🎯 Тема закрыта на 80%+ при 10+ попытках. Отличная работа!'
+              ? t('topicProgress.mastered')
               : attemptsLeft <= 5
-              ? `Осталось ${attemptsLeft} задач до закрытия`
-              : `Попыток: ${totalAttempts}/${MASTERY_MIN_ATTEMPTS} • цель: ${Math.round(MASTERY_TARGET_ACCURACY * 100)}%`}
+              ? t('topicProgress.leftN', { n: attemptsLeft })
+              : t('topicProgress.attemptsGoal', {
+                  n: totalAttempts,
+                  target: MASTERY_MIN_ATTEMPTS,
+                  goal: Math.round(MASTERY_TARGET_ACCURACY * 100),
+                })}
           </p>
         </div>
 
         {/* CTA */}
         {!mastered && (
           <Button onClick={onContinue} size="lg" className="w-full h-12 text-base">
-            {almostThere ? '🔥 Добить тему' : 'Продолжить тему'}
+            {almostThere ? t('topicProgress.finish') : t('topicProgress.continue')}
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         )}
