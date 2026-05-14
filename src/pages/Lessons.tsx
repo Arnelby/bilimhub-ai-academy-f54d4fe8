@@ -190,7 +190,7 @@ export default function Lessons() {
   const allTopics = useMemo(() => {
     const map = new Map<string, { name: string; isWeak: boolean }>();
     for (const l of lessons) {
-      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || t('lessonsPage.noTopic');
       if (!map.has(name)) {
         const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
         map.set(name, { name, isWeak: norm ? weakTopicsNorm.has(norm) : false });
