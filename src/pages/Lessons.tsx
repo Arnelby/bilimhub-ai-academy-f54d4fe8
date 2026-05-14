@@ -338,7 +338,7 @@ export default function Lessons() {
             size="sm"
           >
             <BookOpen className="h-4 w-4" />
-            <span className="truncate">Базовые уроки</span>
+            <span className="truncate">{t('lessonsPage.tabs.basic')}</span>
           </Button>
           <Button
             variant={activeTab === 'videos' ? 'default' : 'outline'}
@@ -347,7 +347,7 @@ export default function Lessons() {
             size="sm"
           >
             <Video className="h-4 w-4" />
-            <span className="truncate">Видеоразборы тестов</span>
+            <span className="truncate">{t('lessonsPage.tabs.videos')}</span>
           </Button>
         </div>
 
