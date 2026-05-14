@@ -364,7 +364,7 @@ export default function TestResults() {
                       className="w-full mt-4"
                       onClick={() => setShowAllQuestions(true)}
                     >
-                      Показать все {answerDetails.length} вопросов
+                      {t('testResultsPage.showAll', { count: answerDetails.length })}
                     </Button>
                   )}
                 </CardContent>
@@ -377,19 +377,19 @@ export default function TestResults() {
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Button variant="outline" asChild>
             <Link to="/tests">
-              Все тесты
+              {t('testResultsPage.allTests')}
             </Link>
           </Button>
           {isAI && (
             <Button variant="outline" asChild>
               <Link to="/learning-plan">
-                Мой план
+                {t('testResultsPage.myPlan')}
               </Link>
             </Button>
           )}
           <Button variant="accent" asChild>
             <Link to="/lessons">
-              Уроки
+              {t('testResultsPage.lessons')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
