@@ -207,7 +207,7 @@ export default function Lessons() {
     const map = new Map<string, LessonRow[]>();
     for (const l of lessons) {
       if (recommendedLesson && l.id === recommendedLesson.id) continue;
-      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || t('lessonsPage.noTopic');
       if (topicFilter !== 'all' && topicFilter !== 'weak' && topicFilter !== name) continue;
       if (topicFilter === 'weak') {
         const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
