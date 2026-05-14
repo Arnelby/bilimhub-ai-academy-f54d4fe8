@@ -177,7 +177,7 @@ export default function AISmartTutor() {
 
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error(language === 'ru' ? 'Слишком много запросов. Подождите немного.' : 'Too many requests. Please wait.');
+          throw new Error(t('aiSmartTutor.rateLimit'));
         }
         throw new Error('Failed to get response');
       }
@@ -238,9 +238,9 @@ export default function AISmartTutor() {
     if (!lastAssistantMessage) return;
 
     const prompts = {
-      'explain_simpler': language === 'ru' ? 'Объясни проще, пожалуйста' : 'Please explain simpler',
-      'give_example': language === 'ru' ? 'Дай практический пример' : 'Give me a practical example',
-      'give_mini_test': language === 'ru' ? 'Дай мне мини-тест по этой теме' : 'Give me a mini-test on this topic',
+      'explain_simpler': t('aiSmartTutor.qaExplainSimpler'),
+      'give_example': t('aiSmartTutor.qaGiveExample'),
+      'give_mini_test': t('aiSmartTutor.qaGiveMiniTest'),
     };
 
     sendMessage(prompts[action as keyof typeof prompts], action);
@@ -253,7 +253,7 @@ export default function AISmartTutor() {
       await supabase.from('ai_chat_messages').delete().eq('user_id', user.id);
       setMessages([]);
       toast({
-        title: language === 'ru' ? 'История очищена' : 'History Cleared',
+        title: t('aiSmartTutor.historyCleared'),
       });
     } catch (error) {
       console.error('Error clearing history:', error);
