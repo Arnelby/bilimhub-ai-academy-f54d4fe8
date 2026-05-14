@@ -176,7 +176,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
       console.error('Chat error:', error);
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: 'assistant', content: 'Извините, произошла ошибка. Попробуйте позже.' },
+        { role: 'assistant', content: t('chat.errorGeneric') },
       ]);
     } finally {
       setIsLoading(false);
@@ -197,7 +197,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
       <CardHeader className="flex flex-row items-center justify-between border-b p-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Bot className="h-5 w-5 text-accent" />
-          AI Репетитор
+          {t('chat.title')}
         </CardTitle>
         {onClose && (
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -212,7 +212,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
             <div className="text-center py-8">
               <Sparkles className="mx-auto h-12 w-12 text-accent/50 mb-4" />
               <p className="text-muted-foreground">
-                Привет! Я ваш AI репетитор. Задайте любой вопрос по математике!
+                {t('chat.greeting')}
               </p>
             </div>
           )}
@@ -241,7 +241,7 @@ export function AIChatTutor({ isOpen = true, onClose, context }: AIChatTutorProp
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={!user || !session ? "Войдите, чтобы писать" : "Задайте вопрос..."}
+              placeholder={!user || !session ? t('chat.placeholderLogin') : t('chat.placeholder')}
               className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               rows={1}
               disabled={!user || !session || isLoading}
