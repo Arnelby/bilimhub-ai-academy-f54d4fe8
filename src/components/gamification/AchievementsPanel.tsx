@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trophy, Star, Target, Zap, BookOpen, Clock, Sigma, Flame } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ const ICONS: Record<AchievementId, React.ReactNode> = {
 
 export function AchievementsPanel() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [achievements, setAchievements] = useState<AchievementProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +44,7 @@ export function AchievementsPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-warning" />
-          Достижения
+          {t('achievementsPanel.title')}
           <Badge variant="secondary" className="ml-auto">{unlockedCount}/{achievements.length}</Badge>
         </CardTitle>
       </CardHeader>

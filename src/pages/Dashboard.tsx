@@ -25,6 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Layout } from '@/components/layout/Layout';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -44,10 +45,10 @@ interface TestAttempt {
 }
 
 const TEST_VARIANTS = [
-  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Вариант 1' },
-  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Вариант 2' },
-  { uuid: '00000000-0000-0000-0000-000000000003', name: 'Вариант 3' },
-  { uuid: '00000000-0000-0000-0000-000000000004', name: 'Вариант 4' },
+  { uuid: '00000000-0000-0000-0000-000000000001', name: 'Variant 1' },
+  { uuid: '00000000-0000-0000-0000-000000000002', name: 'Variant 2' },
+  { uuid: '00000000-0000-0000-0000-000000000003', name: 'Variant 3' },
+  { uuid: '00000000-0000-0000-0000-000000000004', name: 'Variant 4' },
 ];
 
 interface TopicAccuracy {
@@ -104,7 +105,8 @@ const EMPTY_ANALYTICS: AnalyticsData = {
 };
 
 export default function Dashboard() {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { isAI, isControl } = useUserGroup();
@@ -157,10 +159,12 @@ export default function Dashboard() {
       }
 
       // --- Score trend ---
+      const localeMap = { en: 'en-US', ru: 'ru-RU', kg: 'ru-RU' } as const;
+      const dateLocale = localeMap[language as keyof typeof localeMap] || 'en-US';
       const testHistory = tests.map(t => {
         const p = parseScore(t.score, t.total_questions);
         return {
-          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '',
+          date: t.completed_at ? new Date(t.completed_at).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' }) : '',
           score: p.correct,
           total: p.total,
           percentage: p.percentage,
@@ -169,12 +173,13 @@ export default function Dashboard() {
 
       // --- Topic performance from question_attempts + user_answers ---
       const topicMap = new Map<string, { correct: number; total: number }>();
+      const noTopicLabel = t('topics.noTopic');
       const addToTopicMap = (topic: string | null, isCorrect: boolean) => {
-        const t = topic || 'Без темы';
-        const entry = topicMap.get(t) || { correct: 0, total: 0 };
+        const tk = topic || noTopicLabel;
+        const entry = topicMap.get(tk) || { correct: 0, total: 0 };
         entry.total++;
         if (isCorrect) entry.correct++;
-        topicMap.set(t, entry);
+        topicMap.set(tk, entry);
       };
       questionAttempts.forEach(a => addToTopicMap(a.topic, a.is_correct));
       userAnswers.forEach(a => addToTopicMap(a.topic, a.is_correct));
@@ -253,8 +258,8 @@ export default function Dashboard() {
   const formatDuration = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    if (h > 0) return `${h}ч ${m}м`;
-    return `${m}м`;
+    if (h > 0) return language === 'en' ? `${h}h ${m}m` : `${h}ч ${m}м`;
+    return language === 'en' ? `${m}m` : `${m}м`;
   };
 
   if (loading) {
@@ -274,9 +279,9 @@ export default function Dashboard() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Аналитика обучения</h1>
+          <h1 className="text-3xl font-bold">{t('dashboardPage.title')}</h1>
           <p className="text-muted-foreground">
-            {profileName ? `${profileName} — ` : ''}Данные на основе реальных результатов
+            {profileName ? `${profileName} — ` : ''}{t('dashboardPage.subtitle')}
           </p>
         </div>
 
@@ -284,14 +289,14 @@ export default function Dashboard() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <BarChart3 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Нет данных для анализа</h3>
+              <h3 className="text-lg font-medium mb-2">{t('dashboardPage.noDataTitle')}</h3>
               <p className="text-muted-foreground max-w-md mb-6">
-                Пройдите тест в разделе «Тесты», чтобы увидеть аналитику вашего обучения.
+                {t('dashboardPage.noDataBody')}
               </p>
               <Button asChild>
                 <Link to="/tests">
                   <Target className="mr-2 h-4 w-4" />
-                  Пройти тест
+                  {t('dashboardPage.takeTest')}
                 </Link>
               </Button>
             </CardContent>
@@ -300,10 +305,10 @@ export default function Dashboard() {
           <>
             {/* Quick Nav */}
             <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <QuickAction icon={<Play className="h-6 w-6" />} title="Уроки" sub="Продолжить обучение" to="/lessons" color="accent" />
-              <QuickAction icon={<Target className="h-6 w-6" />} title="Тесты" sub="Пройти тест" to="/tests" color="success" />
-              {isAI && <QuickAction icon={<Brain className="h-6 w-6" />} title="AI Tutor" sub="Задать вопрос" to="/ai-tutor" color="primary" />}
-              {isAI && <QuickAction icon={<Calendar className="h-6 w-6" />} title="Мой план" sub="AI план обучения" to="/learning-plan" color="warning" />}
+              <QuickAction icon={<Play className="h-6 w-6" />} title={t('dashboardPage.quick.lessons')} sub={t('dashboardPage.quick.lessonsSub')} to="/lessons" color="accent" goLabel={t('dashboardPage.quick.go')} />
+              <QuickAction icon={<Target className="h-6 w-6" />} title={t('dashboardPage.quick.tests')} sub={t('dashboardPage.quick.testsSub')} to="/tests" color="success" goLabel={t('dashboardPage.quick.go')} />
+              {isAI && <QuickAction icon={<Brain className="h-6 w-6" />} title={t('dashboardPage.quick.aiTutor')} sub={t('dashboardPage.quick.aiTutorSub')} to="/ai-tutor" color="primary" goLabel={t('dashboardPage.quick.go')} />}
+              {isAI && <QuickAction icon={<Calendar className="h-6 w-6" />} title={t('dashboardPage.quick.myPlan')} sub={t('dashboardPage.quick.myPlanSub')} to="/learning-plan" color="warning" goLabel={t('dashboardPage.quick.go')} />}
             </div>
 
             <div className="grid gap-8 lg:grid-cols-3">
@@ -314,29 +319,29 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-accent" />
-                      Прогресс / Улучшение
+                      {t('dashboardPage.improvement.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 sm:grid-cols-3">
                       <MetricCard
-                        label="Первый тест"
+                        label={t('dashboardPage.improvement.first')}
                         value={analytics.firstTestScore !== null ? `${analytics.firstTestScore}%` : '—'}
-                        sub="Начальный результат"
+                        sub={t('dashboardPage.improvement.firstSub')}
                       />
                       <MetricCard
-                        label="Последний тест"
+                        label={t('dashboardPage.improvement.latest')}
                         value={analytics.latestTestScore !== null ? `${analytics.latestTestScore}%` : '—'}
-                        sub="Текущий результат"
+                        sub={t('dashboardPage.improvement.latestSub')}
                       />
                       <MetricCard
-                        label="Улучшение"
+                        label={t('dashboardPage.improvement.delta')}
                         value={analytics.improvement !== null
                           ? `${analytics.improvement > 0 ? '+' : ''}${analytics.improvement}%`
                           : '—'}
                         sub={analytics.improvementPercent !== null
-                          ? `${analytics.improvementPercent > 0 ? '+' : ''}${analytics.improvementPercent}% рост`
-                          : 'Пройдите 2+ тестов'}
+                          ? t('dashboardPage.improvement.deltaSubGrowth', { value: `${analytics.improvementPercent > 0 ? '+' : ''}${analytics.improvementPercent}` })
+                          : t('dashboardPage.improvement.deltaSubNeed')}
                         highlight={analytics.improvement !== null ? (analytics.improvement >= 0 ? 'positive' : 'negative') : undefined}
                       />
                     </div>
@@ -349,7 +354,7 @@ export default function Dashboard() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Hash className="h-5 w-5 text-accent" />
-                        Результаты по вариантам
+                        {t('dashboardPage.variants.title')}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -359,7 +364,7 @@ export default function Dashboard() {
                           if (vTests.length === 0) return (
                             <div key={v.uuid} className="rounded-lg border border-border p-4 text-center">
                               <p className="font-medium mb-1">{v.name}</p>
-                              <p className="text-sm text-muted-foreground">Нет попыток</p>
+                              <p className="text-sm text-muted-foreground">{t('dashboardPage.variants.noAttempts')}</p>
                             </div>
                           );
                           const best = Math.max(...vTests.map((t: any) => parseScore(t.score, t.total_questions).percentage));
@@ -368,9 +373,9 @@ export default function Dashboard() {
                             <div key={v.uuid} className="rounded-lg border border-border p-4">
                               <p className="font-medium mb-2">{v.name}</p>
                               <div className="space-y-1 text-sm">
-                                <div className="flex justify-between"><span className="text-muted-foreground">Попыток</span><span className="font-semibold">{vTests.length}</span></div>
-                                <div className="flex justify-between"><span className="text-muted-foreground">Лучший</span><span className="font-semibold text-accent">{best}%</span></div>
-                                <div className="flex justify-between"><span className="text-muted-foreground">Средний</span><span className="font-semibold">{avg}%</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">{t('dashboardPage.variants.attempts')}</span><span className="font-semibold">{vTests.length}</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">{t('dashboardPage.variants.best')}</span><span className="font-semibold text-accent">{best}%</span></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">{t('dashboardPage.variants.average')}</span><span className="font-semibold">{avg}%</span></div>
                               </div>
                             </div>
                           );
@@ -386,9 +391,9 @@ export default function Dashboard() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-accent" />
-                        Динамика результатов
+                        {t('dashboardPage.trend.title')}
                       </CardTitle>
-                      <CardDescription>{analytics.testHistory.length} тестов пройдено</CardDescription>
+                      <CardDescription>{t('dashboardPage.trend.subtitle', { count: analytics.testHistory.length })}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -414,9 +419,9 @@ export default function Dashboard() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Target className="h-5 w-5 text-accent" />
-                        Точность по темам
+                        {t('dashboardPage.topicAccuracy.title')}
                       </CardTitle>
-                      <CardDescription>От слабых к сильным</CardDescription>
+                      <CardDescription>{t('dashboardPage.topicAccuracy.subtitle')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
@@ -447,33 +452,33 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-destructive" />
-                      Анализ ошибок
+                      {t('dashboardPage.errors.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 sm:grid-cols-2 mb-6">
                       <MetricCard
-                        label="Всего вопросов"
+                        label={t('dashboardPage.errors.totalQuestions')}
                         value={String(analytics.totalQuestions)}
-                        sub={`${analytics.totalQuestions - analytics.totalIncorrect} правильных`}
+                        sub={t('dashboardPage.errors.correctSuffix', { n: analytics.totalQuestions - analytics.totalIncorrect })}
                       />
                       <MetricCard
-                        label="Ошибки"
+                        label={t('dashboardPage.errors.errors')}
                         value={String(analytics.totalIncorrect)}
                         sub={analytics.totalQuestions > 0
-                          ? `${Math.round((analytics.totalIncorrect / analytics.totalQuestions) * 100)}% ошибок`
-                          : 'Нет данных'}
+                          ? t('dashboardPage.errors.errorsPercent', { n: Math.round((analytics.totalIncorrect / analytics.totalQuestions) * 100) })
+                          : t('dashboardPage.errors.noData')}
                         highlight={analytics.totalIncorrect > 0 ? 'negative' : 'positive'}
                       />
                     </div>
                 {analytics.weakTopics.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium mb-3">Слабые темы (точность &lt; 60%)</p>
+                        <p className="text-sm font-medium mb-3">{t('dashboardPage.errors.weakTopicsTitle')}</p>
                         <div className="space-y-2">
-                          {analytics.weakTopics.map((t, i) => (
+                          {analytics.weakTopics.map((tt, i) => (
                             <div key={i} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                              <span className="text-sm font-medium">{translateTopic(t.topic, language as 'en' | 'ru' | 'kg')}</span>
-                              <Badge variant="destructive">{t.accuracy}%</Badge>
+                              <span className="text-sm font-medium">{translateTopic(tt.topic, language as 'en' | 'ru' | 'kg')}</span>
+                              <Badge variant="destructive">{tt.accuracy}%</Badge>
                             </div>
                           ))}
                         </div>
@@ -482,7 +487,7 @@ export default function Dashboard() {
                     {analytics.weakTopics.length === 0 && analytics.topicAccuracy.length > 0 && (
                       <div className="flex items-center gap-2 text-success">
                         <CheckCircle className="h-5 w-5" />
-                        <span className="text-sm">Все темы выше 60% — отличный результат!</span>
+                        <span className="text-sm">{t('dashboardPage.errors.allGood')}</span>
                       </div>
                     )}
                   </CardContent>
@@ -497,28 +502,28 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-accent" />
-                      Эффективность
+                      {t('dashboardPage.efficiency.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Вопросов решено</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.questionsSolved')}</span>
                       <span className="font-semibold">{analytics.totalQuestionsSolved}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Ср. время на вопрос</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.avgTime')}</span>
                       <span className="font-semibold">
-                        {analytics.avgTimePerQuestion !== null ? `${analytics.avgTimePerQuestion}с` : '—'}
+                        {analytics.avgTimePerQuestion !== null ? `${analytics.avgTimePerQuestion}${language === 'en' ? 's' : 'с'}` : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Время в сессиях</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.sessionTime')}</span>
                       <span className="font-semibold">
                         {analytics.totalStudySeconds > 0 ? formatDuration(analytics.totalStudySeconds) : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Тестов пройдено</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.efficiency.testsCompleted')}</span>
                       <span className="font-semibold">{analytics.testHistory.length}</span>
                     </div>
                   </CardContent>
@@ -529,50 +534,49 @@ export default function Dashboard() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-accent" />
-                      Активность
+                      {t('dashboardPage.activity.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* User-facing retention messages */}
                     {analytics.streakDays > 0 && (
                       <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 text-center">
                         <p className="text-sm font-medium text-accent">
-                          🔥 Вы учитесь {analytics.streakDays} {analytics.streakDays === 1 ? 'день' : analytics.streakDays < 5 ? 'дня' : 'дней'} подряд!
+                          {t('dashboardPage.activity.streak', { days: analytics.streakDays })}
                         </p>
                       </div>
                     )}
                     {analytics.testsCompleted > 0 && (
                       <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
                         <p className="text-sm font-medium text-success">
-                          ✅ Вы прошли {analytics.testsCompleted} {analytics.testsCompleted === 1 ? 'тест' : analytics.testsCompleted < 5 ? 'теста' : 'тестов'}
+                          {t('dashboardPage.activity.testsDone', { n: analytics.testsCompleted })}
                         </p>
                       </div>
                     )}
                     {analytics.improvement !== null && analytics.improvement > 0 && (
                       <div className="rounded-lg bg-primary/10 border border-primary/20 p-3 text-center">
                         <p className="text-sm font-medium text-primary">
-                          📈 Вы улучшились на +{analytics.improvement}%
+                          {t('dashboardPage.activity.improved', { n: analytics.improvement })}
                         </p>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Учебных сессий</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.sessions')}</span>
                       <span className="font-semibold">{analytics.totalSessions}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Дней активности</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.daysActive')}</span>
                       <span className="font-semibold">{analytics.daysActive}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Серия дней</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.streakDays')}</span>
                       <span className="font-semibold">{analytics.streakDays}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Последняя активность</span>
+                      <span className="text-sm text-muted-foreground">{t('dashboardPage.activity.lastActivity')}</span>
                       <span className="font-semibold text-sm">
                         {analytics.lastActivityAt
-                          ? new Date(analytics.lastActivityAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })
+                          ? new Date(analytics.lastActivityAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ru-RU', { day: '2-digit', month: 'short' })
                           : '—'}
                       </span>
                     </div>
@@ -582,20 +586,20 @@ export default function Dashboard() {
                 {/* Quick links */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Быстрые действия</CardTitle>
+                    <CardTitle>{t('dashboardPage.quickActions.title')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/tests">
                         <Target className="mr-2 h-4 w-4" />
-                        Пройти новый тест
+                        {t('dashboardPage.quickActions.newTest')}
                       </Link>
                     </Button>
                     {isAI && (
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/practice">
                           <Dumbbell className="mr-2 h-4 w-4" />
-                          Практика
+                          {t('dashboardPage.quickActions.practice')}
                         </Link>
                       </Button>
                     )}
@@ -603,14 +607,14 @@ export default function Dashboard() {
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/learning-plan">
                           <Brain className="mr-2 h-4 w-4" />
-                          AI План обучения
+                          {t('dashboardPage.quickActions.aiPlan')}
                         </Link>
                       </Button>
                     )}
                     <Button variant="outline" className="w-full justify-start" asChild>
                       <Link to="/profile">
                         <BookOpen className="mr-2 h-4 w-4" />
-                        Мой профиль
+                        {t('dashboardPage.quickActions.myProfile')}
                       </Link>
                     </Button>
                   </CardContent>
@@ -621,7 +625,7 @@ export default function Dashboard() {
             {/* Achievements - collapsed by default */}
             <details className="mt-8 group rounded-lg border bg-card">
               <summary className="cursor-pointer p-4 text-sm font-medium flex items-center justify-between select-none hover:bg-muted/50 rounded-lg">
-                <span>🏆 Достижения</span>
+                <span>{t('dashboardPage.achievementsCollapsed')}</span>
                 <span className="text-xs text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
               </summary>
               <div className="p-4 pt-0">
@@ -637,7 +641,7 @@ export default function Dashboard() {
 
 /* ===== Sub-components ===== */
 
-function QuickAction({ icon, title, sub, to, color }: { icon: React.ReactNode; title: string; sub: string; to: string; color: string }) {
+function QuickAction({ icon, title, sub, to, color, goLabel }: { icon: React.ReactNode; title: string; sub: string; to: string; color: string; goLabel: string }) {
   return (
     <Card variant="interactive" className="group">
       <CardContent className="flex items-center gap-4 p-6">
@@ -651,7 +655,7 @@ function QuickAction({ icon, title, sub, to, color }: { icon: React.ReactNode; t
       </CardContent>
       <Button variant="ghost" className="w-full rounded-t-none border-t" asChild>
         <Link to={to}>
-          Перейти
+          {goLabel}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Link>
       </Button>

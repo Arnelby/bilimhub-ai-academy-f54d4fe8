@@ -643,5 +643,131 @@
     "placeholderLogin": "Sign in to write",
     "placeholder": "Ask a question...",
     "errorGeneric": "Sorry, something went wrong. Try again later."
+  },
+  "achievementsPanel": {
+    "title": "Achievements"
+  },
+  "dashboardPage": {
+    "title": "Learning analytics",
+    "subtitle": "Data based on real results",
+    "noDataTitle": "No data to analyze",
+    "noDataBody": "Take a test in the Tests section to see your learning analytics.",
+    "takeTest": "Take a test",
+    "quick": {
+      "lessons": "Lessons",
+      "lessonsSub": "Continue learning",
+      "tests": "Tests",
+      "testsSub": "Take a test",
+      "aiTutor": "AI Tutor",
+      "aiTutorSub": "Ask a question",
+      "myPlan": "My Plan",
+      "myPlanSub": "AI study plan",
+      "go": "Open"
+    },
+    "improvement": {
+      "title": "Progress / Improvement",
+      "first": "First test",
+      "firstSub": "Initial result",
+      "latest": "Latest test",
+      "latestSub": "Current result",
+      "delta": "Improvement",
+      "deltaSubGrowth": "{{value}}% growth",
+      "deltaSubNeed": "Take 2+ tests"
+    },
+    "variants": {
+      "title": "Results by variant",
+      "noAttempts": "No attempts",
+      "attempts": "Attempts",
+      "best": "Best",
+      "average": "Average"
+    },
+    "trend": {
+      "title": "Score dynamics",
+      "subtitle": "{{count}} tests completed"
+    },
+    "topicAccuracy": {
+      "title": "Accuracy by topic",
+      "subtitle": "From weak to strong"
+    },
+    "errors": {
+      "title": "Error analysis",
+      "totalQuestions": "Total questions",
+      "correctSuffix": "{{n}} correct",
+      "errors": "Errors",
+      "errorsPercent": "{{n}}% errors",
+      "noData": "No data",
+      "weakTopicsTitle": "Weak topics (accuracy < 60%)",
+      "allGood": "All topics above 60% — excellent result!"
+    },
+    "efficiency": {
+      "title": "Efficiency",
+      "questionsSolved": "Questions solved",
+      "avgTime": "Avg. time per question",
+      "sessionTime": "Time in sessions",
+      "testsCompleted": "Tests completed"
+    },
+    "activity": {
+      "title": "Activity",
+      "streak": "🔥 You've been learning {{days}} days in a row!",
+      "testsDone": "✅ You've completed {{n}} tests",
+      "improved": "📈 You improved by +{{n}}%",
+      "sessions": "Study sessions",
+      "daysActive": "Active days",
+      "streakDays": "Day streak",
+      "lastActivity": "Last activity"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "newTest": "Take a new test",
+      "practice": "Practice",
+      "aiPlan": "AI study plan",
+      "myProfile": "My profile"
+    },
+    "achievementsCollapsed": "🏆 Achievements"
+  },
+  "profilePage": {
+    "studentFallback": "Student",
+    "memberSince": "Member since {{date}}",
+    "showInLeaderboard": "Show on leaderboard",
+    "namePlaceholder": "Name (nickname)",
+    "fullNamePlaceholder": "Full name",
+    "save": "Save",
+    "cancel": "Cancel",
+    "learningTreeTitle": "Learning tree — Mathematics",
+    "noTopicsYet": "Start learning lessons to see your progress",
+    "leaderboardTitle": "Leaderboard",
+    "leaderboardBody": "See who you need to beat to climb higher.",
+    "viewLeaderboard": "View leaderboard",
+    "quickActions": "Quick actions",
+    "dashboard": "Dashboard",
+    "upgradeToPro": "Upgrade to PRO"
+  },
+  "aiSmartTutor": {
+    "title": "AI Smart Tutor",
+    "subtitle": "Personalized learning assistance",
+    "clear": "Clear",
+    "weakTopics": "Weak topics:",
+    "emptyHeading": "Hi! I'm your AI tutor.",
+    "emptyBody": "Ask me any math question or request an explanation. I adapt to your learning style!",
+    "suggestions": {
+      "plan": "📋 Build my plan for today",
+      "weakTask": "🎯 Give me a task on my weak topic",
+      "quadratic": "Explain quadratic equations",
+      "geometry": "Help me with geometry"
+    },
+    "explainSimpler": "Explain simpler",
+    "giveExample": "Give example",
+    "miniTest": "Mini-test",
+    "placeholder": "Ask a question...",
+    "rateLimit": "Too many requests. Please wait.",
+    "historyCleared": "History Cleared",
+    "seedPrompt": "Walk me through this problem step by step. Explain where I went wrong and how to solve it.",
+    "topicLabel": "Topic",
+    "questionLabel": "Question",
+    "myAnswerLabel": "My answer",
+    "correctAnswerLabel": "Correct answer",
+    "qaExplainSimpler": "Please explain simpler",
+    "qaGiveExample": "Give me a practical example",
+    "qaGiveMiniTest": "Give me a mini-test on this topic"
   }
 }

@@ -638,10 +638,97 @@
     "saveError": "[KG] Сактоо катасы. Кайра аракет кылыңыз."
   },
   "chat": {
-    "title": "[KG] AI Тьютор",
-    "greeting": "[KG] Салам! Мен AI тьютормун. Математикадан суроо бериңиз!",
-    "placeholderLogin": "[KG] Жазуу үчүн кириңиз",
-    "placeholder": "[KG] Суроо бериңиз...",
-    "errorGeneric": "[KG] Кечиресиз, ката кетти."
+    "title": "[KG] AI Tutor",
+    "greeting": "[KG] Hi! I'm your AI tutor.",
+    "placeholderLogin": "[KG] Sign in to write",
+    "placeholder": "[KG] Ask a question...",
+    "errorGeneric": "[KG] Something went wrong."
+  },
+  "achievementsPanel": {
+    "title": "[KG] Achievements"
+  },
+  "dashboardPage": {
+    "title": "[KG] Learning analytics",
+    "subtitle": "[KG] Data based on real results",
+    "noDataTitle": "[KG] No data",
+    "noDataBody": "[KG] Take a test to see analytics.",
+    "takeTest": "[KG] Take a test",
+    "quick": {
+      "lessons": "[KG] Lessons", "lessonsSub": "[KG] Continue", "tests": "[KG] Tests", "testsSub": "[KG] Take a test",
+      "aiTutor": "[KG] AI Tutor", "aiTutorSub": "[KG] Ask", "myPlan": "[KG] My Plan", "myPlanSub": "[KG] AI plan", "go": "[KG] Open"
+    },
+    "improvement": {
+      "title": "[KG] Progress", "first": "[KG] First", "firstSub": "[KG] Initial",
+      "latest": "[KG] Latest", "latestSub": "[KG] Current", "delta": "[KG] Improvement",
+      "deltaSubGrowth": "[KG] {{value}}% growth", "deltaSubNeed": "[KG] Take 2+ tests"
+    },
+    "variants": { "title": "[KG] By variant", "noAttempts": "[KG] No attempts", "attempts": "[KG] Attempts", "best": "[KG] Best", "average": "[KG] Avg" },
+    "trend": { "title": "[KG] Trend", "subtitle": "[KG] {{count}} tests" },
+    "topicAccuracy": { "title": "[KG] Accuracy by topic", "subtitle": "[KG] Weak to strong" },
+    "errors": {
+      "title": "[KG] Error analysis", "totalQuestions": "[KG] Total", "correctSuffix": "[KG] {{n}} correct",
+      "errors": "[KG] Errors", "errorsPercent": "[KG] {{n}}% errors", "noData": "[KG] No data",
+      "weakTopicsTitle": "[KG] Weak topics (<60%)", "allGood": "[KG] All above 60%"
+    },
+    "efficiency": {
+      "title": "[KG] Efficiency", "questionsSolved": "[KG] Solved", "avgTime": "[KG] Avg time",
+      "sessionTime": "[KG] Session time", "testsCompleted": "[KG] Tests done"
+    },
+    "activity": {
+      "title": "[KG] Activity", "streak": "[KG] 🔥 {{days}} days in a row",
+      "testsDone": "[KG] ✅ {{n}} tests", "improved": "[KG] 📈 +{{n}}%",
+      "sessions": "[KG] Sessions", "daysActive": "[KG] Active days",
+      "streakDays": "[KG] Streak", "lastActivity": "[KG] Last activity"
+    },
+    "quickActions": {
+      "title": "[KG] Quick actions", "newTest": "[KG] New test", "practice": "[KG] Practice",
+      "aiPlan": "[KG] AI plan", "myProfile": "[KG] My profile"
+    },
+    "achievementsCollapsed": "[KG] 🏆 Achievements"
+  },
+  "profilePage": {
+    "studentFallback": "[KG] Student",
+    "memberSince": "[KG] Member since {{date}}",
+    "showInLeaderboard": "[KG] Show on leaderboard",
+    "namePlaceholder": "[KG] Name",
+    "fullNamePlaceholder": "[KG] Full name",
+    "save": "[KG] Save",
+    "cancel": "[KG] Cancel",
+    "learningTreeTitle": "[KG] Learning tree — Math",
+    "noTopicsYet": "[KG] Start lessons to see progress",
+    "leaderboardTitle": "[KG] Leaderboard",
+    "leaderboardBody": "[KG] See who to beat.",
+    "viewLeaderboard": "[KG] View leaderboard",
+    "quickActions": "[KG] Quick actions",
+    "dashboard": "[KG] Dashboard",
+    "upgradeToPro": "[KG] Upgrade to PRO"
+  },
+  "aiSmartTutor": {
+    "title": "[KG] AI Smart Tutor",
+    "subtitle": "[KG] Personalized learning",
+    "clear": "[KG] Clear",
+    "weakTopics": "[KG] Weak topics:",
+    "emptyHeading": "[KG] Hi! I'm your AI tutor.",
+    "emptyBody": "[KG] Ask any math question.",
+    "suggestions": {
+      "plan": "[KG] 📋 Plan for today",
+      "weakTask": "[KG] 🎯 Weak topic task",
+      "quadratic": "[KG] Quadratic equations",
+      "geometry": "[KG] Geometry help"
+    },
+    "explainSimpler": "[KG] Explain simpler",
+    "giveExample": "[KG] Example",
+    "miniTest": "[KG] Mini-test",
+    "placeholder": "[KG] Ask a question...",
+    "rateLimit": "[KG] Too many requests.",
+    "historyCleared": "[KG] History cleared",
+    "seedPrompt": "[KG] Walk me through this step by step.",
+    "topicLabel": "[KG] Topic",
+    "questionLabel": "[KG] Question",
+    "myAnswerLabel": "[KG] My answer",
+    "correctAnswerLabel": "[KG] Correct answer",
+    "qaExplainSimpler": "[KG] Explain simpler please",
+    "qaGiveExample": "[KG] Give a practical example",
+    "qaGiveMiniTest": "[KG] Give a mini-test"
   }
 }

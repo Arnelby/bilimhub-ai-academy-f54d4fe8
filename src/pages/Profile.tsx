@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { 
@@ -52,7 +53,8 @@ interface TopicProgress {
 }
 
 export default function Profile() {
-  const { t, language } = useLanguage();
+  const { t: tLegacy, language } = useLanguage();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [topics, setTopics] = useState<TopicProgress[]>([]);
@@ -131,7 +133,7 @@ export default function Profile() {
       setStats({
         testsCompleted: testsData?.length || 0,
         lessonsCompleted: lessonsData?.length || 0,
-        totalStudyTime: `${hours} ч ${minutes} мин`,
+        totalStudyTime: language === 'en' ? `${hours}h ${minutes}m` : `${hours} ч ${minutes} мин`,
         averageScore: avgScore,
       });
 
@@ -173,7 +175,8 @@ export default function Profile() {
   const formatJoinDate = (dateStr: string | null) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+    const localeMap = { en: 'en-US', ru: 'ru-RU', kg: 'ru-RU' } as const;
+    return date.toLocaleDateString(localeMap[language as keyof typeof localeMap] || 'en-US', { month: 'long', year: 'numeric' });
   };
 
   if (loading) {
@@ -200,13 +203,13 @@ export default function Profile() {
                 {isEditing ? (
                   <div className="space-y-2">
                     <Input
-                      placeholder="Имя (ник)"
+                      placeholder={t('profilePage.namePlaceholder')}
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       className="max-w-xs"
                     />
                     <Input
-                      placeholder="ФИО (Фамилия Имя Отчество)"
+                      placeholder={t('profilePage.fullNamePlaceholder')}
                       value={editFullName}
                       onChange={(e) => setEditFullName(e.target.value)}
                       className="max-w-xs"
@@ -221,20 +224,20 @@ export default function Profile() {
                         setProfile(prev => prev ? { ...prev, name: editName, full_name: editFullName } : prev);
                         setIsEditing(false);
                       }}>
-                        Сохранить
+                        {t('profilePage.save')}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-                        Отмена
+                        {t('profilePage.cancel')}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <h1 className="text-2xl font-bold">{profile?.full_name || profile?.name || 'Студент'}</h1>
+                    <h1 className="text-2xl font-bold">{profile?.full_name || profile?.name || t('profilePage.studentFallback')}</h1>
                     <p className="text-muted-foreground">{profile?.email || user?.email}</p>
                     <p className="text-sm text-muted-foreground">
                       <Calendar className="mr-1 inline h-3 w-3" />
-                      Участник с {formatJoinDate(profile?.created_at || null)}
+                      {t('profilePage.memberSince', { date: formatJoinDate(profile?.created_at || null) })}
                     </p>
                   </div>
                 )}
@@ -258,13 +261,13 @@ export default function Profile() {
                   />
                   <Label htmlFor="leaderboard-visible" className="text-sm flex items-center gap-1">
                     <Eye className="h-3 w-3" />
-                    Показать в рейтинге
+                    {t('profilePage.showInLeaderboard')}
                   </Label>
                 </div>
                 {!isEditing && (
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                     <Edit className="mr-2 h-4 w-4" />
-                    {t.profile.editProfile}
+                    {tLegacy.profile.editProfile}
                   </Button>
                 )}
               </div>
@@ -280,7 +283,7 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
-                  {t.profile.statistics}
+                  {tLegacy.profile.statistics}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -290,28 +293,28 @@ export default function Profile() {
                       <Target className="h-5 w-5" />
                     </div>
                     <p className="text-2xl font-bold">{stats.testsCompleted}</p>
-                    <p className="text-sm text-muted-foreground">{t.profile.testsCompleted}</p>
+                    <p className="text-sm text-muted-foreground">{tLegacy.profile.testsCompleted}</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-4 text-center">
                     <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-full bg-success/10 text-success mb-2">
                       <BookOpen className="h-5 w-5" />
                     </div>
                     <p className="text-2xl font-bold">{stats.lessonsCompleted}</p>
-                    <p className="text-sm text-muted-foreground">{t.profile.lessonsFinished}</p>
+                    <p className="text-sm text-muted-foreground">{tLegacy.profile.lessonsFinished}</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-4 text-center">
                     <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-full bg-warning/10 text-warning mb-2">
                       <Clock className="h-5 w-5" />
                     </div>
                     <p className="text-2xl font-bold">{stats.totalStudyTime}</p>
-                    <p className="text-sm text-muted-foreground">{t.profile.totalStudyTime}</p>
+                    <p className="text-sm text-muted-foreground">{tLegacy.profile.totalStudyTime}</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-4 text-center">
                     <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-full bg-primary/10 text-primary mb-2">
                       <Trophy className="h-5 w-5" />
                     </div>
                     <p className="text-2xl font-bold">{stats.averageScore}%</p>
-                    <p className="text-sm text-muted-foreground">{t.profile.averageScore}</p>
+                    <p className="text-sm text-muted-foreground">{tLegacy.profile.averageScore}</p>
                   </div>
                 </div>
               </CardContent>
@@ -322,7 +325,7 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
-                  {t.profile.learningTree} - Математика
+                  {t('profilePage.learningTreeTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -333,7 +336,7 @@ export default function Profile() {
                   />
                 ) : (
                   <p className="text-muted-foreground text-center py-8">
-                    Начните изучать уроки, чтобы увидеть прогресс
+                    {t('profilePage.noTopicsYet')}
                   </p>
                 )}
               </CardContent>
@@ -344,7 +347,7 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Award className="h-5 w-5 text-accent" />
-                  {t.profile.achievements}
+                  {tLegacy.profile.achievements}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -371,17 +374,17 @@ export default function Profile() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="h-5 w-5 text-warning" />
-                  Рейтинг
+                  {t('profilePage.leaderboardTitle')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Посмотри, кого нужно обогнать, чтобы подняться выше.
+                  {t('profilePage.leaderboardBody')}
                 </p>
                 <Button className="w-full" asChild>
                   <Link to="/leaderboard">
                     <Trophy className="mr-2 h-4 w-4" />
-                    Посмотреть рейтинг
+                    {t('profilePage.viewLeaderboard')}
                   </Link>
                 </Button>
               </CardContent>
@@ -390,19 +393,19 @@ export default function Profile() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Быстрые действия</CardTitle>
+                <CardTitle>{t('profilePage.quickActions')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/dashboard">
                     <Settings className="mr-2 h-4 w-4" />
-                    Панель управления
+                    {t('profilePage.dashboard')}
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link to="/pricing">
                     <Star className="mr-2 h-4 w-4" />
-                    Перейти на PRO
+                    {t('profilePage.upgradeToPro')}
                   </Link>
                 </Button>
               </CardContent>
