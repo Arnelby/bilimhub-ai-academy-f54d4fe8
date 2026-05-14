@@ -382,7 +382,7 @@ export default function Lessons() {
                       variant={topicFilter === 'all' ? 'default' : 'outline'}
                       onClick={() => setTopicFilter('all')}
                     >
-                      Все темы
+                      {t('lessonsPage.filters.all')}
                     </Button>
                     {weakTopicsNorm.size > 0 && (
                       <Button
@@ -390,18 +390,18 @@ export default function Lessons() {
                         variant={topicFilter === 'weak' ? 'default' : 'outline'}
                         onClick={() => setTopicFilter('weak')}
                       >
-                        ⚠ Мои слабые темы
+                        {t('lessonsPage.filters.weak')}
                       </Button>
                     )}
-                    {allTopics.map(t => (
+                    {allTopics.map(topicItem => (
                       <Button
-                        key={t.name}
+                        key={topicItem.name}
                         size="sm"
-                        variant={topicFilter === t.name ? 'default' : 'outline'}
-                        onClick={() => setTopicFilter(t.name)}
-                        className={t.isWeak ? 'border-destructive/40' : ''}
+                        variant={topicFilter === topicItem.name ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter(topicItem.name)}
+                        className={topicItem.isWeak ? 'border-destructive/40' : ''}
                       >
-                        {t.isWeak && '⚠ '}{t.name}
+                        {topicItem.isWeak && '⚠ '}{topicItem.name}
                       </Button>
                     ))}
                   </div>
