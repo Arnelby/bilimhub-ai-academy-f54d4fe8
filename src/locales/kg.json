@@ -732,10 +732,3 @@
     "qaGiveMiniTest": "[KG] Give a mini-test"
   }
 }
-    "title": "[KG] AI Тьютор",
-    "greeting": "[KG] Салам! Мен AI тьютормун. Математикадан суроо бериңиз!",
-    "placeholderLogin": "[KG] Жазуу үчүн кириңиз",
-    "placeholder": "[KG] Суроо бериңиз...",
-    "errorGeneric": "[KG] Кечиресиз, ката кетти."
-  }
-}
