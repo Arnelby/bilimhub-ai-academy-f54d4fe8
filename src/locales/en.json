@@ -769,5 +769,144 @@
     "qaExplainSimpler": "Please explain simpler",
     "qaGiveExample": "Give me a practical example",
     "qaGiveMiniTest": "Give me a mini-test on this topic"
+  },
+  "lessonsPage": {
+    "title": "Lessons",
+    "subtitle": "Video lessons and test solutions",
+    "tabs": {
+      "basic": "Basic lessons",
+      "videos": "Test video solutions"
+    },
+    "comingSoon": "Lessons coming soon",
+    "recommended": "Recommended lesson",
+    "filters": {
+      "all": "All topics",
+      "weak": "⚠ My weak topics"
+    },
+    "noTopicLessons": "No lessons for the selected topic.",
+    "noTopic": "No topic",
+    "watched": "✔ Watched",
+    "iWatched": "I watched it",
+    "play": "Play: {{title}}",
+    "videosForVariant": "{{count}} video solutions",
+    "comingSoonShort": "Coming soon",
+    "completeTest": "Complete test",
+    "variantLabel": "Math test variant {{n}}"
+  },
+  "testResultsPage": {
+    "notFound": "Results not found",
+    "backToTests": "Back to tests",
+    "completedOn": "Completed {{date}}",
+    "overall": "Overall result",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "timeTaken": "Time taken",
+    "perQuestion": "Question breakdown ({{count}})",
+    "perQuestionDesc": "Click to view detailed breakdown",
+    "showAll": "Show all {{count}} questions",
+    "allTests": "All tests",
+    "myPlan": "My plan",
+    "lessons": "Lessons",
+    "badges": {
+      "excellent": "Excellent!",
+      "good": "Good",
+      "satisfactory": "Satisfactory",
+      "needsImprovement": "Needs improvement"
+    },
+    "perfect": {
+      "title": "Perfect score!",
+      "description": "You answered every question correctly!"
+    },
+    "completedDescription": "{{percent}}% correct"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "It looks like this page doesn't exist or has been moved.",
+    "home": "Home",
+    "back": "Back"
+  },
+  "adminDashboard": {
+    "heading": "Dashboard",
+    "subheading": "BilimHub platform overview",
+    "stats": {
+      "users": "Users",
+      "usersDesc": "Registered students",
+      "tests": "Tests completed",
+      "testsDesc": "Total test attempts",
+      "sessions": "Sessions",
+      "sessionsDesc": "Learning sessions",
+      "ai": "AI requests",
+      "aiDesc": "AI interactions"
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "desc": "Main tasks",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    },
+    "systemStatus": {
+      "title": "System status",
+      "desc": "Current state",
+      "database": "Database",
+      "ai": "AI Gateway",
+      "auth": "Authentication",
+      "connected": "Connected",
+      "active": "Active",
+      "enabled": "Enabled"
+    }
+  },
+  "adminTopics": {
+    "heading": "Topics management",
+    "subheading": "Manage learning content",
+    "comingSoon": "Coming soon",
+    "desc": "Topics are managed directly via the database",
+    "details": "Learning topics are configured in the topics table. Use Lovable Cloud to manage data."
+  },
+  "topicSummary": {
+    "title": "Topic summary",
+    "weak": "Weak topics",
+    "weakInsufficient": "(insufficient data)",
+    "noWeak": "No weak topics — great job!",
+    "strong": "Strong topics",
+    "noStrong": "No mastered topics yet (need ≥80% with ≥3 attempts)."
+  },
+  "mistakes": {
+    "noMistakesTitle": "No mistakes!",
+    "ofCorrect": "{{correct}} of {{total}} correct",
+    "nextStep": "Next step",
+    "keepLearning": "Keep learning",
+    "continue": "Continue",
+    "lowAccuracyTitle": "You haven't mastered the topic",
+    "lowAccuracyDesc": "Accuracy {{percent}}%. Watch a lesson before trying again.",
+    "watchLesson": "Watch lesson",
+    "basicLesson": "Basic lesson",
+    "mistakesCount": "Mistakes ({{count}})",
+    "percentCorrect": "{{percent}}% correct",
+    "errorN": "Mistake #{{n}}",
+    "yourAnswer": "Your answer: {{value}}",
+    "correctAnswer": "Correct: {{value}}",
+    "watchVideo": "Watch video",
+    "basicLessonNamed": "Basic lesson: {{name}}",
+    "openTutor": "Open AI tutor",
+    "readReview": "Read breakdown",
+    "consolidate": "Consolidate the material",
+    "consolidateDesc": "Re-solve your mistakes — this removes them from weak topics.",
+    "repeatMistakes": "Repeat mistakes",
+    "next": "Next",
+    "go": "Go",
+    "compareLabel": "Compare: A = {{a}}, B = {{b}}"
+  },
+  "topicProgress": {
+    "topic": "Topic",
+    "closed": "Closed",
+    "almost": "Almost there!",
+    "before": "Before",
+    "after": "After",
+    "toClose": "To close the topic",
+    "mastered": "🎯 Topic closed at 80%+ with 10+ attempts. Great job!",
+    "leftN": "{{n}} tasks left to close",
+    "attemptsGoal": "Attempts: {{n}}/{{target}} • goal: {{goal}}%",
+    "finish": "🔥 Finish the topic",
+    "continue": "Continue topic"
   }
 }

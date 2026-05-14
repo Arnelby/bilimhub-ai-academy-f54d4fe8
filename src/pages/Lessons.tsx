@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Layout } from '@/components/layout/Layout';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { TEST_CONFIG } from '@/lib/mathTestConfig';
@@ -23,10 +23,10 @@ interface LessonRow {
 }
 
 const VARIANT_CONFIG = [
-  { variantKey: 'variant1', testConfigId: 1, label: 'Математика тест вариант 1' },
-  { variantKey: 'variant2', testConfigId: 2, label: 'Математика тест вариант 2' },
-  { variantKey: 'variant3', testConfigId: 3, label: 'Математика тест вариант 3' },
-  { variantKey: 'variant4', testConfigId: 4, label: 'Математика тест вариант 4' },
+  { variantKey: 'variant1', testConfigId: 1, n: 1 },
+  { variantKey: 'variant2', testConfigId: 2, n: 2 },
+  { variantKey: 'variant3', testConfigId: 3, n: 3 },
+  { variantKey: 'variant4', testConfigId: 4, n: 4 },
 ];
 
 function testIdToVariantKey(testId: string): string | null {
@@ -39,7 +39,8 @@ function testIdToVariantKey(testId: string): string | null {
 }
 
 export default function Lessons() {
-  const { language } = useLanguage();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language as 'en' | 'ru' | 'kg';
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -189,7 +190,7 @@ export default function Lessons() {
   const allTopics = useMemo(() => {
     const map = new Map<string, { name: string; isWeak: boolean }>();
     for (const l of lessons) {
-      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || t('lessonsPage.noTopic');
       if (!map.has(name)) {
         const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
         map.set(name, { name, isWeak: norm ? weakTopicsNorm.has(norm) : false });
@@ -206,7 +207,7 @@ export default function Lessons() {
     const map = new Map<string, LessonRow[]>();
     for (const l of lessons) {
       if (recommendedLesson && l.id === recommendedLesson.id) continue;
-      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || 'Без темы';
+      const name = (language === 'ru' ? (l.topic?.title_ru || l.topic?.title) : l.topic?.title) || t('lessonsPage.noTopic');
       if (topicFilter !== 'all' && topicFilter !== 'weak' && topicFilter !== name) continue;
       if (topicFilter === 'weak') {
         const norm = normalizeAnalyticsTopic(l.topic?.title_ru || l.topic?.title || '');
@@ -263,7 +264,7 @@ export default function Lessons() {
                       <Badge variant="outline" className="text-xs">{topicName}</Badge>
                     )}
                     {isWatched && (
-                      <Badge variant="secondary" className="text-xs">✔ Просмотрено</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('lessonsPage.watched')}</Badge>
                     )}
                   </div>
                 </div>
@@ -276,7 +277,7 @@ export default function Lessons() {
                   onClick={() => markLessonWatched(lesson.id)}
                 >
                   <CheckCircle className="mr-1 h-4 w-4" />
-                  Я посмотрел
+                  {t('lessonsPage.iWatched')}
                 </Button>
               )}
             </div>
@@ -298,7 +299,7 @@ export default function Lessons() {
                   type="button"
                   onClick={() => setPlayingLesson(lesson.id)}
                   className="relative aspect-video w-full bg-muted overflow-hidden group"
-                  aria-label={`Воспроизвести: ${title}`}
+                  aria-label={t('lessonsPage.play', { title })}
                 >
                   <img
                     src={getYoutubeThumbnail(youtubeUrl)}
@@ -324,14 +325,8 @@ export default function Lessons() {
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">
-            {language === 'ru' ? 'Уроки' : language === 'kg' ? 'Сабактар' : 'Lessons'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {language === 'ru'
-              ? 'Видеоуроки и видеоразборы тестов'
-              : 'Video lessons and test solutions'}
-          </p>
+          <h1 className="text-3xl font-bold">{t('lessonsPage.title')}</h1>
+          <p className="text-muted-foreground mt-1">{t('lessonsPage.subtitle')}</p>
         </div>
 
         {/* Tabs */}
@@ -343,7 +338,7 @@ export default function Lessons() {
             size="sm"
           >
             <BookOpen className="h-4 w-4" />
-            <span className="truncate">Базовые уроки</span>
+            <span className="truncate">{t('lessonsPage.tabs.basic')}</span>
           </Button>
           <Button
             variant={activeTab === 'videos' ? 'default' : 'outline'}
@@ -352,7 +347,7 @@ export default function Lessons() {
             size="sm"
           >
             <Video className="h-4 w-4" />
-            <span className="truncate">Видеоразборы тестов</span>
+            <span className="truncate">{t('lessonsPage.tabs.videos')}</span>
           </Button>
         </div>
 
@@ -360,7 +355,7 @@ export default function Lessons() {
         {activeTab === 'lessons' && (
           <div className="space-y-6">
             {lessons.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">Уроки скоро появятся</p>
+              <p className="text-muted-foreground text-center py-8">{t('lessonsPage.comingSoon')}</p>
             ) : (
               <>
                 {/* Recommended lesson (driven by learning state) */}
@@ -368,7 +363,7 @@ export default function Lessons() {
                   <section>
                     <div className="flex items-center gap-2 mb-3">
                       <Sparkles className="h-5 w-5 text-accent" />
-                      <h2 className="text-lg font-bold">Рекомендованный урок</h2>
+                      <h2 className="text-lg font-bold">{t('lessonsPage.recommended')}</h2>
                     </div>
                     {learningState?.next_reason && (
                       <p className="text-sm text-muted-foreground mb-3">
@@ -387,7 +382,7 @@ export default function Lessons() {
                       variant={topicFilter === 'all' ? 'default' : 'outline'}
                       onClick={() => setTopicFilter('all')}
                     >
-                      Все темы
+                      {t('lessonsPage.filters.all')}
                     </Button>
                     {weakTopicsNorm.size > 0 && (
                       <Button
@@ -395,18 +390,18 @@ export default function Lessons() {
                         variant={topicFilter === 'weak' ? 'default' : 'outline'}
                         onClick={() => setTopicFilter('weak')}
                       >
-                        ⚠ Мои слабые темы
+                        {t('lessonsPage.filters.weak')}
                       </Button>
                     )}
-                    {allTopics.map(t => (
+                    {allTopics.map(topicItem => (
                       <Button
-                        key={t.name}
+                        key={topicItem.name}
                         size="sm"
-                        variant={topicFilter === t.name ? 'default' : 'outline'}
-                        onClick={() => setTopicFilter(t.name)}
-                        className={t.isWeak ? 'border-destructive/40' : ''}
+                        variant={topicFilter === topicItem.name ? 'default' : 'outline'}
+                        onClick={() => setTopicFilter(topicItem.name)}
+                        className={topicItem.isWeak ? 'border-destructive/40' : ''}
                       >
-                        {t.isWeak && '⚠ '}{t.name}
+                        {topicItem.isWeak && '⚠ '}{topicItem.name}
                       </Button>
                     ))}
                   </div>
@@ -415,7 +410,7 @@ export default function Lessons() {
                 {/* Lessons grouped by topic — collapsed by default */}
                 {Array.from(lessonsByTopic.entries()).length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">
-                    Нет уроков по выбранной теме.
+                    {t('lessonsPage.noTopicLessons')}
                   </p>
                 ) : (
                   Array.from(lessonsByTopic.entries()).map(([topicName, topicLessons]) => {
@@ -452,9 +447,10 @@ export default function Lessons() {
         {/* Section 2: Test Video Solutions */}
         {activeTab === 'videos' && (
           <div className="space-y-4">
-            {VARIANT_CONFIG.map(({ variantKey, label }) => {
+            {VARIANT_CONFIG.map(({ variantKey, n }) => {
               const isUnlocked = completedVariants.has(variantKey);
               const count = videoCounts[variantKey] || 0;
+              const label = t('lessonsPage.variantLabel', { n });
 
               return (
                 <Card
@@ -473,8 +469,8 @@ export default function Lessons() {
                         <p className="font-semibold text-base">{label}</p>
                         <Badge variant={isUnlocked ? 'secondary' : 'outline'} className="text-xs mt-1">
                           {isUnlocked
-                            ? (count > 0 ? `${count} видеоразборов` : 'Скоро')
-                            : (language === 'ru' ? 'Пройдите тест' : 'Complete test')}
+                            ? (count > 0 ? t('lessonsPage.videosForVariant', { count }) : t('lessonsPage.comingSoonShort'))
+                            : t('lessonsPage.completeTest')}
                         </Badge>
                       </div>
                     </div>

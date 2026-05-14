@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
@@ -54,6 +55,7 @@ interface TestResult {
 
 export default function TestResults() {
   const { testId, attemptId } = useParams();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { isAI } = useUserGroup();
   const { triggerEvent } = useGamificationEvents();
@@ -133,7 +135,7 @@ export default function TestResults() {
           triggerEvent({
             type: 'test_completed',
             value: pointsEarned,
-            description: `${percentage}% правильно`,
+            description: t('testResultsPage.completedDescription', { percent: percentage }),
           });
         }, 500);
 
@@ -141,8 +143,8 @@ export default function TestResults() {
           setTimeout(() => {
             triggerEvent({
               type: 'perfect_score',
-              title: 'Идеальный результат!',
-              description: 'Вы ответили на все вопросы правильно!',
+              title: t('testResultsPage.perfect.title'),
+              description: t('testResultsPage.perfect.description'),
             });
             setShowConfetti(true);
           }, 1500);
@@ -174,9 +176,9 @@ export default function TestResults() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
-          <h1 className="text-2xl font-bold">Результаты не найдены</h1>
+          <h1 className="text-2xl font-bold">{t('testResultsPage.notFound')}</h1>
           <Button asChild className="mt-4">
-            <Link to="/tests">Вернуться к тестам</Link>
+            <Link to="/tests">{t('testResultsPage.backToTests')}</Link>
           </Button>
         </div>
       </Layout>
@@ -216,10 +218,10 @@ export default function TestResults() {
   };
 
   const getScoreBadge = () => {
-    if (percentage >= 90) return { label: 'Отлично!', variant: 'success' as const };
-    if (percentage >= 80) return { label: 'Хорошо', variant: 'success' as const };
-    if (percentage >= 60) return { label: 'Удовлетворительно', variant: 'warning' as const };
-    return { label: 'Требуется улучшение', variant: 'destructive' as const };
+    if (percentage >= 90) return { label: t('testResultsPage.badges.excellent'), variant: 'success' as const };
+    if (percentage >= 80) return { label: t('testResultsPage.badges.good'), variant: 'success' as const };
+    if (percentage >= 60) return { label: t('testResultsPage.badges.satisfactory'), variant: 'warning' as const };
+    return { label: t('testResultsPage.badges.needsImprovement'), variant: 'destructive' as const };
   };
 
   const scoreBadge = getScoreBadge();
@@ -237,10 +239,12 @@ export default function TestResults() {
             {scoreBadge.label}
           </Badge>
           <h1 className="text-3xl font-bold mb-2">
-            {result.test?.title_ru || result.test?.title}
+            {(i18n.language === 'ru' ? (result.test?.title_ru || result.test?.title) : result.test?.title)}
           </h1>
           <p className="text-muted-foreground">
-            Завершен {new Date(result.completed_at).toLocaleDateString('ru-RU')}
+            {t('testResultsPage.completedOn', {
+              date: new Date(result.completed_at).toLocaleDateString(i18n.language === 'en' ? 'en-US' : i18n.language === 'kg' ? 'ky-KG' : 'ru-RU'),
+            })}
           </p>
         </div>
 
@@ -252,7 +256,7 @@ export default function TestResults() {
                 {score}/{total}
               </div>
               <p className="text-lg font-semibold mt-1">{percentage}%</p>
-              <p className="text-muted-foreground mt-1">Общий результат</p>
+              <p className="text-muted-foreground mt-1">{t('testResultsPage.overall')}</p>
               <Progress value={percentage} className="mt-4 h-2" />
             </CardContent>
           </Card>
@@ -265,7 +269,7 @@ export default function TestResults() {
                     <CheckCircle className="h-6 w-6" />
                     <span className="text-3xl font-bold">{score}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Правильно</p>
+                  <p className="text-sm text-muted-foreground">{t('testResultsPage.correct')}</p>
                 </div>
                 <div className="h-12 w-px bg-border" />
                 <div className="text-center">
@@ -273,7 +277,7 @@ export default function TestResults() {
                     <XCircle className="h-6 w-6" />
                     <span className="text-3xl font-bold">{total - score}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Неправильно</p>
+                  <p className="text-sm text-muted-foreground">{t('testResultsPage.incorrect')}</p>
                 </div>
               </div>
             </CardContent>
@@ -287,7 +291,7 @@ export default function TestResults() {
                   {Math.floor(timeTaken / 60)}:{(timeTaken % 60).toString().padStart(2, '0')}
                 </span>
               </div>
-              <p className="text-muted-foreground mt-2">Время выполнения</p>
+              <p className="text-muted-foreground mt-2">{t('testResultsPage.timeTaken')}</p>
             </CardContent>
           </Card>
         </div>
@@ -299,8 +303,8 @@ export default function TestResults() {
               <CollapsibleTrigger className="w-full text-left group">
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <div>
-                    <CardTitle>Разбор по вопросам ({answerDetails.length})</CardTitle>
-                    <CardDescription>Нажмите, чтобы посмотреть подробный разбор</CardDescription>
+                    <CardTitle>{t('testResultsPage.perQuestion', { count: answerDetails.length })}</CardTitle>
+                    <CardDescription>{t('testResultsPage.perQuestionDesc')}</CardDescription>
                   </div>
                   <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                 </CardHeader>
@@ -360,7 +364,7 @@ export default function TestResults() {
                       className="w-full mt-4"
                       onClick={() => setShowAllQuestions(true)}
                     >
-                      Показать все {answerDetails.length} вопросов
+                      {t('testResultsPage.showAll', { count: answerDetails.length })}
                     </Button>
                   )}
                 </CardContent>
@@ -373,19 +377,19 @@ export default function TestResults() {
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Button variant="outline" asChild>
             <Link to="/tests">
-              Все тесты
+              {t('testResultsPage.allTests')}
             </Link>
           </Button>
           {isAI && (
             <Button variant="outline" asChild>
               <Link to="/learning-plan">
-                Мой план
+                {t('testResultsPage.myPlan')}
               </Link>
             </Button>
           )}
           <Button variant="accent" asChild>
             <Link to="/lessons">
-              Уроки
+              {t('testResultsPage.lessons')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
