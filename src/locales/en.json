@@ -594,5 +594,54 @@
       "yourPosition": "Your position: #{{n}} of {{total}} • score {{score}}",
       "accuracyTests": "{{accuracy}}% • {{tests}} tests"
     }
+  },
+  "footer": {
+    "tagline": "Adaptive learning for ORT, ENT and other exams. Modern and clear for teenagers.",
+    "platform": "Platform",
+    "support": "Support",
+    "legal": "Legal",
+    "helpCenter": "Help Center",
+    "contact": "Contact Us",
+    "faq": "FAQ",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "rights": "All rights reserved."
+  },
+  "loginPage": {
+    "betaBadge": "Closed beta",
+    "title": "Sign in to BilimHub",
+    "description": "Access by invitation only",
+    "emailLabel": "Email",
+    "inviteCodeLabel": "Invite code",
+    "inviteCodePlaceholder": "BETA2024-XX",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "noCodeHint": "No invite code? Contact the platform administrator for access.",
+    "errors": {
+      "invalidEmail": "Enter a valid email",
+      "inviteRequired": "Enter an invite code",
+      "accessCheck": "Access check failed. Try again later.",
+      "accessDenied": "Access restricted. Wrong email or invite code.",
+      "wrongCodeForEmail": "Invalid invite code for this email. Try again.",
+      "signupFailed": "Failed to create account. Try again later.",
+      "signinAfterSignup": "Account created but sign-in failed. Try again.",
+      "network": "Something went wrong. Check your connection."
+    }
+  },
+  "onboardingModal": {
+    "title": "Welcome to BilimHub! 👋",
+    "description": "Tell us your name to personalize your learning",
+    "label": "Your full name",
+    "placeholder": "For example: Aidana Asanova",
+    "continue": "Continue",
+    "minLength": "At least 2 characters",
+    "saveError": "Save failed. Please try again."
+  },
+  "chat": {
+    "title": "AI Tutor",
+    "greeting": "Hi! I'm your AI tutor. Ask me any math question!",
+    "placeholderLogin": "Sign in to write",
+    "placeholder": "Ask a question...",
+    "errorGeneric": "Sorry, something went wrong. Try again later."
   }
 }
