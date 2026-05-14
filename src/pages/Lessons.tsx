@@ -355,7 +355,7 @@ export default function Lessons() {
         {activeTab === 'lessons' && (
           <div className="space-y-6">
             {lessons.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">Уроки скоро появятся</p>
+              <p className="text-muted-foreground text-center py-8">{t('lessonsPage.comingSoon')}</p>
             ) : (
               <>
                 {/* Recommended lesson (driven by learning state) */}
