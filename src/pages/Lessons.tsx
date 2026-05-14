@@ -39,7 +39,8 @@ function testIdToVariantKey(testId: string): string | null {
 }
 
 export default function Lessons() {
-  const { language } = useLanguage();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language as 'en' | 'ru' | 'kg';
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
