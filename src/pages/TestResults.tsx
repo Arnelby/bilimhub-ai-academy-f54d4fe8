@@ -218,10 +218,10 @@ export default function TestResults() {
   };
 
   const getScoreBadge = () => {
-    if (percentage >= 90) return { label: 'Отлично!', variant: 'success' as const };
-    if (percentage >= 80) return { label: 'Хорошо', variant: 'success' as const };
-    if (percentage >= 60) return { label: 'Удовлетворительно', variant: 'warning' as const };
-    return { label: 'Требуется улучшение', variant: 'destructive' as const };
+    if (percentage >= 90) return { label: t('testResultsPage.badges.excellent'), variant: 'success' as const };
+    if (percentage >= 80) return { label: t('testResultsPage.badges.good'), variant: 'success' as const };
+    if (percentage >= 60) return { label: t('testResultsPage.badges.satisfactory'), variant: 'warning' as const };
+    return { label: t('testResultsPage.badges.needsImprovement'), variant: 'destructive' as const };
   };
 
   const scoreBadge = getScoreBadge();
