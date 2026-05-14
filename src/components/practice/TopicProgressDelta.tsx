@@ -27,6 +27,8 @@ export function TopicProgressDelta({
   topic: string;
   onContinue: () => void;
 }) {
+  const { t } = useTranslation();
+  const topicName = useTopicName(topic);
   const [loading, setLoading] = useState(true);
   const [beforePct, setBeforePct] = useState<number | null>(null);
   const [afterPct, setAfterPct] = useState<number | null>(null);
