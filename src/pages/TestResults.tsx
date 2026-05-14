@@ -239,10 +239,12 @@ export default function TestResults() {
             {scoreBadge.label}
           </Badge>
           <h1 className="text-3xl font-bold mb-2">
-            {result.test?.title_ru || result.test?.title}
+            {(i18n.language === 'ru' ? (result.test?.title_ru || result.test?.title) : result.test?.title)}
           </h1>
           <p className="text-muted-foreground">
-            Завершен {new Date(result.completed_at).toLocaleDateString('ru-RU')}
+            {t('testResultsPage.completedOn', {
+              date: new Date(result.completed_at).toLocaleDateString(i18n.language === 'en' ? 'en-US' : i18n.language === 'kg' ? 'ky-KG' : 'ru-RU'),
+            })}
           </p>
         </div>
 
@@ -254,7 +256,7 @@ export default function TestResults() {
                 {score}/{total}
               </div>
               <p className="text-lg font-semibold mt-1">{percentage}%</p>
-              <p className="text-muted-foreground mt-1">Общий результат</p>
+              <p className="text-muted-foreground mt-1">{t('testResultsPage.overall')}</p>
               <Progress value={percentage} className="mt-4 h-2" />
             </CardContent>
           </Card>
@@ -267,7 +269,7 @@ export default function TestResults() {
                     <CheckCircle className="h-6 w-6" />
                     <span className="text-3xl font-bold">{score}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Правильно</p>
+                  <p className="text-sm text-muted-foreground">{t('testResultsPage.correct')}</p>
                 </div>
                 <div className="h-12 w-px bg-border" />
                 <div className="text-center">
@@ -275,7 +277,7 @@ export default function TestResults() {
                     <XCircle className="h-6 w-6" />
                     <span className="text-3xl font-bold">{total - score}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Неправильно</p>
+                  <p className="text-sm text-muted-foreground">{t('testResultsPage.incorrect')}</p>
                 </div>
               </div>
             </CardContent>
@@ -289,7 +291,7 @@ export default function TestResults() {
                   {Math.floor(timeTaken / 60)}:{(timeTaken % 60).toString().padStart(2, '0')}
                 </span>
               </div>
-              <p className="text-muted-foreground mt-2">Время выполнения</p>
+              <p className="text-muted-foreground mt-2">{t('testResultsPage.timeTaken')}</p>
             </CardContent>
           </Card>
         </div>
