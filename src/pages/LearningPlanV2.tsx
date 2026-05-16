@@ -26,6 +26,7 @@ const TYPE_ICON: Record<TaskType, React.ReactNode> = {
 
 export default function LearningPlanV2() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAI, isControl, loading: groupLoading } = useUserGroup();
