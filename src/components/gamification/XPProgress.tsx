@@ -24,7 +24,7 @@ export function XPProgress({ currentXP, level, className }: XPProgressProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-primary-foreground font-bold shadow-md">
             {level}
           </div>
-          <span className="font-medium">Уровень {level}</span>
+          <span className="font-medium">{t('gamification.level', { n: level })}</span>
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Sparkles className="h-4 w-4 text-accent" />
