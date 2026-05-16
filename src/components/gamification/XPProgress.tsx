@@ -40,7 +40,7 @@ export function XPProgress({ currentXP, level, className }: XPProgressProps) {
         </div>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        Еще {xpToNextLevel} XP до уровня {level + 1}
+        {t('gamification.xpToNext', { xp: xpToNextLevel, n: level + 1 })}
       </p>
     </div>
   );
