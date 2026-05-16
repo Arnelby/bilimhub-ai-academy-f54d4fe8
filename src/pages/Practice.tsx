@@ -1116,11 +1116,12 @@ export default function Practice() {
         const nt = masteryResult.new_topic;
         if (np === 'lesson') {
           toast(t('practicePage.backToLesson'), { icon: '📘' });
-          // …
-        } else if (decision === 'mastery_check') {
+          const slug = nt ? topicToLessonSlug(nt) : null;
+          setTimeout(() => navigate(slug ? `/lessons/topic/${encodeURIComponent(slug)}` : '/lessons'), 900);
+        } else if (np === 'validation') {
           toast.success(t('practicePage.twoInARow'));
-        } else if (decision === 'next_topic') {
-          // legacy branch — keep the message in sync with the i18n key
+          setTimeout(() => navigate(`/practice?topic=${encodeURIComponent(nt || q.topic)}&mode=validation`), 900);
+        } else if (np === 'idle') {
           toast.success(t('practicePage.topicImproved'));
           setTimeout(() => navigate('/next-step'), 900);
         }
