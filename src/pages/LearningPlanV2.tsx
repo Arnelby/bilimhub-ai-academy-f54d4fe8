@@ -144,7 +144,7 @@ export default function LearningPlanV2() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs uppercase tracking-wide text-primary font-semibold">{t('v2.learningPlan.activeTask')}</p>
-                <p className="font-medium truncate">{next.label}</p>
+                <p className="font-medium truncate">{formatTaskLabel(t, next, language)}</p>
               </div>
             </div>
             <Button size="lg" onClick={handleContinue} className="w-full h-12 text-base">
