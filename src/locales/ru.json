@@ -520,6 +520,16 @@
       "statusPending": "Ожидает",
       "statusActive": "АКТИВНО"
     },
+    "tasks": {
+      "generalTopic": "общее",
+      "questions": "задач",
+      "lesson": "Видео-урок: {{topic}}",
+      "practiceEasy": "Практика (лёгкая): {{count}} {{questions}} · {{topic}}",
+      "practiceMedium": "Практика (средняя): {{count}} {{questions}} · {{topic}}",
+      "practiceHard": "Практика (сложная): {{count}} {{questions}} · {{topic}}",
+      "repeat": "Повтор ошибок: {{count}} {{questions}}",
+      "test": "Контрольный тест: {{count}} {{questions}}"
+    },
     "tests": {
       "pageTitle": "Тестирование",
       "pageSubtitle": "Пройдите диагностический тест для анализа знаний",
