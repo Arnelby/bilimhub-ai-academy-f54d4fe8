@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { translateTopic, normalizePracticeTopic } from './topicTranslations';
 // Source: user-provided list. Each entry maps to a YouTube short URL.
 // Used by Practice mistake review + /video/:videoId route to redirect users
@@ -5,9 +6,16 @@ import { translateTopic, normalizePracticeTopic } from './topicTranslations';
 
 export interface BasicVideo {
   id: string;        // stable slug, used in /video/:videoId
-  title: string;     // Russian display title
+  title: string;     // Russian fallback title (use `basicVideoTitle()` for i18n)
   url: string;       // YouTube URL (any youtu.be / watch?v= form is fine)
   topicKeys: string[]; // possible topic names (case-insensitive) that map here
+}
+
+/** Returns the localized title for a basic video (uses i18n `basicVideos.<id>`). */
+export function basicVideoTitle(v: BasicVideo | { id: string; title?: string } | null | undefined): string {
+  if (!v) return '';
+  const translated = i18n.t(`basicVideos.${v.id}`, { defaultValue: '' }) as string;
+  return translated || v.title || '';
 }
 
 export const BASIC_VIDEOS: BasicVideo[] = [
