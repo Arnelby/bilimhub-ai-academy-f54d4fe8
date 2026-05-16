@@ -167,6 +167,7 @@ export default function LearningPlanV2() {
 
 function TaskRow({ task, index }: { task: PlanTask; index: number }) {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const isDone = task.status === 'done';
   const isActive = task.status === 'active';
   const isLocked = task.status === 'locked';
