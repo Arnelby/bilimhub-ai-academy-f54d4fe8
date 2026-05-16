@@ -645,7 +645,21 @@
     "errorGeneric": "[KG] Something went wrong."
   },
   "achievementsPanel": {
-    "title": "[KG] Achievements"
+    "title": "[KG] Achievements",
+    "items": {
+      "first_test":    { "title": "[KG] First test",          "description": "[KG] Complete your first test" },
+      "tests_5":       { "title": "[KG] 5 tests",             "description": "[KG] Complete 5 tests" },
+      "tests_10":      { "title": "[KG] 10 tests",            "description": "[KG] Complete 10 tests" },
+      "correct_50":    { "title": "[KG] 50 correct",          "description": "[KG] 50 correct answers" },
+      "correct_100":   { "title": "[KG] 100 correct",         "description": "[KG] 100 correct answers" },
+      "correct_500":   { "title": "[KG] 500 correct",         "description": "[KG] 500 correct answers" },
+      "study_1h":      { "title": "[KG] 1 hour of study",     "description": "[KG] Spend 1 hour on the platform" },
+      "study_5h":      { "title": "[KG] 5 hours of study",    "description": "[KG] Spend 5 hours on the platform" },
+      "study_10h":     { "title": "[KG] 10 hours of study",   "description": "[KG] Spend 10 hours on the platform" },
+      "perfect_score": { "title": "[KG] Perfect score",       "description": "[KG] Score 100% on a test" },
+      "streak_3":      { "title": "[KG] 3-day streak",        "description": "[KG] Study 3 days in a row" },
+      "streak_7":      { "title": "[KG] 7-day streak",        "description": "[KG] Study 7 days in a row" }
+    }
   },
   "dashboardPage": {
     "title": "[KG] Learning analytics",
