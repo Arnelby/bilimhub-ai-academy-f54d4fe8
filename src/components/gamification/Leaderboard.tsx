@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trophy, Medal, Crown, TrendingUp, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
