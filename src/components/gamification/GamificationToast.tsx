@@ -24,49 +24,49 @@ const eventConfig: Record<GamificationEventType, {
   icon: React.ComponentType<{ className?: string }>;
   bgColor: string;
   iconColor: string;
-  defaultTitle: string;
+  titleKey: string;
 }> = {
   points_earned: {
     icon: Sparkles,
     bgColor: 'from-accent/20 to-accent/5',
     iconColor: 'text-accent',
-    defaultTitle: 'Баллы получены!',
+    titleKey: 'gamification.pointsEarned',
   },
   streak_milestone: {
     icon: Flame,
     bgColor: 'from-warning/20 to-destructive/10',
     iconColor: 'text-warning',
-    defaultTitle: 'Стрик продолжается!',
+    titleKey: 'gamification.streakMilestone',
   },
   level_up: {
     icon: Star,
     bgColor: 'from-success/20 to-success/5',
     iconColor: 'text-success',
-    defaultTitle: 'Новый уровень!',
+    titleKey: 'gamification.levelUp',
   },
   achievement_unlocked: {
     icon: Trophy,
     bgColor: 'from-warning/30 to-warning/10',
     iconColor: 'text-warning',
-    defaultTitle: 'Достижение открыто!',
+    titleKey: 'gamification.achievementUnlocked',
   },
   lesson_completed: {
     icon: Award,
     bgColor: 'from-accent/20 to-success/10',
     iconColor: 'text-accent',
-    defaultTitle: 'Урок завершен!',
+    titleKey: 'gamification.lessonCompleted',
   },
   test_completed: {
     icon: Zap,
     bgColor: 'from-success/20 to-accent/10',
     iconColor: 'text-success',
-    defaultTitle: 'Тест пройден!',
+    titleKey: 'gamification.testCompleted',
   },
   perfect_score: {
     icon: Trophy,
     bgColor: 'from-warning/30 to-success/20',
     iconColor: 'text-warning',
-    defaultTitle: 'Отличный результат!',
+    titleKey: 'gamification.perfectScore',
   },
 };
 
