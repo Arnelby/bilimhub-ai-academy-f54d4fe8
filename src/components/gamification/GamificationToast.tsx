@@ -77,6 +77,7 @@ export function GamificationToast({
   description,
   onComplete 
 }: GamificationToastProps) {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
