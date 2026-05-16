@@ -10,7 +10,7 @@ import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { useTopicName } from '@/hooks/useTopicName';
 import type { LearningState } from '@/lib/learningState';
 import { nextActionRoute } from '@/lib/learningState';
-import { basicVideoForTopic } from '@/lib/basicVideos';
+import { basicVideoForTopic, basicVideoTitle } from '@/lib/basicVideos';
 
 export interface MistakeItem {
   questionId: string;
