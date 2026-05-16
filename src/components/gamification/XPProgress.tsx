@@ -1,4 +1,5 @@
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +12,7 @@ interface XPProgressProps {
 const XP_PER_LEVEL = 500;
 
 export function XPProgress({ currentXP, level, className }: XPProgressProps) {
+  const { t } = useTranslation();
   const xpInCurrentLevel = currentXP % XP_PER_LEVEL;
   const progressPercentage = (xpInCurrentLevel / XP_PER_LEVEL) * 100;
   const xpToNextLevel = XP_PER_LEVEL - xpInCurrentLevel;
@@ -22,7 +24,7 @@ export function XPProgress({ currentXP, level, className }: XPProgressProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-primary-foreground font-bold shadow-md">
             {level}
           </div>
-          <span className="font-medium">Уровень {level}</span>
+          <span className="font-medium">{t('gamification.level', { n: level })}</span>
         </div>
         <div className="flex items-center gap-1 text-muted-foreground">
           <Sparkles className="h-4 w-4 text-accent" />
@@ -38,7 +40,7 @@ export function XPProgress({ currentXP, level, className }: XPProgressProps) {
         </div>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        Еще {xpToNextLevel} XP до уровня {level + 1}
+        {t('gamification.xpToNext', { xp: xpToNextLevel, n: level + 1 })}
       </p>
     </div>
   );

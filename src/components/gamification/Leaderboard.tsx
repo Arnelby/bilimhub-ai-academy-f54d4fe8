@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Trophy, Medal, Crown, TrendingUp, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ limit = 10, showTabs = true, className }: LeaderboardProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [weeklyLeaders, setWeeklyLeaders] = useState<LeaderboardEntry[]>([]);
@@ -187,16 +189,16 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">
-                {entry.name || 'Студент'}
-                {isCurrentUser && <span className="ml-2 text-xs text-accent">(вы)</span>}
+                {entry.name || t('gamification.studentFallback')}
+                {isCurrentUser && <span className="ml-2 text-xs text-accent">{t('gamification.youSuffix')}</span>}
               </p>
               <p className="text-xs text-muted-foreground">
-                {entry.testsCompleted} тестов • Средний: {entry.averageScore}%
+                {t('gamification.testsAvg', { n: entry.testsCompleted, avg: entry.averageScore })}
               </p>
             </div>
             <div className="text-right">
               <p className="font-bold text-accent">{entry.averageScore}%</p>
-              <p className="text-xs text-muted-foreground">точность</p>
+              <p className="text-xs text-muted-foreground">{t('gamification.accuracy')}</p>
             </div>
           </div>
         );
@@ -224,7 +226,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-warning" />
-            Лидеры
+            {t('gamification.leadersShort')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -232,7 +234,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
           {userRank && userRank > limit && (
             <div className="mt-4 rounded-lg bg-accent/10 p-3 text-center">
               <p className="text-sm">
-                Ваше место: <span className="font-bold text-accent">#{userRank}</span>
+                {t('gamification.yourPlace')}: <span className="font-bold text-accent">#{userRank}</span>
               </p>
             </div>
           )}
@@ -246,7 +248,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-warning" />
-          Таблица лидеров
+          {t('gamification.leaderboardTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -254,11 +256,11 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
           <TabsList className="w-full mb-4">
             <TabsTrigger value="alltime" className="flex-1">
               <Users className="h-4 w-4 mr-2" />
-              Все время
+              {t('gamification.allTime')}
             </TabsTrigger>
             <TabsTrigger value="weekly" className="flex-1">
               <TrendingUp className="h-4 w-4 mr-2" />
-              На этой неделе
+              {t('gamification.thisWeek')}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="alltime">
@@ -271,7 +273,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         {userRank && userRank > limit && (
           <div className="mt-4 rounded-lg bg-accent/10 p-3 text-center">
             <p className="text-sm">
-              Ваше место: <span className="font-bold text-accent">#{userRank}</span>
+              {t('gamification.yourPlace')}: <span className="font-bold text-accent">#{userRank}</span>
             </p>
           </div>
         )}

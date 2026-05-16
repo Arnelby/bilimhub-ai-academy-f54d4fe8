@@ -1,4 +1,5 @@
 import { Flame, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ export function MotivationWidget({
   warningLevel,
   className,
 }: MotivationWidgetProps) {
+  const { t } = useTranslation();
   const goalPct = Math.min(
     100,
     Math.round((tasksCompletedToday / Math.max(1, dailyGoal)) * 100)
@@ -34,9 +36,9 @@ export function MotivationWidget({
 
   const warningCopy: Record<typeof warningLevel, string | null> = {
     none: null,
-    soft: 'Меньше 3 активных дней за неделю — не сбавляйте темп.',
-    strong: 'Меньше 2 активных дней за неделю — серия под угрозой.',
-    risk: 'Риск потери серии — позанимайтесь сегодня.',
+    soft: t('gamification.warnSoft'),
+    strong: t('gamification.warnStrong'),
+    risk: t('gamification.warnRisk'),
   };
 
   return (
@@ -49,16 +51,16 @@ export function MotivationWidget({
               <Flame className="h-5 w-5 text-warning-foreground" />
             </div>
             <div>
-              <p className="text-lg font-semibold leading-none">Серия: {streak} дней подряд</p>
+              <p className="text-lg font-semibold leading-none">{t('gamification.seriesStreak', { n: streak })}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Активных дней за 7: <span className="font-medium text-foreground">{activeDaysLast7}/7</span>
+                {t('gamification.activeDays7')} <span className="font-medium text-foreground">{activeDaysLast7}/7</span>
               </p>
             </div>
           </div>
           {goalCompleted && (
             <Badge variant="success" className="gap-1">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Цель дня
+              {t('gamification.dailyGoal')}
             </Badge>
           )}
         </div>
@@ -68,7 +70,7 @@ export function MotivationWidget({
           <div className="mb-1.5 flex items-center justify-between text-sm">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Target className="h-4 w-4" />
-              Цель дня
+              {t('gamification.dailyGoal')}
             </span>
             <span className="font-medium tabular-nums">
               {tasksCompletedToday} / {dailyGoal}
