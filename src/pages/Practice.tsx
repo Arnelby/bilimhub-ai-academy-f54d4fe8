@@ -1438,7 +1438,7 @@ export default function Practice() {
               <CardContent className="p-6 text-center space-y-3">
                 <div className="text-5xl font-bold">{percentage}%</div>
                 <p className="text-muted-foreground">
-                  {correctCount} из {questions.length} правильно
+                  {t('practicePage.correctOfTotal', { correct: correctCount, total: questions.length })}
                 </p>
               </CardContent>
             </Card>
@@ -1469,7 +1469,7 @@ export default function Practice() {
               variant="outline"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              {isAI && focusedTopic ? 'Следующая тема' : 'Новая практика'}
+              {isAI && focusedTopic ? t('practicePage.nextTopic') : t('practicePage.newPractice')}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
               {t('practicePage.toTests')}
@@ -1483,7 +1483,7 @@ export default function Practice() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                Все задания ({questions.length})
+                {t('practicePage.allQuestions', { count: questions.length })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1528,10 +1528,10 @@ export default function Practice() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-accent" />
-              Практика
+              {t('practicePage.title')}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isAI ? `AI-задания по слабым темам • ${latestTestName}` : `Общие задания ОРТ`}
+              {isAI ? t('practicePage.subtitleAi', { name: latestTestName }) : t('practicePage.subtitleControl')}
             </p>
           </div>
           <Badge variant="accent">{answeredCount}/{questions.length}</Badge>
@@ -1541,12 +1541,12 @@ export default function Practice() {
 
         {/* Difficulty selector — switching restarts the session with the new filter */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground mr-1">Сложность:</span>
+          <span className="text-sm text-muted-foreground mr-1">{t('practicePage.difficulty')}</span>
           {([
-            { id: 'all', label: 'Все' },
-            { id: 'easy', label: '🟢 Лёгкие' },
-            { id: 'medium', label: '🟡 Средние' },
-            { id: 'hard', label: '🔴 Сложные' },
+            { id: 'all', label: t('practicePage.difficultyAll') },
+            { id: 'easy', label: t('practicePage.difficultyEasy') },
+            { id: 'medium', label: t('practicePage.difficultyMedium') },
+            { id: 'hard', label: t('practicePage.difficultyHard') },
           ] as const).map(opt => (
             <Button
               key={opt.id}
@@ -1580,10 +1580,10 @@ export default function Practice() {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="mb-4 flex items-center justify-between">
-              <Badge variant="outline">Вопрос {currentIndex + 1} из {questions.length}</Badge>
+              <Badge variant="outline">{t('practicePage.questionOfTotal', { current: currentIndex + 1, total: questions.length })}</Badge>
               {/* Control: don't show topic to avoid revealing weak areas */}
               {isAI && currentQ && (
-                <Badge variant="secondary">{translateTopic(currentQ.topic, 'ru')}</Badge>
+                <Badge variant="secondary">{translateTopic(currentQ.topic, (i18n.language as 'en' | 'ru' | 'kg') || 'en')}</Badge>
               )}
             </div>
 
@@ -1591,32 +1591,32 @@ export default function Practice() {
               <>
                 {currentQ.instruction ? (
                   <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{t('practicePage.statement')}</p>
                     <MathRenderer content={currentQ.instruction} />
                   </div>
                 ) : (
                   <p className="mb-5 text-base text-muted-foreground">
-                    Сравните величины в столбцах A и B.
+                    {t('practicePage.compareInstruction')}
                   </p>
                 )}
 
                 <div className="mb-6 grid grid-cols-2 gap-4">
                   <div className="rounded-lg border border-border bg-card p-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('practicePage.columnA')}</p>
                     <MathRenderer content={currentQ.column_a} className="text-xl font-bold" />
                   </div>
                   <div className="rounded-lg border border-border bg-card p-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('practicePage.columnB')}</p>
                     <MathRenderer content={currentQ.column_b} className="text-xl font-bold" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {[
-                    { key: 'A', label: 'Величина в столбце A больше' },
-                    { key: 'B', label: 'Величина в столбце B больше' },
-                    { key: 'C', label: 'Величины равны' },
-                    { key: 'D', label: 'Недостаточно информации' },
+                    { key: 'A', label: t('practicePage.comparisonOption_A') },
+                    { key: 'B', label: t('practicePage.comparisonOption_B') },
+                    { key: 'C', label: t('practicePage.comparisonOption_C') },
+                    { key: 'D', label: t('practicePage.comparisonOption_D') },
                   ].map(opt => {
                     const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === opt.key;
@@ -1648,7 +1648,7 @@ export default function Practice() {
             ) : currentQ?.type === 'mcq' ? (
               <>
                 <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">{t('practicePage.statement')}</p>
                   <MathRenderer content={currentQ.instruction} />
                 </div>
 
@@ -1692,7 +1692,7 @@ export default function Practice() {
             disabled={currentIndex === 0}
           >
             <ChevronLeft className="mr-1 h-4 w-4" />
-            Назад
+            {t('common.back')}
           </Button>
 
           {currentIndex === questions.length - 1 ? (
@@ -1707,13 +1707,13 @@ export default function Practice() {
               disabled={answeredCount === 0}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              Показать результаты
+              {t('practicePage.showResults')}
             </Button>
           ) : (
             <Button
               onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
             >
-              Далее
+              {t('common.next')}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           )}
