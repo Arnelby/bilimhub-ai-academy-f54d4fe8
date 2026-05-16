@@ -28,6 +28,7 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ limit = 10, showTabs = true, className }: LeaderboardProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [weeklyLeaders, setWeeklyLeaders] = useState<LeaderboardEntry[]>([]);
