@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Trophy, Flame, Star, Sparkles, Award, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export type GamificationEventType = 
