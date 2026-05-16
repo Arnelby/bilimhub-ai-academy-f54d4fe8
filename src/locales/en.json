@@ -520,6 +520,16 @@
       "statusPending": "Pending",
       "statusActive": "ACTIVE"
     },
+    "tasks": {
+      "generalTopic": "general",
+      "questions": "Questions",
+      "lesson": "Video Lesson: {{topic}}",
+      "practiceEasy": "Practice (Easy): {{count}} {{questions}} · {{topic}}",
+      "practiceMedium": "Practice (Medium): {{count}} {{questions}} · {{topic}}",
+      "practiceHard": "Practice (Hard): {{count}} {{questions}} · {{topic}}",
+      "repeat": "Error Review: {{count}} {{questions}}",
+      "test": "Control Test: {{count}} {{questions}}"
+    },
     "tests": {
       "pageTitle": "Testing",
       "pageSubtitle": "Take a diagnostic test to analyze your knowledge",
