@@ -189,16 +189,16 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">
-                {entry.name || 'Студент'}
-                {isCurrentUser && <span className="ml-2 text-xs text-accent">(вы)</span>}
+                {entry.name || t('gamification.studentFallback')}
+                {isCurrentUser && <span className="ml-2 text-xs text-accent">{t('gamification.youSuffix')}</span>}
               </p>
               <p className="text-xs text-muted-foreground">
-                {entry.testsCompleted} тестов • Средний: {entry.averageScore}%
+                {t('gamification.testsAvg', { n: entry.testsCompleted, avg: entry.averageScore })}
               </p>
             </div>
             <div className="text-right">
               <p className="font-bold text-accent">{entry.averageScore}%</p>
-              <p className="text-xs text-muted-foreground">точность</p>
+              <p className="text-xs text-muted-foreground">{t('gamification.accuracy')}</p>
             </div>
           </div>
         );
