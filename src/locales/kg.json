@@ -520,6 +520,16 @@
       "statusPending": "[KG] Pending",
       "statusActive": "[KG] ACTIVE"
     },
+    "tasks": {
+      "generalTopic": "жалпы",
+      "questions": "маселе",
+      "lesson": "Видео сабак: {{topic}}",
+      "practiceEasy": "Практика (жеңил): {{count}} {{questions}} · {{topic}}",
+      "practiceMedium": "Практика (орточо): {{count}} {{questions}} · {{topic}}",
+      "practiceHard": "Практика (татаал): {{count}} {{questions}} · {{topic}}",
+      "repeat": "Каталарды кайталоо: {{count}} {{questions}}",
+      "test": "Контролдук тест: {{count}} {{questions}}"
+    },
     "tests": {
       "pageTitle": "[KG] Testing",
       "pageSubtitle": "[KG] Take a diagnostic test",
