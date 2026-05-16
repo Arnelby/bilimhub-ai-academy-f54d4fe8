@@ -10,18 +10,20 @@ interface StreakCalendarProps {
 }
 
 export function StreakCalendar({ streak, lastActivityDate, className }: StreakCalendarProps) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : i18n.language === 'kg' ? 'ky-KG' : 'ru-RU';
   const days = useMemo(() => {
     const result = [];
     const today = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      
-      const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' });
+
+      const dayName = date.toLocaleDateString(locale, { weekday: 'short' });
       const isActive = i < streak;
       const isToday = i === 0;
-      
+
       result.push({
         day: dayName,
         date: date.toISOString().split('T')[0],
@@ -29,14 +31,14 @@ export function StreakCalendar({ streak, lastActivityDate, className }: StreakCa
         isToday,
       });
     }
-    
+
     return result;
-  }, [streak]);
+  }, [streak, locale]);
 
   const milestones = [
-    { days: 3, label: '3 дня', reward: '+100 XP' },
-    { days: 7, label: '7 дней', reward: '+200 XP' },
-    { days: 30, label: '30 дней', reward: '+500 XP' },
+    { days: 3, label: t('gamification.milestone3'), reward: '+100 XP' },
+    { days: 7, label: t('gamification.milestone7'), reward: '+200 XP' },
+    { days: 30, label: t('gamification.milestone30'), reward: '+500 XP' },
   ];
 
   const nextMilestone = milestones.find(m => m.days > streak);
