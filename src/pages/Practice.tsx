@@ -27,6 +27,7 @@ import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesB
 import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
 import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -79,6 +80,7 @@ interface MistakeExplanation {
 
 export default function Practice() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const modeParam = searchParams.get('mode');
