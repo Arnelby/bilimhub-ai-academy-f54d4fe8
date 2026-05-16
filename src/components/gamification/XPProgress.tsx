@@ -12,6 +12,7 @@ interface XPProgressProps {
 const XP_PER_LEVEL = 500;
 
 export function XPProgress({ currentXP, level, className }: XPProgressProps) {
+  const { t } = useTranslation();
   const xpInCurrentLevel = currentXP % XP_PER_LEVEL;
   const progressPercentage = (xpInCurrentLevel / XP_PER_LEVEL) * 100;
   const xpToNextLevel = XP_PER_LEVEL - xpInCurrentLevel;
