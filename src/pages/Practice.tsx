@@ -191,7 +191,7 @@ export default function Practice() {
           const lessonId = (gate as any).lesson_id;
           console.log('[PRACTICE_GATE] blocked', gate);
           if (reason === 'lesson_required' && lessonId) {
-            toast.info('Сначала посмотри урок по этой теме');
+            toast.info(t('practicePage.watchLessonFirst'));
             navigate(`/lessons/${lessonId}`, { replace: true });
             return;
           }
@@ -298,7 +298,7 @@ export default function Practice() {
         }
 
         setQuestions(reviewQs);
-        setLatestTestName('Повторение ошибок');
+        setLatestTestName(t('practicePage.sessionMistakes'));
         setLatestTestType(reviewQs[0]?.type || 'comparison');
         setLoading(false);
         console.log('[REVIEW_MODE] loaded', { count: reviewQs.length });
@@ -666,7 +666,7 @@ export default function Practice() {
           console.log('[PRACTICE_RESTORED]', { session_id: resumeSessionId, count: restored.length });
           const wt = Array.isArray(resumeSessionRow.weak_topics) ? (resumeSessionRow.weak_topics as string[]) : [];
           setWeakTopics(wt);
-          setLatestTestName(focusRu ? `Практика: ${focusRu}` : (isAI ? 'Персональная практика' : 'Общая практика ОРТ'));
+          setLatestTestName(focusRu ? t('practicePage.sessionFocus', { topic: focusRu }) : (isAI ? t('practicePage.sessionPersonal') : t('practicePage.sessionGeneral')));
           setLatestTestType(restored[0].type);
 
           const { data: priorResp } = await supabase
@@ -734,7 +734,7 @@ export default function Practice() {
           strong_topics: plan.strongTopics,
         });
       } else {
-        setLatestTestName('Общая практика ОРТ');
+        setLatestTestName(t('practicePage.sessionGeneral'));
         setLatestTestType('comparison');
       }
 
@@ -848,7 +848,7 @@ export default function Practice() {
           final_count: chosen.length,
         };
 
-        setLatestTestName(`Практика: ${focusRu}`);
+        setLatestTestName(t('practicePage.sessionFocus', { topic: focusRu }));
       } else if (isControl) {
         chosen = pickBalancedByTopic(bank, requestedCount);
         selectionDebug = { tier: 'control', final_count: chosen.length };
@@ -959,7 +959,7 @@ export default function Practice() {
         rows_returned: 0,
         error: err instanceof Error ? err.message : String(err),
       });
-      setGenerationError('Ошибка загрузки практики');
+      setGenerationError(t('practicePage.loadError'));
     } finally {
       setLoading(false);
     }
@@ -1080,7 +1080,7 @@ export default function Practice() {
         const normTopic = normalizeAnalyticsTopic(q.topic || '');
         const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
         if (row && row.status === 'mastered') {
-          toast.success(`🎯 Тема «${row.topic}» закрыта!`);
+          toast.success(t('practicePage.topicClosed', { topic: row.topic }));
         }
       }
     } catch (e) {
@@ -1115,14 +1115,13 @@ export default function Practice() {
         const np = masteryResult.new_phase;
         const nt = masteryResult.new_topic;
         if (np === 'lesson') {
-          toast('Возврат к уроку — закрепим основу', { icon: '📘' });
-          const slug = nt ? topicToLessonSlug(nt) : null;
-          setTimeout(() => navigate(slug ? `/lessons/topic/${encodeURIComponent(slug)}` : '/lessons'), 900);
-        } else if (np === 'validation') {
-          toast.success('2 верно подряд — переходим к проверке темы');
-          setTimeout(() => navigate(`/practice?topic=${encodeURIComponent(nt || q.topic)}&mode=validation`), 900);
-        } else if (np === 'idle') {
-          toast.success('Тема улучшена! Переходим к следующей.');
+          toast(t('practicePage.backToLesson'), { icon: '📘' });
+          // …
+        } else if (decision === 'mastery_check') {
+          toast.success(t('practicePage.twoInARow'));
+        } else if (decision === 'next_topic') {
+          // legacy branch — keep the message in sync with the i18n key
+          toast.success(t('practicePage.topicImproved'));
           setTimeout(() => navigate('/next-step'), 900);
         }
       }
