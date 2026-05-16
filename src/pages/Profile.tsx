@@ -402,12 +402,6 @@ export default function Profile() {
                     {t('profilePage.dashboard')}
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
-                  <Link to="/pricing">
-                    <Star className="mr-2 h-4 w-4" />
-                    {t('profilePage.upgradeToPro')}
-                  </Link>
-                </Button>
               </CardContent>
             </Card>
           </div>
