@@ -1185,9 +1185,9 @@ export default function Practice() {
         .eq('question_id', questionId)
         .maybeSingle();
       staticSolution = staticRow?.explanation_text
-        || `Правильный ответ: ${toCyrillicKey(q.correct_answer)}. Подробное решение для этой задачи скоро появится.`;
+        || t('practicePage.staticSolutionFallback', { letter: toCyrillicKey(q.correct_answer) });
     } catch {
-      staticSolution = `Правильный ответ: ${toCyrillicKey(q.correct_answer)}.`;
+      staticSolution = t('practicePage.staticSolutionShort', { letter: toCyrillicKey(q.correct_answer) });
     }
 
     setMistakeExplanations(prev => ({
@@ -1309,7 +1309,7 @@ export default function Practice() {
       <Layout>
         <div className="flex h-[60vh] items-center justify-center flex-col gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-accent" />
-          <p className="text-sm text-muted-foreground">Генерация практических заданий...</p>
+          <p className="text-sm text-muted-foreground">{t('practicePage.loading')}</p>
         </div>
       </Layout>
     );
@@ -1320,16 +1320,16 @@ export default function Practice() {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertTriangle className="mx-auto h-16 w-16 text-warning mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Ошибка генерации</h2>
+          <h2 className="text-2xl font-bold mb-2">{t('practicePage.errorTitle')}</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">{generationError}</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => loadPractice(false)} variant="accent">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Попробовать снова
+              {t('practicePage.retry')}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
               <Target className="mr-2 h-4 w-4" />
-              К тестам
+              {t('practicePage.toTests')}
             </Button>
           </div>
         </div>
@@ -1342,17 +1342,17 @@ export default function Practice() {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <Target className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Нет заданий для практики</h2>
+          <h2 className="text-2xl font-bold mb-2">{t('practicePage.emptyTitle')}</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {isAI && weakTopics.length === 0
-              ? 'Сначала пройдите тест, чтобы система определила слабые темы.'
+              ? t('practicePage.emptyAiNoWeak')
               : isControl
-              ? 'Сначала пройдите хотя бы один тест.'
-              : 'Не найдено вопросов по вашим слабым темам.'}
+              ? t('practicePage.emptyControl')
+              : t('practicePage.emptyNoWeak')}
           </p>
           <Button onClick={() => navigate('/tests')}>
             <Target className="mr-2 h-4 w-4" />
-            Перейти к тестам
+            {t('practicePage.goToTests')}
           </Button>
         </div>
       </Layout>
@@ -1472,7 +1472,7 @@ export default function Practice() {
               {isAI && focusedTopic ? 'Следующая тема' : 'Новая практика'}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
-              К тестам
+              {t('practicePage.toTests')}
             </Button>
           </div>
 
