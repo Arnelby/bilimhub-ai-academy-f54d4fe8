@@ -92,10 +92,10 @@ export function StreakCalendar({ streak, lastActivityDate, className }: StreakCa
       {nextMilestone && (
         <div className="rounded-lg bg-muted/50 p-3 text-center">
           <p className="text-sm text-muted-foreground">
-            До награды <span className="font-semibold text-foreground">{nextMilestone.label}</span>
+            {t('gamification.untilReward')} <span className="font-semibold text-foreground">{nextMilestone.label}</span>
           </p>
           <p className="text-xs text-accent">
-            Осталось {nextMilestone.days - streak} дней • {nextMilestone.reward}
+            {t('gamification.leftDaysReward', { n: nextMilestone.days - streak, reward: nextMilestone.reward })}
           </p>
         </div>
       )}
