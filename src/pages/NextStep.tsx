@@ -97,7 +97,7 @@ export default function NextStep() {
 
   const ctaLabel = forced.session ? t('v2.nextStep.ctaContinue') : t('v2.nextStep.ctaStart');
   const ctaIcon = next ? TYPE_ICON[next.type] : <CheckCircle2 className="h-6 w-6" />;
-  const ctaReason = isCompleted ? t('v2.nextStep.planCompleted') : next?.label ?? '';
+  const ctaReason = isCompleted ? t('v2.nextStep.planCompleted') : next ? formatTaskLabel(t, next, language) : '';
 
   return (
     <Layout>
