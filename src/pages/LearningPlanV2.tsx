@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useForcedLearning } from '@/hooks/useForcedLearning';
 import { buildPlan, getNextTask, routeForTask, type Plan, type PlanTask, type TaskType } from '@/lib/taskEngine';
+import { formatTaskLabel } from '@/lib/formatTaskLabel';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const TYPE_ICON: Record<TaskType, React.ReactNode> = {
   lesson:   <BookOpen className="h-5 w-5" />,
@@ -24,6 +26,7 @@ const TYPE_ICON: Record<TaskType, React.ReactNode> = {
 
 export default function LearningPlanV2() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAI, isControl, loading: groupLoading } = useUserGroup();
@@ -141,7 +144,7 @@ export default function LearningPlanV2() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs uppercase tracking-wide text-primary font-semibold">{t('v2.learningPlan.activeTask')}</p>
-                <p className="font-medium truncate">{next.label}</p>
+                <p className="font-medium truncate">{formatTaskLabel(t, next, language)}</p>
               </div>
             </div>
             <Button size="lg" onClick={handleContinue} className="w-full h-12 text-base">
@@ -164,6 +167,7 @@ export default function LearningPlanV2() {
 
 function TaskRow({ task, index }: { task: PlanTask; index: number }) {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const isDone = task.status === 'done';
   const isActive = task.status === 'active';
   const isLocked = task.status === 'locked';
@@ -186,7 +190,7 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
         {TYPE_ICON[task.type]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{task.label}</p>
+        <p className="text-sm font-medium truncate">{formatTaskLabel(t, task, language)}</p>
         <p className="text-xs text-muted-foreground">
           {isActive ? t('v2.learningPlan.statusNow') : isDone ? t('v2.learningPlan.statusDone') : isLocked ? t('v2.learningPlan.statusLockedHint') : t('v2.learningPlan.statusPending')}
         </p>

@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useForcedLearning } from '@/hooks/useForcedLearning';
 import { buildPlan, getNextTask, routeForTask, type Plan, type TaskType } from '@/lib/taskEngine';
+import { formatTaskLabel } from '@/lib/formatTaskLabel';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const TYPE_ICON: Record<TaskType, React.ReactNode> = {
   lesson:   <BookOpen className="h-6 w-6" />,
@@ -22,6 +24,7 @@ const TYPE_ICON: Record<TaskType, React.ReactNode> = {
 
 export default function NextStep() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isAI, isControl, loading: groupLoading } = useUserGroup();
@@ -94,7 +97,7 @@ export default function NextStep() {
 
   const ctaLabel = forced.session ? t('v2.nextStep.ctaContinue') : t('v2.nextStep.ctaStart');
   const ctaIcon = next ? TYPE_ICON[next.type] : <CheckCircle2 className="h-6 w-6" />;
-  const ctaReason = isCompleted ? t('v2.nextStep.planCompleted') : next?.label ?? '';
+  const ctaReason = isCompleted ? t('v2.nextStep.planCompleted') : next ? formatTaskLabel(t, next, language) : '';
 
   return (
     <Layout>
