@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useForcedLearning } from '@/hooks/useForcedLearning';
 import { buildPlan, getNextTask, routeForTask, type Plan, type TaskType } from '@/lib/taskEngine';
+import { formatTaskLabel } from '@/lib/formatTaskLabel';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const TYPE_ICON: Record<TaskType, React.ReactNode> = {
   lesson:   <BookOpen className="h-6 w-6" />,
