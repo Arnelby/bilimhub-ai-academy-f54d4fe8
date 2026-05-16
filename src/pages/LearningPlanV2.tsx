@@ -190,7 +190,7 @@ function TaskRow({ task, index }: { task: PlanTask; index: number }) {
         {TYPE_ICON[task.type]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{task.label}</p>
+        <p className="text-sm font-medium truncate">{formatTaskLabel(t, task, language)}</p>
         <p className="text-xs text-muted-foreground">
           {isActive ? t('v2.learningPlan.statusNow') : isDone ? t('v2.learningPlan.statusDone') : isLocked ? t('v2.learningPlan.statusLockedHint') : t('v2.learningPlan.statusPending')}
         </p>
