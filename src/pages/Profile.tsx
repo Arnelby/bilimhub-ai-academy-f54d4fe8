@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Calendar,
   Edit,
-  Star,
+  
   Loader2,
   Eye
 } from 'lucide-react';
