@@ -34,11 +34,6 @@ export function Footer() {
                   {t('nav.tests')}
                 </Link>
               </li>
-              <li>
-                <Link to="/pricing" className="text-muted-foreground hover:text-accent transition-colors">
-                  {t('nav.pricing')}
-                </Link>
-              </li>
             </ul>
           </div>
 
