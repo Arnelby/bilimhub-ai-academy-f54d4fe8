@@ -355,8 +355,8 @@ export default function Profile() {
                   {achievements.map((achievement) => (
                     <AchievementCard
                       key={achievement.id}
-                      title={achievement.title}
-                      description={achievement.description}
+                      title={t(achievement.titleKey)}
+                      description={t(achievement.descriptionKey)}
                       unlocked={achievement.unlocked}
                       progress={achievement.pct}
                     />
