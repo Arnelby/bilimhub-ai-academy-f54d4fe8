@@ -52,7 +52,7 @@ export function StreakCalendar({ streak, lastActivityDate, className }: StreakCa
         </div>
         <div>
           <p className="text-3xl font-bold">{streak}</p>
-          <p className="text-sm text-muted-foreground">дней подряд</p>
+          <p className="text-sm text-muted-foreground">{t('gamification.streakDaysInRow')}</p>
         </div>
       </div>
 
