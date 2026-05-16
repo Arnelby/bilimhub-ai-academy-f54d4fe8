@@ -80,7 +80,7 @@ interface MistakeExplanation {
 
 export default function Practice() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const modeParam = searchParams.get('mode');
