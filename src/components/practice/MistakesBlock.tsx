@@ -197,7 +197,7 @@ export function MistakesBlock({
                         )}
                       >
                         <PlayCircle className="mr-1 h-4 w-4" />
-                        {t('mistakes.basicLessonNamed', { name: basic.title })}
+                        {t('mistakes.basicLessonNamed', { name: basicVideoTitle(basic) })}
                       </Button>
                     );
                   }
