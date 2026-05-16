@@ -248,7 +248,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-warning" />
-          Таблица лидеров
+          {t('gamification.leaderboardTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -256,11 +256,11 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
           <TabsList className="w-full mb-4">
             <TabsTrigger value="alltime" className="flex-1">
               <Users className="h-4 w-4 mr-2" />
-              Все время
+              {t('gamification.allTime')}
             </TabsTrigger>
             <TabsTrigger value="weekly" className="flex-1">
               <TrendingUp className="h-4 w-4 mr-2" />
-              На этой неделе
+              {t('gamification.thisWeek')}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="alltime">
@@ -273,7 +273,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         {userRank && userRank > limit && (
           <div className="mt-4 rounded-lg bg-accent/10 p-3 text-center">
             <p className="text-sm">
-              Ваше место: <span className="font-bold text-accent">#{userRank}</span>
+              {t('gamification.yourPlace')}: <span className="font-bold text-accent">#{userRank}</span>
             </p>
           </div>
         )}
