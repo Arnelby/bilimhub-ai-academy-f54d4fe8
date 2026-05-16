@@ -29,8 +29,10 @@ export type AchievementId =
 
 export interface AchievementMeta {
   id: AchievementId;
-  title: string;
-  description: string;
+  /** i18n key (under `achievementsPanel.items.<id>.title`). */
+  titleKey: string;
+  /** i18n key (under `achievementsPanel.items.<id>.description`). */
+  descriptionKey: string;
 }
 
 export interface AchievementProgress extends AchievementMeta {
@@ -41,20 +43,18 @@ export interface AchievementProgress extends AchievementMeta {
   unlockedAt?: string | null;
 }
 
-const META: AchievementMeta[] = [
-  { id: 'first_test',    title: 'Первый тест',         description: 'Пройдите свой первый тест' },
-  { id: 'tests_5',       title: '5 тестов',            description: 'Пройдите 5 тестов' },
-  { id: 'tests_10',      title: '10 тестов',           description: 'Пройдите 10 тестов' },
-  { id: 'correct_50',    title: '50 правильных',       description: '50 правильных ответов' },
-  { id: 'correct_100',   title: '100 правильных',      description: '100 правильных ответов' },
-  { id: 'correct_500',   title: '500 правильных',      description: '500 правильных ответов' },
-  { id: 'study_1h',      title: '1 час обучения',      description: 'Проведите 1 час на платформе' },
-  { id: 'study_5h',      title: '5 часов обучения',    description: 'Проведите 5 часов на платформе' },
-  { id: 'study_10h',     title: '10 часов обучения',   description: 'Проведите 10 часов на платформе' },
-  { id: 'perfect_score', title: 'Идеальный результат', description: 'Получите 100% за тест' },
-  { id: 'streak_3',      title: 'Серия 3 дня',         description: 'Учитесь 3 дня подряд' },
-  { id: 'streak_7',      title: 'Серия 7 дней',        description: 'Учитесь 7 дней подряд' },
+const IDS: AchievementId[] = [
+  'first_test', 'tests_5', 'tests_10',
+  'correct_50', 'correct_100', 'correct_500',
+  'study_1h', 'study_5h', 'study_10h',
+  'perfect_score', 'streak_3', 'streak_7',
 ];
+
+const META: AchievementMeta[] = IDS.map(id => ({
+  id,
+  titleKey: `achievementsPanel.items.${id}.title`,
+  descriptionKey: `achievementsPanel.items.${id}.description`,
+}));
 
 function compute(
   id: AchievementId,

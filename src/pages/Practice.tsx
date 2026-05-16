@@ -27,6 +27,7 @@ import { MistakesBlock, type MistakeItem } from '@/components/practice/MistakesB
 import { recordMasteryAttempt, selectForcedTopic, getMistakeQueueForTopic, getMasteryForTopic } from '@/lib/masteryEngine';
 import { TopicProgressDelta } from '@/components/practice/TopicProgressDelta';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ComparisonPractice {
   type: 'comparison';
@@ -79,6 +80,7 @@ interface MistakeExplanation {
 
 export default function Practice() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedTopic = searchParams.get('topic'); // null = no focus
   const modeParam = searchParams.get('mode');
@@ -189,7 +191,7 @@ export default function Practice() {
           const lessonId = (gate as any).lesson_id;
           console.log('[PRACTICE_GATE] blocked', gate);
           if (reason === 'lesson_required' && lessonId) {
-            toast.info('Сначала посмотри урок по этой теме');
+            toast.info(t('practicePage.watchLessonFirst'));
             navigate(`/lessons/${lessonId}`, { replace: true });
             return;
           }
@@ -296,7 +298,7 @@ export default function Practice() {
         }
 
         setQuestions(reviewQs);
-        setLatestTestName('Повторение ошибок');
+        setLatestTestName(t('practicePage.sessionMistakes'));
         setLatestTestType(reviewQs[0]?.type || 'comparison');
         setLoading(false);
         console.log('[REVIEW_MODE] loaded', { count: reviewQs.length });
@@ -664,7 +666,7 @@ export default function Practice() {
           console.log('[PRACTICE_RESTORED]', { session_id: resumeSessionId, count: restored.length });
           const wt = Array.isArray(resumeSessionRow.weak_topics) ? (resumeSessionRow.weak_topics as string[]) : [];
           setWeakTopics(wt);
-          setLatestTestName(focusRu ? `Практика: ${focusRu}` : (isAI ? 'Персональная практика' : 'Общая практика ОРТ'));
+          setLatestTestName(focusRu ? t('practicePage.sessionFocus', { topic: focusRu }) : (isAI ? t('practicePage.sessionPersonal') : t('practicePage.sessionGeneral')));
           setLatestTestType(restored[0].type);
 
           const { data: priorResp } = await supabase
@@ -732,7 +734,7 @@ export default function Practice() {
           strong_topics: plan.strongTopics,
         });
       } else {
-        setLatestTestName('Общая практика ОРТ');
+        setLatestTestName(t('practicePage.sessionGeneral'));
         setLatestTestType('comparison');
       }
 
@@ -846,7 +848,7 @@ export default function Practice() {
           final_count: chosen.length,
         };
 
-        setLatestTestName(`Практика: ${focusRu}`);
+        setLatestTestName(t('practicePage.sessionFocus', { topic: focusRu }));
       } else if (isControl) {
         chosen = pickBalancedByTopic(bank, requestedCount);
         selectionDebug = { tier: 'control', final_count: chosen.length };
@@ -957,7 +959,7 @@ export default function Practice() {
         rows_returned: 0,
         error: err instanceof Error ? err.message : String(err),
       });
-      setGenerationError('Ошибка загрузки практики');
+      setGenerationError(t('practicePage.loadError'));
     } finally {
       setLoading(false);
     }
@@ -1078,7 +1080,7 @@ export default function Practice() {
         const normTopic = normalizeAnalyticsTopic(q.topic || '');
         const row = normTopic ? await getMasteryForTopic(user.id, normTopic) : null;
         if (row && row.status === 'mastered') {
-          toast.success(`🎯 Тема «${row.topic}» закрыта!`);
+          toast.success(t('practicePage.topicClosed', { topic: row.topic }));
         }
       }
     } catch (e) {
@@ -1113,14 +1115,14 @@ export default function Practice() {
         const np = masteryResult.new_phase;
         const nt = masteryResult.new_topic;
         if (np === 'lesson') {
-          toast('Возврат к уроку — закрепим основу', { icon: '📘' });
+          toast(t('practicePage.backToLesson'), { icon: '📘' });
           const slug = nt ? topicToLessonSlug(nt) : null;
           setTimeout(() => navigate(slug ? `/lessons/topic/${encodeURIComponent(slug)}` : '/lessons'), 900);
         } else if (np === 'validation') {
-          toast.success('2 верно подряд — переходим к проверке темы');
+          toast.success(t('practicePage.twoInARow'));
           setTimeout(() => navigate(`/practice?topic=${encodeURIComponent(nt || q.topic)}&mode=validation`), 900);
         } else if (np === 'idle') {
-          toast.success('Тема улучшена! Переходим к следующей.');
+          toast.success(t('practicePage.topicImproved'));
           setTimeout(() => navigate('/next-step'), 900);
         }
       }
@@ -1183,9 +1185,9 @@ export default function Practice() {
         .eq('question_id', questionId)
         .maybeSingle();
       staticSolution = staticRow?.explanation_text
-        || `Правильный ответ: ${toCyrillicKey(q.correct_answer)}. Подробное решение для этой задачи скоро появится.`;
+        || t('practicePage.staticSolutionFallback', { letter: toCyrillicKey(q.correct_answer) });
     } catch {
-      staticSolution = `Правильный ответ: ${toCyrillicKey(q.correct_answer)}.`;
+      staticSolution = t('practicePage.staticSolutionShort', { letter: toCyrillicKey(q.correct_answer) });
     }
 
     setMistakeExplanations(prev => ({
@@ -1307,7 +1309,7 @@ export default function Practice() {
       <Layout>
         <div className="flex h-[60vh] items-center justify-center flex-col gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-accent" />
-          <p className="text-sm text-muted-foreground">Генерация практических заданий...</p>
+          <p className="text-sm text-muted-foreground">{t('practicePage.loading')}</p>
         </div>
       </Layout>
     );
@@ -1318,16 +1320,16 @@ export default function Practice() {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <AlertTriangle className="mx-auto h-16 w-16 text-warning mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Ошибка генерации</h2>
+          <h2 className="text-2xl font-bold mb-2">{t('practicePage.errorTitle')}</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">{generationError}</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => loadPractice(false)} variant="accent">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Попробовать снова
+              {t('practicePage.retry')}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
               <Target className="mr-2 h-4 w-4" />
-              К тестам
+              {t('practicePage.toTests')}
             </Button>
           </div>
         </div>
@@ -1340,17 +1342,17 @@ export default function Practice() {
       <Layout>
         <div className="container mx-auto px-4 py-16 text-center">
           <Target className="mx-auto h-16 w-16 text-muted-foreground/50 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Нет заданий для практики</h2>
+          <h2 className="text-2xl font-bold mb-2">{t('practicePage.emptyTitle')}</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             {isAI && weakTopics.length === 0
-              ? 'Сначала пройдите тест, чтобы система определила слабые темы.'
+              ? t('practicePage.emptyAiNoWeak')
               : isControl
-              ? 'Сначала пройдите хотя бы один тест.'
-              : 'Не найдено вопросов по вашим слабым темам.'}
+              ? t('practicePage.emptyControl')
+              : t('practicePage.emptyNoWeak')}
           </p>
           <Button onClick={() => navigate('/tests')}>
             <Target className="mr-2 h-4 w-4" />
-            Перейти к тестам
+            {t('practicePage.goToTests')}
           </Button>
         </div>
       </Layout>
@@ -1436,7 +1438,7 @@ export default function Practice() {
               <CardContent className="p-6 text-center space-y-3">
                 <div className="text-5xl font-bold">{percentage}%</div>
                 <p className="text-muted-foreground">
-                  {correctCount} из {questions.length} правильно
+                  {t('practicePage.correctOfTotal', { correct: correctCount, total: questions.length })}
                 </p>
               </CardContent>
             </Card>
@@ -1467,10 +1469,10 @@ export default function Practice() {
               variant="outline"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              {isAI && focusedTopic ? 'Следующая тема' : 'Новая практика'}
+              {isAI && focusedTopic ? t('practicePage.nextTopic') : t('practicePage.newPractice')}
             </Button>
             <Button onClick={() => navigate('/tests')} variant="outline">
-              К тестам
+              {t('practicePage.toTests')}
             </Button>
           </div>
 
@@ -1481,7 +1483,7 @@ export default function Practice() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
-                Все задания ({questions.length})
+                {t('practicePage.allQuestions', { count: questions.length })}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1526,10 +1528,10 @@ export default function Practice() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-accent" />
-              Практика
+              {t('practicePage.title')}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {isAI ? `AI-задания по слабым темам • ${latestTestName}` : `Общие задания ОРТ`}
+              {isAI ? t('practicePage.subtitleAi', { name: latestTestName }) : t('practicePage.subtitleControl')}
             </p>
           </div>
           <Badge variant="accent">{answeredCount}/{questions.length}</Badge>
@@ -1539,12 +1541,12 @@ export default function Practice() {
 
         {/* Difficulty selector — switching restarts the session with the new filter */}
         <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground mr-1">Сложность:</span>
+          <span className="text-sm text-muted-foreground mr-1">{t('practicePage.difficulty')}</span>
           {([
-            { id: 'all', label: 'Все' },
-            { id: 'easy', label: '🟢 Лёгкие' },
-            { id: 'medium', label: '🟡 Средние' },
-            { id: 'hard', label: '🔴 Сложные' },
+            { id: 'all', label: t('practicePage.difficultyAll') },
+            { id: 'easy', label: t('practicePage.difficultyEasy') },
+            { id: 'medium', label: t('practicePage.difficultyMedium') },
+            { id: 'hard', label: t('practicePage.difficultyHard') },
           ] as const).map(opt => (
             <Button
               key={opt.id}
@@ -1578,10 +1580,10 @@ export default function Practice() {
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="mb-4 flex items-center justify-between">
-              <Badge variant="outline">Вопрос {currentIndex + 1} из {questions.length}</Badge>
+              <Badge variant="outline">{t('practicePage.questionOfTotal', { current: currentIndex + 1, total: questions.length })}</Badge>
               {/* Control: don't show topic to avoid revealing weak areas */}
               {isAI && currentQ && (
-                <Badge variant="secondary">{translateTopic(currentQ.topic, 'ru')}</Badge>
+                <Badge variant="secondary">{translateTopic(currentQ.topic, (i18n.language as 'en' | 'ru' | 'kg') || 'en')}</Badge>
               )}
             </div>
 
@@ -1589,32 +1591,32 @@ export default function Practice() {
               <>
                 {currentQ.instruction ? (
                   <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{t('practicePage.statement')}</p>
                     <MathRenderer content={currentQ.instruction} />
                   </div>
                 ) : (
                   <p className="mb-5 text-base text-muted-foreground">
-                    Сравните величины в столбцах A и B.
+                    {t('practicePage.compareInstruction')}
                   </p>
                 )}
 
                 <div className="mb-6 grid grid-cols-2 gap-4">
                   <div className="rounded-lg border border-border bg-card p-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец A</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('practicePage.columnA')}</p>
                     <MathRenderer content={currentQ.column_a} className="text-xl font-bold" />
                   </div>
                   <div className="rounded-lg border border-border bg-card p-4 text-center">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Столбец B</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('practicePage.columnB')}</p>
                     <MathRenderer content={currentQ.column_b} className="text-xl font-bold" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   {[
-                    { key: 'A', label: 'Величина в столбце A больше' },
-                    { key: 'B', label: 'Величина в столбце B больше' },
-                    { key: 'C', label: 'Величины равны' },
-                    { key: 'D', label: 'Недостаточно информации' },
+                    { key: 'A', label: t('practicePage.comparisonOption_A') },
+                    { key: 'B', label: t('practicePage.comparisonOption_B') },
+                    { key: 'C', label: t('practicePage.comparisonOption_C') },
+                    { key: 'D', label: t('practicePage.comparisonOption_D') },
                   ].map(opt => {
                     const fixed = !!answers[qKey(currentQ)];
                     const isSelected = answers[qKey(currentQ)] === opt.key;
@@ -1646,7 +1648,7 @@ export default function Practice() {
             ) : currentQ?.type === 'mcq' ? (
               <>
                 <div className="mb-5 rounded-lg border border-border bg-muted/30 p-4">
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Условие:</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">{t('practicePage.statement')}</p>
                   <MathRenderer content={currentQ.instruction} />
                 </div>
 
@@ -1690,7 +1692,7 @@ export default function Practice() {
             disabled={currentIndex === 0}
           >
             <ChevronLeft className="mr-1 h-4 w-4" />
-            Назад
+            {t('common.back')}
           </Button>
 
           {currentIndex === questions.length - 1 ? (
@@ -1705,13 +1707,13 @@ export default function Practice() {
               disabled={answeredCount === 0}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              Показать результаты
+              {t('practicePage.showResults')}
             </Button>
           ) : (
             <Button
               onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
             >
-              Далее
+              {t('common.next')}
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           )}

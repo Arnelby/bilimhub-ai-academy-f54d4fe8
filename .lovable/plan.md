@@ -1,117 +1,90 @@
-## Полная переработка i18n в BilimHub
+## Что сейчас не на английском (аудит)
 
-Это крупная архитектурная задача, затрагивающая ~40 файлов, 5 таблиц БД и 3 edge-функции. Предлагаю поэтапный план с явными точками валидации, чтобы не сломать рабочую систему (Practice Engine, тесты, AI Tutor) одним большим коммитом.
+Сканирование `src/` показало **44 файла с захардкоженной кириллицей** и несколько источников данных, минующих i18n. Делю по приоритету для скриншотов.
 
----
+### A. Захардкоженные строки в UI-компонентах (главная причина «русского в EN-режиме»)
 
-### Фаза 1 — Фундамент i18next (без удаления старого)
+**Achievements (твой пример):**
+- `src/lib/achievementsSource.ts` — 12 достижений (`title`, `description`) жёстко на русском. `AchievementsPanel.tsx` рендерит `a.title` / `a.description` как есть → даже в EN-режиме они русские.
 
-1. Установить `i18next`, `react-i18next`, `i18next-browser-languagedetector`.
-2. Создать `src/i18n/index.ts` с инициализацией:
-   - languages: `en`, `ru`, `kg`
-   - fallbackLng: `en`
-   - `saveMissing: true` + `missingKeyHandler` → `console.warn` в dev
-   - detector: `localStorage` (`bilimhub-language`) → `navigator`
-3. Создать пустые namespace-файлы в `src/locales/{en,ru,kg}/{common,practice,tests,learningPlan,aiTutor,auth,onboarding,mistakes,lessons,videos,pricing,admin,gamification}.json`.
-4. Подключить `i18n` в `src/main.tsx` (импорт инициализатора).
-5. **Адаптер совместимости:** переписать `LanguageContext` так, чтобы `setLanguage` дополнительно вызывал `i18n.changeLanguage()` и синхронизировался с `profiles.language_preference`. Старый `t` из `i18n.ts` оставить временно — компоненты мигрируем по очереди.
+**Practice (страница, на которой ты сейчас):**
+- `src/pages/Practice.tsx` — ~30 русских строк: тосты («Сначала посмотри урок…», «Тема улучшена…», «🎯 Тема «…» закрыта!»), названия сессий («Повторение ошибок», «Общая практика ОРТ», `Практика: {topic}`), экраны загрузки/ошибок («Генерация практических заданий…», «Ошибка генерации», «К тестам», «Нет заданий для практики», «Попробовать снова»), статические объяснения («Правильный ответ: …»).
 
-Точка валидации: приложение запускается, существующие переводы работают.
+**Тесты и прохождение:**
+- `MathTestTaking.tsx` (28 строк), `TestTaking.tsx` (20), `Testing58Viewer.tsx` (34), `DiagnosticTest`-связанное.
+- `QuestionReview.tsx` (23), `TestAnalysisDisplay.tsx` (19), `TopicStrengthAnalysis.tsx` (14), `MasteryOverview.tsx` (9).
 
----
+**Уроки (все ещё ~17 файлов):**
+- `DynamicLessonViewer.tsx` (88!), `FractionsLesson.tsx` (60), `LessonViewer.tsx` (23), `LessonVariant.tsx` (17), `MathLessons.tsx`, `BasicVideoPage.tsx`, `ForcedLearn.tsx` (23), а также все `components/lessons/**` (`tabs/*`, `DynamicLessonContent`, `FullTestContent`, `BasicLessonContent`, `CommonMistakes*`, `Diagrams*`, `MiniLessons*`, `AdaptiveMiniTestContent`, `LessonTree`).
 
-### Фаза 2 — Перенос словарей и единый источник тем
+**Геймификация / прочее:**
+- `Leaderboard.tsx` (10), `GamificationToast.tsx` (7), `StreakCalendar.tsx` (6), `XPProgress.tsx` (2), `MotivationWidget.tsx` (7), `InviteCodeModal.tsx` (12), `Navbar.tsx` (только лейблы языков, ОК), `Dashboard.tsx`/`Profile.tsx` (форматирование «ч/м» завязано на `language`, но в EN уже работает).
 
-1. Перенести содержимое `src/lib/i18n.ts` (≈80 ключей) в соответствующие namespace JSON.
-2. **Темы:** ввести canonical slug как единственный ключ. Helper `useTopicName(slug)`:
-   - сначала читает `topics` из БД (`title_ru`/`title_kg`/`title`),
-   - кэширует через React Query,
-   - fallback на `t('topics:<slug>')`.
-3. `src/lib/topicTranslations.ts` помечается `@deprecated` (удалим в Фазе 6 после миграции вызовов).
+**Админка:**
+- `admin/PracticeQualityReview.tsx` (17).
 
----
+### B. Данные/контент, которые не переводятся вовсе
 
-### Фаза 3 — Миграция компонентов на `useTranslation`
+1. **Темы (`topics`)**. В UI используется `useTopicName(slug)` → возвращает русское `topic.name`. В таблице `topics` ЕСТЬ поля `title_en/title_ru/title_kg` (по предыдущей миграции). Хук их не читает.
+2. **`basicVideos.ts`** — `title` у 30+ роликов только по-русски (твой «видеоурок Proportions» → реально «Пропорции»). Нужен `title_en`.
+3. **`topicTranslations.ts`** — карта EN→RU, обратной (EN-лейблов) нет. Нужно либо инвертировать, либо использовать как fallback при `language==='en'`.
+4. **Практические задания (`practice_questions`) и уроки в Storage** — генерируются edge-функциями **только на русском**. Ты явно запретил трогать edge-функции и миграции → 100% английский для самих **вопросов/решений** на этом этапе **технически невозможен**. Это нужно зафиксировать как ограничение скриншотов.
+5. **Имена пользователей** — хранятся как ввёл пользователь (кириллица). Транслитерация в UI возможна (BGN/PCGN), но это отдельное решение.
 
-Порядок (от изолированных к корневым):
+### C. KG-локаль «не работает»
 
-- `gamification/*`, `Leaderboard.tsx`, `AchievementsPanel.tsx` → `gamification.json`
-- `FullNameModal.tsx`, `useAuth.tsx` (toasts) → `auth.json`, `onboarding.json`
-- `MistakesBlock.tsx`, `TopicSummary.tsx` → `mistakes.json`, `practice.json`
-- `Practice.tsx` → `practice.json`
-- `Tests.tsx`, `TestTaking.tsx`, `MathTestTaking.tsx`, `TestResults.tsx` → `tests.json`
-- `LearningPlanV2.tsx`, `NextStep.tsx` → `learningPlan.json`
-- `LessonViewer.tsx`, `BasicVideoPage.tsx`, lesson tabs → `lessons.json`, `videos.json`
-- `AIChatTutor.tsx` → `aiTutor.json`
-- `Pricing.tsx` → `pricing.json`
-- `admin/*` → `admin.json`
-
-Удалить inline `const t = {...}` объекты. Удалить захардкоженный русский в JSX.
+- `i18n/index.ts` инициализируется корректно, но `LanguageDetector` стоит перед `lng: initialLang` — детектор может перетирать. Плюс многие компоненты до сих пор берут строки из старого `src/lib/i18n.ts` (`useLanguage().t`), который покрывает лишь ~5% UI и для KG содержит только базовый набор → при переключении на KG большая часть остаётся русской/английской.
 
 ---
 
-### Фаза 4 — Мультиязычный контент в БД
+## План работ (фаза 4 локализации)
 
-Миграция добавит колонки `*_en` и `*_kg` (где `*_ru` уже есть — оставляем как есть, иначе переименуем существующее в `*_ru`):
+### Шаг 1. Achievements → i18n
+- Перевести `achievementsSource.ts` на ключи: вернуть `{ id, titleKey, descriptionKey }`. В `AchievementsPanel.tsx` рендерить `t(a.titleKey)`. Добавить блок `achievements.items.*` в `en/ru/kg.json` (12×2 строки).
 
-| Таблица | Поля |
-|---|---|
-| `math_questions` | instruction, column_a, column_b, option_c, option_d, correct_explanation, explanation_a..d |
-| `math_test_questions` | instruction, column_a, column_b, correct_explanation, explanation_a..e |
-| `practice_questions` | correct_explanation, explanation_a..e |
-| `question_explanations` | explanation_text |
-| `ai_mistake_explanations` | explanation |
+### Шаг 2. Practice.tsx → i18n
+- Перенести все тосты, экраны загрузки/ошибок, динамические лейблы сессий и статические объяснения на `t()` с интерполяцией (`{topic}`, `{letter}`). Namespace `practicePage.*`.
 
-Существующие данные копируются в `*_ru` (русский — текущий контент). `*_en`/`*_kg` остаются NULL до контентного наполнения.
+### Шаг 3. Тесты и аналитика результата → i18n
+- `MathTestTaking`, `TestTaking`, `Testing58Viewer`, `QuestionReview`, `TestAnalysisDisplay`, `TopicStrengthAnalysis`, `MasteryOverview`. Общие namespace’ы `testTaking.*`, `review.*`, `analysis.*`.
 
-Helper `src/lib/getLocalized.ts`:
-```ts
-getLocalized(row, 'instruction', lang)
-// row.instruction_<lang> ?? row.instruction_en ?? row.instruction ?? ''
-```
+### Шаг 4. Уроки → i18n (самый объёмный)
+- Все `pages/*Lesson*`, `pages/LessonViewer`, `pages/DynamicLessonViewer`, `pages/LessonVariant`, `pages/BasicVideoPage`, `pages/ForcedLearn`, плюс все `components/lessons/**`. Namespace `lessonViewer.*`, `lessonTabs.*`. Само **содержимое** уроков (Storage JSON) остаётся как есть (см. ограничение D ниже).
 
-Применяется во всех select-запросах к этим таблицам в UI.
+### Шаг 5. Геймификация и виджеты → i18n
+- `Leaderboard`, `GamificationToast`, `StreakCalendar`, `XPProgress`, `MotivationWidget`, `InviteCodeModal`. Namespace `gamification.*` уже частично есть — расширить.
 
----
+### Шаг 6. Динамические темы из БД
+- Обновить `useTopicName.ts`: читать `title_en/title_ru/title_kg` из `topics` через `getLocalized(row, 'title', language)`; если поля нет — fallback на `topicTranslations` (EN-ключ) или `topic.name`.
+- Никаких миграций: используем уже существующие колонки (по [Multilingual Lesson Data] memory они есть).
 
-### Фаза 5 — Локализация AI
+### Шаг 7. `basicVideos.ts` → мультиязычно
+- Заменить `title: string` на `title: { en, ru, kg }`. В местах рендера использовать `v.title[language] ?? v.title.en`. Заполнить EN-названия для 30 роликов (Quadratic Equations, Linear Equations, Proportions, …).
 
-1. Все вызовы edge-функций передают `language` (берётся из `LanguageContext` / профиля). Часть уже передаёт — допишем для остальных.
-2. `ai-practice-generate`, `ai-chat-tutor`, `ai-generate-lesson` — ввести 3-язычные системные промпты (объект `{en, ru, kg}`) вместо текущего «всегда русский».
-3. AI-сгенерированные объяснения сохраняются с пометкой языка (в `ai_mistake_explanations` добавится `language` колонка), кэш ключуется по `(question_id, language)`.
+### Шаг 8. KG-локаль — починить переключение
+- В `i18n/index.ts` убрать `LanguageDetector` (или поставить `detection.order: ['localStorage']`) и явно вызывать `i18n.changeLanguage(initialLang)` после init.
+- Постепенно заполнять `kg.json` (сейчас оставляем `[KG] …` заглушки, как и договаривались — это не блокирует EN-скриншоты).
 
----
+### Шаг 9. Админка `PracticeQualityReview.tsx`
+- В отдельный namespace `admin.practiceReview.*`. Низкий приоритет для скриншотов студента, но нужно для полноты.
 
-### Фаза 6 — Чистка и CI
+### Шаг 10. QA для EN-скриншотов
+- Пройти руками: `/`, `/dashboard`, `/profile`, `/lessons`, `/practice` (со старта, в процессе, на ошибке, на завершении), `/tests`, `/test/:variant`, `/results/:id`, `/learning-plan`, `/ai-tutor`, `/leaderboard`. Зафиксировать оставшиеся русские строки и добить.
 
-1. Удалить `src/lib/i18n.ts` и старый `t` из `LanguageContext` (оставить только `language`/`setLanguage`).
-2. Удалить `src/lib/topicTranslations.ts`.
-3. Добавить скрипт `scripts/check-i18n.mjs`: ripgrep по `src/**/*.{tsx,ts}`, ищет кириллицу вне `src/locales/` и комментариев. Подключить как `lint:i18n`.
-4. ESLint custom rule опционально (отложим, если CI-скрипта достаточно).
+### D. Принципиальное ограничение (важно понимать до скриншотов)
+Эти данные **останутся русскоязычными** в EN-режиме, потому что мы не трогаем edge-функции и БД-контент:
+- **Тексты практических заданий** (`practice_questions.question/options/explanation`) — генерируются Gemini по-русски.
+- **Тексты тестовых вопросов ОРТ** (`math_questions.*`) — хранятся по-русски, английских версий нет.
+- **Содержимое уроков** (Storage `lessons/*.json` — теория, видео-подписи).
+- **Имена пользователей** — как ввели.
 
----
-
-### Фаза 7 — QA
-
-Ручная проверка матрицы Pages × Languages (Dashboard, Practice, Tests, Results, LearningPlan, AI Tutor, Lessons, Videos, Pricing, Admin) × (en/ru/kg). Логируем missing keys в консоль.
-
----
+Для 100%-английских скриншотов **обвязки** (навигация, кнопки, тосты, заголовки, метаданные, лейблы тем, названия достижений, названия видеоуроков) — этот план достаточен. Для англоязычного **содержимого заданий** потребуется отдельная фаза с миграцией БД и/или edge-функциями (вне текущих рамок).
 
 ### Технические детали
+- Все новые строки добавлять синхронно в `en.json`, `ru.json`, `kg.json` (в KG — `[KG] <english>` как маркер).
+- Использовать `useTranslation()` из `react-i18next`, а не legacy `useLanguage().t`.
+- Для дат/чисел: `i18n.language === 'en' ? 'en-US' : 'ru-RU'` (паттерн уже есть в Dashboard).
+- Не запускать миграции БД, не трогать `supabase/functions/**`.
 
-- **Объём:** ~40 файлов компонентов, 13 namespace × 3 языка = 39 JSON файлов, 1 БД-миграция (~25 ALTER TABLE), 3 edge-функции.
-- **Риски:** регрессия Practice Engine (только что стабилизирован) и тестового флоу — миграция компонентов делается без изменения бизнес-логики, только замена строк на `t(...)`.
-- **kg-переводы:** для UI делаем полный набор; для контента БД — пустые поля (fallback на en/ru).
-- **Совместимость:** старый `useLanguage().t` продолжит работать на время Фазы 3 благодаря адаптеру.
-
----
-
-### Уточняющие вопросы перед стартом
-
-Это очень крупная работа (оценка: 10–15 итераций даже при идеальном проходе). Прежде чем начать, нужно подтверждение по двум моментам:
-
-1. **Объём первой итерации.** Делаем всё за один проход (большой риск регрессий, длинный ревью), или режем на 2–3 PR-эквивалента: (A) Фазы 1–3 — i18next + UI, (B) Фазы 4–5 — БД + AI, (C) Фаза 6–7 — чистка + CI?
-
-2. **Английские/кыргызские переводы UI.** Я генерирую переводы сам (быстро, но качество кыргызского у меня ограничено), или оставляю kg-ключи как заглушки `[KG] ...` для последующего наполнения переводчиком?
-
-После ответов начинаю выполнение.
+### Порядок выполнения
+Рекомендую делать шаги **1 → 2 → 6 → 7 → 5 → 3 → 4 → 8 → 9 → 10** — сначала закрыть твой текущий экран (Practice + Achievements + темы + видео), затем геймификацию/тесты, потом тяжёлый блок уроков, и в конце KG + админка + QA.

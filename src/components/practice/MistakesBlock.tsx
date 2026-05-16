@@ -10,7 +10,7 @@ import { toCyrillicKey } from '@/lib/mathTestConfig';
 import { useTopicName } from '@/hooks/useTopicName';
 import type { LearningState } from '@/lib/learningState';
 import { nextActionRoute } from '@/lib/learningState';
-import { basicVideoForTopic } from '@/lib/basicVideos';
+import { basicVideoForTopic, basicVideoTitle } from '@/lib/basicVideos';
 
 export interface MistakeItem {
   questionId: string;
@@ -197,7 +197,7 @@ export function MistakesBlock({
                         )}
                       >
                         <PlayCircle className="mr-1 h-4 w-4" />
-                        {t('mistakes.basicLessonNamed', { name: basic.title })}
+                        {t('mistakes.basicLessonNamed', { name: basicVideoTitle(basic) })}
                       </Button>
                     );
                   }

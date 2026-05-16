@@ -65,8 +65,8 @@ export function AchievementsPanel() {
                 {ICONS[a.id]}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{a.title}</p>
-                <p className="text-xs text-muted-foreground">{a.description}</p>
+                <p className="text-sm font-medium truncate">{t(a.titleKey)}</p>
+                <p className="text-xs text-muted-foreground">{t(a.descriptionKey)}</p>
                 {!a.unlocked && (
                   <div className="mt-1 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div
