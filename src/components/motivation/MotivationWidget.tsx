@@ -28,6 +28,7 @@ export function MotivationWidget({
   warningLevel,
   className,
 }: MotivationWidgetProps) {
+  const { t } = useTranslation();
   const goalPct = Math.min(
     100,
     Math.round((tasksCompletedToday / Math.max(1, dailyGoal)) * 100)
@@ -35,9 +36,9 @@ export function MotivationWidget({
 
   const warningCopy: Record<typeof warningLevel, string | null> = {
     none: null,
-    soft: 'Меньше 3 активных дней за неделю — не сбавляйте темп.',
-    strong: 'Меньше 2 активных дней за неделю — серия под угрозой.',
-    risk: 'Риск потери серии — позанимайтесь сегодня.',
+    soft: t('gamification.warnSoft'),
+    strong: t('gamification.warnStrong'),
+    risk: t('gamification.warnRisk'),
   };
 
   return (
