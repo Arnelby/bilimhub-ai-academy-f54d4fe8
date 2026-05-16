@@ -127,7 +127,7 @@ export function GamificationToast({
           </div>
           <div className="flex-1">
             <p className="font-bold text-foreground">
-              {title || config.defaultTitle}
+              {title || t(config.titleKey)}
             </p>
             <p className="text-sm text-muted-foreground">
               {description || (value && `+${value} XP`)}
