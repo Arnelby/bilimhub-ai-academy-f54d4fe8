@@ -24,6 +24,7 @@ const TYPE_ICON: Record<TaskType, React.ReactNode> = {
 
 export default function NextStep() {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isAI, isControl, loading: groupLoading } = useUserGroup();
