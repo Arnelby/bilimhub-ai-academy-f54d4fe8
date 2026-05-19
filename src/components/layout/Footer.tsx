@@ -12,10 +12,14 @@ export function Footer() {
         <div className="grid gap-8 grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="flex items-center gap-2">
-              <img src={logo} alt="BilimHub" className="h-8 w-auto" />
+            <Link to="/" className="flex items-center gap-2.5">
+              <img src={logo} alt="BilimHub" className="h-12 w-auto md:h-14" />
+              <span className="text-xl font-bold tracking-tight gradient-text">BilimHub</span>
             </Link>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm font-semibold tracking-wide text-accent">
+              Learn • Practice • Succeed
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
               {t('footer.tagline')}
             </p>
           </div>
