@@ -9,7 +9,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import logo from '@/assets/bilimhub-logo.png';
+
 import { z } from 'zod';
 
 export default function Login() {
