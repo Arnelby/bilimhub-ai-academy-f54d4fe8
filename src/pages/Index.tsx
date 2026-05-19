@@ -26,6 +26,7 @@ import { useLearningState } from '@/hooks/useLearningState';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
+import bilimhubLogo from '@/assets/bilimhub-logo.png';
 
 const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
   take_test: <ClipboardList className="h-7 w-7" />,
@@ -39,18 +40,29 @@ function GuestHero() {
   const { t } = useTranslation();
   return (
     <Layout>
-      <section className="container mx-auto px-4 py-16 max-w-3xl text-center space-y-6">
+      <section className="container mx-auto px-4 py-16 md:py-24 max-w-4xl text-center space-y-7">
+        <img
+          src={bilimhubLogo}
+          alt="BilimHub"
+          className="mx-auto h-24 md:h-32 w-auto"
+        />
+        <div className="space-y-2">
+          <h2 className="text-3xl md:text-4xl font-bold gradient-text">BilimHub</h2>
+          <p className="text-sm md:text-base font-semibold tracking-widest text-accent uppercase">
+            Learn • Practice • Succeed
+          </p>
+        </div>
         <Badge variant="secondary" className="mx-auto">
           <Sparkles className="h-3 w-3 mr-1" />
-          BilimHub
+          Powered by BilimHub AI
         </Badge>
-        <h1 className="text-4xl md:text-5xl font-bold">
-          {t('v2.home.guestTitle')}
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+          AI-Powered Personalized Learning for ORT Success
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
           {t('v2.home.guestSubtitle')}
         </p>
-        <Button size="lg" asChild>
+        <Button size="lg" asChild className="h-14 px-8 text-base">
           <Link to="/login">
             {t('v2.home.guestStart')} <ArrowRight className="ml-2 h-5 w-5" />
           </Link>

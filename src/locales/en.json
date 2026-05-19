@@ -43,7 +43,7 @@
     "dashboard": "Dashboard",
     "profile": "Profile",
     "pricing": "Pricing",
-    "aiTutor": "AI Tutor",
+    "aiTutor": "BilimHub AI Tutor",
     "myPlan": "My Plan",
     "practice": "Practice",
     "more": "More",
@@ -234,7 +234,7 @@
     "mistakes": {
       "title": "Recent mistakes",
       "empty": "No mistakes yet — keep practicing!",
-      "reviewWith": "Review with AI Tutor",
+      "reviewWith": "Review with BilimHub AI Tutor",
       "wrongAnswer": "Your answer: {{answer}}",
       "correct": "Correct: {{answer}}",
       "explanation": "Explanation",
@@ -262,7 +262,7 @@
     "nextStepEmpty": "Nothing planned right now."
   },
   "aiTutor": {
-    "title": "AI Tutor",
+    "title": "BilimHub AI Tutor",
     "subtitle": "Ask questions, get explanations and practice problems",
     "placeholder": "Ask the tutor a question...",
     "send": "Send",
@@ -671,7 +671,7 @@
     "saveError": "Save failed. Please try again."
   },
   "chat": {
-    "title": "AI Tutor",
+    "title": "BilimHub AI Tutor",
     "greeting": "Hi! I'm your AI tutor. Ask me any math question!",
     "placeholderLogin": "Sign in to write",
     "placeholder": "Ask a question...",
@@ -705,7 +705,7 @@
       "lessonsSub": "Continue learning",
       "tests": "Tests",
       "testsSub": "Take a test",
-      "aiTutor": "AI Tutor",
+      "aiTutor": "BilimHub AI Tutor",
       "aiTutorSub": "Ask a question",
       "myPlan": "My Plan",
       "myPlanSub": "AI study plan",
