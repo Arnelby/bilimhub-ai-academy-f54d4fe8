@@ -74,9 +74,10 @@ export function Navbar() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             )}
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <img src={logo} alt="BilimHub" className="h-11 w-auto md:h-12 transition-transform group-hover:scale-105" />
-              <span className="hidden sm:inline text-lg font-bold tracking-tight gradient-text">BilimHub</span>
+            <Link to="/" className="flex items-center group">
+              <span className="text-xl md:text-2xl font-bold tracking-tight gradient-text transition-transform group-hover:scale-[1.02]">
+                BilimHub
+              </span>
             </Link>
           </div>
 
