@@ -12,6 +12,9 @@ import {
   Sparkles,
   PlayCircle,
   ChevronDown,
+  Brain,
+  LineChart,
+  Route,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -26,7 +29,6 @@ import { useLearningState } from '@/hooks/useLearningState';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
-import bilimhubLogo from '@/assets/bilimhub-logo.png';
 
 const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
   take_test: <ClipboardList className="h-7 w-7" />,
@@ -38,39 +40,53 @@ const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
 
 function GuestHero() {
   const { t } = useTranslation();
+  const features = [
+    { icon: Route, title: t('v2.home.featurePathTitle'), desc: t('v2.home.featurePathDesc') },
+    { icon: Brain, title: t('v2.home.featureTutorTitle'), desc: t('v2.home.featureTutorDesc') },
+    { icon: Target, title: t('v2.home.featurePracticeTitle'), desc: t('v2.home.featurePracticeDesc') },
+    { icon: LineChart, title: t('v2.home.featureAnalyticsTitle'), desc: t('v2.home.featureAnalyticsDesc') },
+  ];
   return (
     <Layout>
-      <section className="container mx-auto px-4 py-16 md:py-24 max-w-4xl text-center space-y-7">
-        <img
-          src={bilimhubLogo}
-          alt="BilimHub"
-          className="mx-auto h-24 md:h-32 w-auto"
-        />
-        <div className="space-y-2">
-          <h2 className="text-3xl md:text-4xl font-bold gradient-text">BilimHub</h2>
-          <p className="text-sm md:text-base font-semibold tracking-widest text-accent uppercase">
-            Learn • Practice • Succeed
+      <section className="container mx-auto px-4 py-20 md:py-28 max-w-5xl">
+        <div className="text-center space-y-6 max-w-3xl mx-auto">
+          <Badge variant="secondary" className="mx-auto inline-flex">
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            {t('v2.home.guestBadge')}
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]">
+            {t('v2.home.guestTitle')}
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+            {t('v2.home.guestSubtitle')}
           </p>
+          <div className="pt-2">
+            <Button size="lg" asChild className="h-14 px-8 text-base">
+              <Link to="/login">
+                {t('v2.home.guestStart')} <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
         </div>
-        <Badge variant="secondary" className="mx-auto">
-          <Sparkles className="h-3 w-3 mr-1" />
-          Powered by BilimHub AI
-        </Badge>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-          AI-Powered Personalized Learning for ORT Success
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          {t('v2.home.guestSubtitle')}
-        </p>
-        <Button size="lg" asChild className="h-14 px-8 text-base">
-          <Link to="/login">
-            {t('v2.home.guestStart')} <ArrowRight className="ml-2 h-5 w-5" />
-          </Link>
-        </Button>
+
+        <div className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {features.map((f) => (
+            <Card key={f.title} className="border border-border/60 hover:border-accent/40 transition-colors">
+              <CardContent className="p-6 space-y-3">
+                <div className="w-11 h-11 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+                  <f.icon className="h-5 w-5" />
+                </div>
+                <h3 className="font-semibold text-base leading-tight">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
     </Layout>
   );
 }
+
 
 function ControlHome() {
   const { t } = useTranslation();

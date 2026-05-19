@@ -33,10 +33,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   }, [language]);
 
-  // Hydrate from profile preference once user is signed in.
+  // Hydrate from profile only if user has never explicitly chosen a language.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (typeof window !== 'undefined' && window.localStorage.getItem('bilimhub-language')) {
+        // User has an explicit choice — do not override.
+        return;
+      }
       const { data } = await supabase.auth.getUser();
       const userId = data.user?.id;
       if (!userId) return;
