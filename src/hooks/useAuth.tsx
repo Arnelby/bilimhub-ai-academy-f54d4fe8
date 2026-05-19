@@ -133,6 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const signOut = async () => {
+    // Clear per-user navigation caches so the next user starts fresh.
+    try {
+      const { invalidateAccessCache } = await import('@/components/ProtectedRoute');
+      invalidateAccessCache();
+    } catch {}
     await supabase.auth.signOut();
     setProfile(null);
     toast({
