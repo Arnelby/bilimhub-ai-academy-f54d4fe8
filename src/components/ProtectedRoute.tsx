@@ -5,6 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FullNameModal } from '@/components/onboarding/FullNameModal';
 import { useUserGroup } from '@/hooks/useUserGroup';
+// NOTE: useSessionTracking is intentionally NOT used here — it is mounted
+// once at the app root via <SessionTrackingRoot /> to avoid creating a new
+// user_sessions row on every navigation between protected pages.
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
