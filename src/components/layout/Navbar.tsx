@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserGroup } from '@/hooks/useUserGroup';
 import { Language } from '@/lib/i18n';
-import logo from '@/assets/bilimhub-logo.png';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
