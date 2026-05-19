@@ -462,9 +462,9 @@
     "noTopic": "[KG] No topic"
   },
   "v2": {
-    "more": "[KG] More",
-    "loginCta": "[KG] Sign in",
-    "back": "[KG] Back",
+    "more": "Дагы",
+    "loginCta": "Кирүү",
+    "back": "Артка",
     "home": {
       "guestBadge": "BilimHub AI менен",
       "guestTitle": "ЖРТга AI жардамы менен жекелештирилген даярдык",
