@@ -278,32 +278,46 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">{t('dashboardPage.title')}</h1>
-          <p className="text-muted-foreground">
-            {profileName ? `${profileName} — ` : ''}{t('dashboardPage.subtitle')}
-          </p>
-        </div>
-
         {!hasData ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <BarChart3 className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">{t('dashboardPage.noDataTitle')}</h3>
-              <p className="text-muted-foreground max-w-md mb-6">
-                {t('dashboardPage.noDataBody')}
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold">{t('dashboardPage.title')}</h1>
+              <p className="text-muted-foreground">
+                {profileName ? `${profileName} — ` : ''}{t('dashboardPage.subtitle')}
               </p>
-              <Button asChild>
-                <Link to="/tests">
-                  <Target className="mr-2 h-4 w-4" />
-                  {t('dashboardPage.takeTest')}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <BarChart3 className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium mb-2">{t('dashboardPage.noDataTitle')}</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  {t('dashboardPage.noDataBody')}
+                </p>
+                <Button asChild>
+                  <Link to="/tests">
+                    <Target className="mr-2 h-4 w-4" />
+                    {t('dashboardPage.takeTest')}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </>
         ) : (
           <>
+            {/* Hero block: adaptive learning home screen */}
+            <LearningHero
+              studentName={profileName}
+              masteryPercent={analytics.latestTestScore}
+              weakTopicsCount={analytics.weakTopics.length}
+              streakDays={analytics.streakDays}
+              testsCompleted={analytics.testsCompleted}
+              topWeakTopic={analytics.weakTopics[0] ?? null}
+              isAI={isAI}
+            />
+
+            {/* Mastery Overview */}
+            <MasteryOverview topicAccuracy={analytics.topicAccuracy} />
+
             {/* Quick Nav */}
             <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <QuickAction icon={<Play className="h-6 w-6" />} title={t('dashboardPage.quick.lessons')} sub={t('dashboardPage.quick.lessonsSub')} to="/lessons" color="accent" goLabel={t('dashboardPage.quick.go')} />
