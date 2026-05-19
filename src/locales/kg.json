@@ -377,8 +377,6 @@
     "testsAvg": "[KG] {{n}} tests • Average: {{avg}}%",
     "accuracy": "[KG] accuracy",
     "yourPlace": "[KG] Your place",
-    "allTime": "[KG] All time",
-    "thisWeek": "[KG] This week",
     "seriesStreak": "[KG] Streak: {{n}} days in a row",
     "activeDays7": "[KG] Active days out of 7:",
     "dailyGoal": "[KG] Daily goal",
@@ -689,18 +687,54 @@
   "achievementsPanel": {
     "title": "[KG] Achievements",
     "items": {
-      "first_test":    { "title": "[KG] First test",          "description": "[KG] Complete your first test" },
-      "tests_5":       { "title": "[KG] 5 tests",             "description": "[KG] Complete 5 tests" },
-      "tests_10":      { "title": "[KG] 10 tests",            "description": "[KG] Complete 10 tests" },
-      "correct_50":    { "title": "[KG] 50 correct",          "description": "[KG] 50 correct answers" },
-      "correct_100":   { "title": "[KG] 100 correct",         "description": "[KG] 100 correct answers" },
-      "correct_500":   { "title": "[KG] 500 correct",         "description": "[KG] 500 correct answers" },
-      "study_1h":      { "title": "[KG] 1 hour of study",     "description": "[KG] Spend 1 hour on the platform" },
-      "study_5h":      { "title": "[KG] 5 hours of study",    "description": "[KG] Spend 5 hours on the platform" },
-      "study_10h":     { "title": "[KG] 10 hours of study",   "description": "[KG] Spend 10 hours on the platform" },
-      "perfect_score": { "title": "[KG] Perfect score",       "description": "[KG] Score 100% on a test" },
-      "streak_3":      { "title": "[KG] 3-day streak",        "description": "[KG] Study 3 days in a row" },
-      "streak_7":      { "title": "[KG] 7-day streak",        "description": "[KG] Study 7 days in a row" }
+      "first_test": {
+        "title": "[KG] First test",
+        "description": "[KG] Complete your first test"
+      },
+      "tests_5": {
+        "title": "[KG] 5 tests",
+        "description": "[KG] Complete 5 tests"
+      },
+      "tests_10": {
+        "title": "[KG] 10 tests",
+        "description": "[KG] Complete 10 tests"
+      },
+      "correct_50": {
+        "title": "[KG] 50 correct",
+        "description": "[KG] 50 correct answers"
+      },
+      "correct_100": {
+        "title": "[KG] 100 correct",
+        "description": "[KG] 100 correct answers"
+      },
+      "correct_500": {
+        "title": "[KG] 500 correct",
+        "description": "[KG] 500 correct answers"
+      },
+      "study_1h": {
+        "title": "[KG] 1 hour of study",
+        "description": "[KG] Spend 1 hour on the platform"
+      },
+      "study_5h": {
+        "title": "[KG] 5 hours of study",
+        "description": "[KG] Spend 5 hours on the platform"
+      },
+      "study_10h": {
+        "title": "[KG] 10 hours of study",
+        "description": "[KG] Spend 10 hours on the platform"
+      },
+      "perfect_score": {
+        "title": "[KG] Perfect score",
+        "description": "[KG] Score 100% on a test"
+      },
+      "streak_3": {
+        "title": "[KG] 3-day streak",
+        "description": "[KG] Study 3 days in a row"
+      },
+      "streak_7": {
+        "title": "[KG] 7-day streak",
+        "description": "[KG] Study 7 days in a row"
+      }
     }
   },
   "dashboardPage": {
@@ -1044,5 +1078,26 @@
     "basic-rational": "[KG] Rational expressions",
     "basic-ratios": "[KG] Ratios and proportions",
     "basic-percentages": "[KG] Percentages"
+  },
+  "reportIssue": {
+    "title": "Көйгөй тууралуу билдирүү",
+    "buttonAria": "Көйгөй тууралуу билдирүү",
+    "modalTitle": "Көйгөй тууралуу билдирүү",
+    "modalDescription": "Эмне болгонун жазыңыз. Барактын маалыматы автоматтык түрдө кошулат.",
+    "fieldTitle": "Аталышы",
+    "fieldTitlePlaceholder": "Көйгөйдү кыскача жазыңыз",
+    "fieldDescription": "Толук сүрөттөмө",
+    "fieldDescriptionPlaceholder": "Кадамдар, күтүлгөн жана нагыз жыйынтык...",
+    "fieldScreenshot": "Скриншот (милдеттүү эмес)",
+    "submit": "Жөнөтүү",
+    "submitting": "Жөнөтүлүүдө...",
+    "cancel": "Жокко чыгаруу",
+    "successTitle": "Рахмат!",
+    "successMessage": "Сиздин билдирүүңүз ийгиликтүү жөнөтүлдү.",
+    "errorTitle": "Жөнөтүлгөн жок",
+    "errorMessage": "Бир аздан кийин кайра аракет кылыңыз.",
+    "loginRequired": "Көйгөй тууралуу билдирүү үчүн кириңиз.",
+    "validationTitleRequired": "Аталышты жазыңыз.",
+    "validationDescriptionRequired": "Көйгөйдү сүрөттөңүз."
   }
 }

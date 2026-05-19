@@ -377,8 +377,6 @@
     "testsAvg": "{{n}} tests • Average: {{avg}}%",
     "accuracy": "accuracy",
     "yourPlace": "Your place",
-    "allTime": "All time",
-    "thisWeek": "This week",
     "seriesStreak": "Streak: {{n}} days in a row",
     "activeDays7": "Active days out of 7:",
     "dailyGoal": "Daily goal",
@@ -689,18 +687,54 @@
   "achievementsPanel": {
     "title": "Achievements",
     "items": {
-      "first_test":    { "title": "First test",          "description": "Complete your first test" },
-      "tests_5":       { "title": "5 tests",             "description": "Complete 5 tests" },
-      "tests_10":      { "title": "10 tests",            "description": "Complete 10 tests" },
-      "correct_50":    { "title": "50 correct",          "description": "50 correct answers" },
-      "correct_100":   { "title": "100 correct",         "description": "100 correct answers" },
-      "correct_500":   { "title": "500 correct",         "description": "500 correct answers" },
-      "study_1h":      { "title": "1 hour of study",     "description": "Spend 1 hour on the platform" },
-      "study_5h":      { "title": "5 hours of study",    "description": "Spend 5 hours on the platform" },
-      "study_10h":     { "title": "10 hours of study",   "description": "Spend 10 hours on the platform" },
-      "perfect_score": { "title": "Perfect score",       "description": "Score 100% on a test" },
-      "streak_3":      { "title": "3-day streak",        "description": "Study 3 days in a row" },
-      "streak_7":      { "title": "7-day streak",        "description": "Study 7 days in a row" }
+      "first_test": {
+        "title": "First test",
+        "description": "Complete your first test"
+      },
+      "tests_5": {
+        "title": "5 tests",
+        "description": "Complete 5 tests"
+      },
+      "tests_10": {
+        "title": "10 tests",
+        "description": "Complete 10 tests"
+      },
+      "correct_50": {
+        "title": "50 correct",
+        "description": "50 correct answers"
+      },
+      "correct_100": {
+        "title": "100 correct",
+        "description": "100 correct answers"
+      },
+      "correct_500": {
+        "title": "500 correct",
+        "description": "500 correct answers"
+      },
+      "study_1h": {
+        "title": "1 hour of study",
+        "description": "Spend 1 hour on the platform"
+      },
+      "study_5h": {
+        "title": "5 hours of study",
+        "description": "Spend 5 hours on the platform"
+      },
+      "study_10h": {
+        "title": "10 hours of study",
+        "description": "Spend 10 hours on the platform"
+      },
+      "perfect_score": {
+        "title": "Perfect score",
+        "description": "Score 100% on a test"
+      },
+      "streak_3": {
+        "title": "3-day streak",
+        "description": "Study 3 days in a row"
+      },
+      "streak_7": {
+        "title": "7-day streak",
+        "description": "Study 7 days in a row"
+      }
     }
   },
   "dashboardPage": {
@@ -1044,5 +1078,26 @@
     "basic-rational": "Rational expressions",
     "basic-ratios": "Ratios and proportions",
     "basic-percentages": "Percentages"
+  },
+  "reportIssue": {
+    "title": "Report an Issue",
+    "buttonAria": "Report an Issue",
+    "modalTitle": "Report an Issue",
+    "modalDescription": "Tell us what went wrong. Page context is attached automatically.",
+    "fieldTitle": "Title",
+    "fieldTitlePlaceholder": "Short summary of the problem",
+    "fieldDescription": "Description",
+    "fieldDescriptionPlaceholder": "Steps to reproduce, expected vs actual behavior...",
+    "fieldScreenshot": "Screenshot (optional)",
+    "submit": "Send report",
+    "submitting": "Sending...",
+    "cancel": "Cancel",
+    "successTitle": "Thank you!",
+    "successMessage": "Your report has been submitted.",
+    "errorTitle": "Could not send",
+    "errorMessage": "Please try again in a moment.",
+    "loginRequired": "Please sign in to report an issue.",
+    "validationTitleRequired": "Please add a title.",
+    "validationDescriptionRequired": "Please describe the issue."
   }
 }
