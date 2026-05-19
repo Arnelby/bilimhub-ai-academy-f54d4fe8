@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import logo from '@/assets/bilimhub-logo.png';
+
 
 export function Footer() {
   const { t } = useTranslation();
