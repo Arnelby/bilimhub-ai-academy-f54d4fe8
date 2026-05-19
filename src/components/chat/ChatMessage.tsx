@@ -11,20 +11,22 @@ export function ChatMessage({ role, content }: ChatMessageProps) {
   return (
     <div className={cn('flex gap-3', role === 'user' ? 'justify-end' : 'justify-start')}>
       {role === 'assistant' && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-white shadow-sm">
           <Bot className="h-4 w-4" />
         </div>
       )}
       <div
         className={cn(
-          'max-w-[80%] rounded-lg px-4 py-2 text-sm',
-          role === 'user' ? 'bg-accent text-accent-foreground' : 'bg-muted'
+          'max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+          role === 'user'
+            ? 'bg-primary text-primary-foreground rounded-tr-sm'
+            : 'bg-card border border-border/70 text-foreground rounded-tl-sm'
         )}
       >
         <MathRenderer content={content} />
       </div>
       {role === 'user' && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <User className="h-4 w-4" />
         </div>
       )}

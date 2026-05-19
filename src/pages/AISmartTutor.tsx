@@ -272,13 +272,18 @@ export default function AISmartTutor() {
       <div className="container py-6 h-[calc(100vh-12rem)]">
         <div className="flex flex-col h-full max-w-4xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-primary" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-primary flex items-center justify-center shadow-md">
+                <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{t('aiSmartTutor.title')}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-2xl font-bold tracking-tight">{t('aiSmartTutor.title')}</h1>
+                  <Badge variant="outline" className="text-[11px] font-medium border-accent/40 text-accent">
+                    {t('aiSmartTutor.poweredBy')}
+                  </Badge>
+                </div>
                 <p className="text-sm text-muted-foreground">{t('aiSmartTutor.subtitle')}</p>
               </div>
             </div>
