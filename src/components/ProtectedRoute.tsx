@@ -4,8 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FullNameModal } from '@/components/onboarding/FullNameModal';
-import { useSessionTracking } from '@/hooks/useSessionTracking';
 import { useUserGroup } from '@/hooks/useUserGroup';
+// NOTE: useSessionTracking is intentionally NOT used here — it is mounted
+// once at the app root via <SessionTrackingRoot /> to avoid creating a new
+// user_sessions row on every navigation between protected pages.
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,73 +15,90 @@ interface ProtectedRouteProps {
   requireAI?: boolean;
 }
 
+// Module-level cache so navigation between protected routes does NOT
+// re-run profile/diagnostic checks (which previously caused a full-page
+// loader on every page change).
+interface AccessCacheEntry {
+  hasName: boolean;
+  diagnosticCompleted: boolean;
+}
+const accessCache = new Map<string, AccessCacheEntry>();
+const inflight = new Map<string, Promise<AccessCacheEntry>>();
+
+async function loadAccess(userId: string): Promise<AccessCacheEntry> {
+  const cached = accessCache.get(userId);
+  if (cached) return cached;
+  const existing = inflight.get(userId);
+  if (existing) return existing;
+
+  const p = (async () => {
+    const [{ data: profile }, { data: diagProfile }] = await Promise.all([
+      supabase.from('profiles').select('full_name, name').eq('id', userId).maybeSingle(),
+      supabase
+        .from('user_diagnostic_profile')
+        .select('diagnostic_completed')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
+
+    let diagnosticCompleted = !!diagProfile?.diagnostic_completed;
+    if (!diagnosticCompleted) {
+      const { data: testData } = await supabase
+        .from('user_tests')
+        .select('id')
+        .eq('user_id', userId)
+        .not('completed_at', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      diagnosticCompleted = !!testData;
+    }
+
+    const entry: AccessCacheEntry = {
+      hasName: !!(profile?.full_name || profile?.name),
+      diagnosticCompleted,
+    };
+    accessCache.set(userId, entry);
+    inflight.delete(userId);
+    return entry;
+  })();
+
+  inflight.set(userId, p);
+  return p;
+}
+
+export function invalidateAccessCache(userId?: string) {
+  if (userId) accessCache.delete(userId);
+  else accessCache.clear();
+}
+
 export function ProtectedRoute({ children, skipDiagnosticCheck = false, requireAI = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const { group, loading: groupLoading, canAccessAI } = useUserGroup();
   const location = useLocation();
-  const [diagnosticChecked, setDiagnosticChecked] = useState(false);
-  const [diagnosticCompleted, setDiagnosticCompleted] = useState(true);
-  const [needsFullName, setNeedsFullName] = useState(false);
-  const [profileChecked, setProfileChecked] = useState(false);
 
-  // Track session automatically
-  useSessionTracking(user?.id);
+  const cached = user ? accessCache.get(user.id) : undefined;
+  const [access, setAccess] = useState<AccessCacheEntry | null>(cached ?? null);
 
   useEffect(() => {
-    async function checkProfile() {
-      if (!user) {
-        setProfileChecked(true);
-        setDiagnosticChecked(true);
-        return;
-      }
-
-      // Check profile for full_name and diagnostic in one query
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, name')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      const hasName = !!(profile?.full_name || profile?.name);
-      setNeedsFullName(!hasName);
-      setProfileChecked(true);
-
-      if (skipDiagnosticCheck) {
-        setDiagnosticChecked(true);
-        return;
-      }
-
-      // Check diagnostic
-      const { data: diagProfile } = await supabase
-        .from('user_diagnostic_profile')
-        .select('diagnostic_completed')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (diagProfile?.diagnostic_completed) {
-        setDiagnosticCompleted(true);
-        setDiagnosticChecked(true);
-        return;
-      }
-
-      const { data: testData } = await supabase
-        .from('user_tests')
-        .select('id')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null)
-        .limit(1)
-        .maybeSingle();
-
-      setDiagnosticCompleted(!!(diagProfile?.diagnostic_completed || testData));
-      setDiagnosticChecked(true);
+    let cancelled = false;
+    if (!user) {
+      setAccess(null);
+      return;
     }
-
-    if (user) {
-      checkProfile();
+    const c = accessCache.get(user.id);
+    if (c) {
+      setAccess(c);
+      return;
     }
-  }, [user, skipDiagnosticCheck]);
+    loadAccess(user.id).then((entry) => {
+      if (!cancelled) setAccess(entry);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
-  if (loading || !diagnosticChecked || !profileChecked || groupLoading) {
+  if (loading || (user && !access) || groupLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-accent" />
@@ -91,29 +110,33 @@ export function ProtectedRoute({ children, skipDiagnosticCheck = false, requireA
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Enforce experiment group restrictions
   if (requireAI && !canAccessAI) {
-    // Redirect control users to dashboard (they have access), showcase to tests
     const fallback = group === 'showcase' ? '/tests' : '/dashboard';
     return <Navigate to={fallback} replace />;
   }
 
-  // Show full name modal if missing
-  if (needsFullName) {
+  if (access && !access.hasName) {
     return (
       <>
         {children}
         <FullNameModal
           userId={user.id}
           open={true}
-          onComplete={() => setNeedsFullName(false)}
+          onComplete={() => {
+            accessCache.set(user.id, { ...(access as AccessCacheEntry), hasName: true });
+            setAccess({ ...(access as AccessCacheEntry), hasName: true });
+          }}
         />
       </>
     );
   }
 
-  // Redirect to diagnostic test if not completed
-  if (!diagnosticCompleted && !skipDiagnosticCheck && location.pathname !== '/diagnostic-test') {
+  if (
+    access &&
+    !access.diagnosticCompleted &&
+    !skipDiagnosticCheck &&
+    location.pathname !== '/diagnostic-test'
+  ) {
     return <Navigate to="/diagnostic-test" replace />;
   }
 

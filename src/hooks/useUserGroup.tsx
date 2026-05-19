@@ -9,9 +9,60 @@ interface UserGroupState {
   loading: boolean;
 }
 
+// Module-level cache: group rarely changes during a session.
+const groupCache = new Map<string, ExperimentGroup>();
+const groupInflight = new Map<string, Promise<ExperimentGroup>>();
+
+async function fetchGroupOnce(userId: string, email: string): Promise<ExperimentGroup> {
+  const cached = groupCache.get(userId);
+  if (cached) return cached;
+  const existing = groupInflight.get(userId);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const { data: whitelistEntry } = await supabase
+        .from('beta_whitelist')
+        .select('group_type')
+        .eq('email', email.toLowerCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (whitelistEntry?.group_type) {
+        const g = whitelistEntry.group_type as ExperimentGroup;
+        groupCache.set(userId, g);
+        groupInflight.delete(userId);
+        return g;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('group_type')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const g = ((profile?.group_type as ExperimentGroup) || 'ai');
+      groupCache.set(userId, g);
+      groupInflight.delete(userId);
+      return g;
+    } catch (err) {
+      console.error('Error fetching user group:', err);
+      groupInflight.delete(userId);
+      return 'ai' as ExperimentGroup;
+    }
+  })();
+
+  groupInflight.set(userId, p);
+  return p;
+}
+
 export function useUserGroup() {
   const { user, loading: authLoading } = useAuth();
-  const [state, setState] = useState<UserGroupState>({ group: null, loading: true });
+  const initial = user ? groupCache.get(user.id) ?? null : null;
+  const [state, setState] = useState<UserGroupState>({
+    group: initial,
+    loading: initial === null,
+  });
 
   useEffect(() => {
     if (authLoading) return;
@@ -19,65 +70,34 @@ export function useUserGroup() {
       setState({ group: null, loading: false });
       return;
     }
-
-    async function fetchGroup() {
-      try {
-        const { data: whitelistEntry } = await supabase
-          .from('beta_whitelist')
-          .select('group_type')
-          .eq('email', user!.email?.toLowerCase() || '')
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (whitelistEntry?.group_type) {
-          setState({ group: whitelistEntry.group_type as ExperimentGroup, loading: false });
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('group_type')
-          .eq('id', user!.id)
-          .maybeSingle();
-
-        setState({
-          group: (profile?.group_type as ExperimentGroup) || 'ai',
-          loading: false,
-        });
-      } catch (err) {
-        console.error('Error fetching user group:', err);
-        setState({ group: 'ai', loading: false });
-      }
+    const cached = groupCache.get(user.id);
+    if (cached) {
+      setState({ group: cached, loading: false });
+      return;
     }
-
-    fetchGroup();
+    let cancelled = false;
+    fetchGroupOnce(user.id, user.email || '').then((g) => {
+      if (!cancelled) setState({ group: g, loading: false });
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [user, authLoading]);
 
   const isAI = state.group === 'ai';
   const isControl = state.group === 'control';
   const isShowcase = state.group === 'showcase';
 
-  // UPDATED access rules per experiment spec:
-  // ai = full access (personalized practice, AI tutor, plan)
-  // control = tests + lessons + dashboard (limited) + practice (non-personalized) + profile
-  // showcase = tests + profile + home only
-  const canAccessAI = isAI;
-  const canAccessLessons = isAI || isControl;
-  const canAccessDashboard = isAI || isControl;
-  const canAccessTests = isAI || isControl || isShowcase;
-  const canAccessProfile = isAI || isControl || isShowcase;
-  const canAccessPractice = isAI || isControl; // control gets non-personalized practice
-
   return {
     ...state,
     isAI,
     isControl,
     isShowcase,
-    canAccessAI,
-    canAccessLessons,
-    canAccessDashboard,
-    canAccessTests,
-    canAccessProfile,
-    canAccessPractice,
+    canAccessAI: isAI,
+    canAccessLessons: isAI || isControl,
+    canAccessDashboard: isAI || isControl,
+    canAccessTests: isAI || isControl || isShowcase,
+    canAccessProfile: isAI || isControl || isShowcase,
+    canAccessPractice: isAI || isControl,
   };
 }
