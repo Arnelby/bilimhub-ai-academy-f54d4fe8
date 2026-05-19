@@ -813,7 +813,36 @@
       "aiPlan": "AI study plan",
       "myProfile": "My profile"
     },
-    "achievementsCollapsed": "🏆 Achievements"
+    "achievementsCollapsed": "🏆 Achievements",
+    "hero": {
+      "badge": "Adaptive learning · personalized for you",
+      "greeting": "Your learning progress",
+      "greetingNamed": "Welcome back, {{name}}",
+      "subtitle": "Real-time mastery tracking and AI-guided recommendations.",
+      "masteryLabel": "Current mastery",
+      "masteryStrong": "Strong mastery — keep momentum.",
+      "masteryGrowing": "Mastery growing — focus on weak topics.",
+      "masteryDeveloping": "Developing — review fundamentals first.",
+      "streak": "Day streak",
+      "weakTopics": "Weak topics",
+      "tests": "Tests done",
+      "recommendedHeading": "Recommended next step",
+      "recReviewTopic": "Review {{topic}}",
+      "recReviewReason": "Your accuracy on this topic is {{accuracy}}%. Practice now to close the gap.",
+      "recPracticeCta": "Continue with practice",
+      "recStartTitle": "Start your diagnostic test",
+      "recStartReason": "Take the diagnostic to unlock personalized recommendations.",
+      "recStartCta": "Begin diagnostic",
+      "recNextTestTitle": "Take your next test",
+      "recNextTestReason": "Measure progress with another full variant.",
+      "recNextTestCta": "Open tests",
+      "adaptiveHint": "Recommendations adapt to your latest results"
+    },
+    "mastery": {
+      "mastered": "Mastered",
+      "inProgress": "In progress",
+      "needsReview": "Needs review"
+    }
   },
   "profilePage": {
     "studentFallback": "Student",
@@ -833,8 +862,8 @@
     "upgradeToPro": "Upgrade to PRO"
   },
   "aiSmartTutor": {
-    "title": "AI Smart Tutor",
-    "subtitle": "Personalized learning assistance",
+    "title": "BilimHub AI Tutor",
+    "subtitle": "Adaptive guidance powered by BilimHub AI",
     "clear": "Clear",
     "weakTopics": "Weak topics:",
     "emptyHeading": "Hi! I'm your AI tutor.",
@@ -858,7 +887,8 @@
     "correctAnswerLabel": "Correct answer",
     "qaExplainSimpler": "Please explain simpler",
     "qaGiveExample": "Give me a practical example",
-    "qaGiveMiniTest": "Give me a mini-test on this topic"
+    "qaGiveMiniTest": "Give me a mini-test on this topic",
+    "poweredBy": "Powered by BilimHub AI"
   },
   "lessonsPage": {
     "title": "Lessons",

@@ -813,7 +813,36 @@
       "aiPlan": "AI План обучения",
       "myProfile": "Мой профиль"
     },
-    "achievementsCollapsed": "🏆 Достижения"
+    "achievementsCollapsed": "🏆 Достижения",
+    "hero": {
+      "badge": "Адаптивное обучение · персонально для вас",
+      "greeting": "Ваш прогресс в обучении",
+      "greetingNamed": "С возвращением, {{name}}",
+      "subtitle": "Отслеживание мастерства в реальном времени и рекомендации AI.",
+      "masteryLabel": "Текущий уровень мастерства",
+      "masteryStrong": "Высокий уровень — сохраняйте темп.",
+      "masteryGrowing": "Уровень растёт — сфокусируйтесь на слабых темах.",
+      "masteryDeveloping": "Развивающийся уровень — повторите основы.",
+      "streak": "Дней подряд",
+      "weakTopics": "Слабые темы",
+      "tests": "Тестов пройдено",
+      "recommendedHeading": "Рекомендованный следующий шаг",
+      "recReviewTopic": "Повторите тему «{{topic}}»",
+      "recReviewReason": "Точность по этой теме — {{accuracy}}%. Закрепите её на практике.",
+      "recPracticeCta": "Перейти к практике",
+      "recStartTitle": "Пройдите диагностический тест",
+      "recStartReason": "Диагностика откроет персональные рекомендации.",
+      "recStartCta": "Начать диагностику",
+      "recNextTestTitle": "Пройдите следующий тест",
+      "recNextTestReason": "Измерьте прогресс на новом варианте.",
+      "recNextTestCta": "К тестам",
+      "adaptiveHint": "Рекомендации обновляются по последним результатам"
+    },
+    "mastery": {
+      "mastered": "Освоено",
+      "inProgress": "В процессе",
+      "needsReview": "Требует повторения"
+    }
   },
   "profilePage": {
     "studentFallback": "Студент",
@@ -833,8 +862,8 @@
     "upgradeToPro": "Перейти на PRO"
   },
   "aiSmartTutor": {
-    "title": "AI Умный Репетитор",
-    "subtitle": "Персонализированная помощь в обучении",
+    "title": "BilimHub AI Tutor",
+    "subtitle": "Адаптивное обучение на базе BilimHub AI",
     "clear": "Очистить",
     "weakTopics": "Слабые темы:",
     "emptyHeading": "Привет! Я твой AI репетитор.",
@@ -858,7 +887,8 @@
     "correctAnswerLabel": "Правильный ответ",
     "qaExplainSimpler": "Объясни проще, пожалуйста",
     "qaGiveExample": "Дай практический пример",
-    "qaGiveMiniTest": "Дай мне мини-тест по этой теме"
+    "qaGiveMiniTest": "Дай мне мини-тест по этой теме",
+    "poweredBy": "Powered by BilimHub AI"
   },
   "lessonsPage": {
     "title": "Уроки",

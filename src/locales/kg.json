@@ -813,7 +813,36 @@
       "aiPlan": "[KG] AI plan",
       "myProfile": "[KG] My profile"
     },
-    "achievementsCollapsed": "[KG] 🏆 Achievements"
+    "achievementsCollapsed": "[KG] 🏆 Achievements",
+    "hero": {
+      "badge": "Адаптивдик окутуу · сиз үчүн жекелештирилген",
+      "greeting": "Окуу прогрессиңиз",
+      "greetingNamed": "Кош келдиңиз, {{name}}",
+      "subtitle": "Чыныгы убакыттагы өздөштүрүү жана AI сунуштары.",
+      "masteryLabel": "Учурдагы өздөштүрүү",
+      "masteryStrong": "Күчтүү — темпти сактаңыз.",
+      "masteryGrowing": "Өсүп жатат — алсыз темаларга көңүл буруңуз.",
+      "masteryDeveloping": "Өнүгүп жатат — негиздерди кайталаңыз.",
+      "streak": "Күн катары",
+      "weakTopics": "Алсыз темалар",
+      "tests": "Тесттер",
+      "recommendedHeading": "Сунушталган кийинки кадам",
+      "recReviewTopic": "«{{topic}}» темасын кайталаңыз",
+      "recReviewReason": "Бул тема боюнча тактыгыңыз {{accuracy}}%. Машыгуу менен бекемдеңиз.",
+      "recPracticeCta": "Машыгууга өтүү",
+      "recStartTitle": "Диагностикалык тестти баштаңыз",
+      "recStartReason": "Диагностика жекелештирилген сунуштарды ачат.",
+      "recStartCta": "Диагностиканы баштоо",
+      "recNextTestTitle": "Кийинки тестти өтүңүз",
+      "recNextTestReason": "Жаңы вариант менен прогрессти өлчөңүз.",
+      "recNextTestCta": "Тесттерге",
+      "adaptiveHint": "Сунуштар акыркы натыйжаларга жараша жаңыланат"
+    },
+    "mastery": {
+      "mastered": "Өздөштүрүлдү",
+      "inProgress": "Процессте",
+      "needsReview": "Кайталоо керек"
+    }
   },
   "profilePage": {
     "studentFallback": "[KG] Student",
@@ -833,8 +862,8 @@
     "upgradeToPro": "[KG] Upgrade to PRO"
   },
   "aiSmartTutor": {
-    "title": "[KG] AI Smart Tutor",
-    "subtitle": "[KG] Personalized learning",
+    "title": "BilimHub AI Tutor",
+    "subtitle": "BilimHub AI колдогон адаптивдик окутуу",
     "clear": "[KG] Clear",
     "weakTopics": "[KG] Weak topics:",
     "emptyHeading": "[KG] Hi! I'm your AI tutor.",
@@ -858,7 +887,8 @@
     "correctAnswerLabel": "[KG] Correct answer",
     "qaExplainSimpler": "[KG] Explain simpler please",
     "qaGiveExample": "[KG] Give a practical example",
-    "qaGiveMiniTest": "[KG] Give a mini-test"
+    "qaGiveMiniTest": "[KG] Give a mini-test",
+    "poweredBy": "Powered by BilimHub AI"
   },
   "lessonsPage": {
     "title": "[KG] Lessons",
