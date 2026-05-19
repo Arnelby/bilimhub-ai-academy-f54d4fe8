@@ -67,6 +67,7 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <ForcedModeGuard />
+                <SessionTrackingRoot />
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
