@@ -26,6 +26,7 @@ import { useLearningState } from '@/hooks/useLearningState';
 import { useMotivation } from '@/hooks/useMotivation';
 import { MotivationWidget } from '@/components/motivation/MotivationWidget';
 import { nextActionRoute, type NextActionType, type PlanItem } from '@/lib/learningState';
+import bilimhubLogo from '@/assets/bilimhub-logo.png';
 
 const ACTION_ICONS: Record<NextActionType, React.ReactNode> = {
   take_test: <ClipboardList className="h-7 w-7" />,
