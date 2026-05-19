@@ -9,7 +9,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import logo from '@/assets/bilimhub-logo.png';
+
 import { z } from 'zod';
 
 export default function Login() {
@@ -147,13 +147,7 @@ export default function Login() {
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
         <Card variant="elevated" className="w-full max-w-md">
           <CardHeader className="text-center">
-            <img src={logo} alt="BilimHub" className="mx-auto mb-3 h-16 md:h-20" />
-            <div className="mb-2">
-              <h2 className="text-2xl font-bold gradient-text">BilimHub</h2>
-              <p className="text-xs font-semibold tracking-widest text-accent uppercase mt-1">
-                Learn • Practice • Succeed
-              </p>
-            </div>
+            <h2 className="mb-3 text-3xl font-bold tracking-tight gradient-text">BilimHub</h2>
             <Badge variant="outline" className="mx-auto mb-3 gap-1">
               <ShieldCheck className="h-3 w-3" />
               {t('loginPage.betaBadge')}
