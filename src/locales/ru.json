@@ -377,8 +377,6 @@
     "testsAvg": "{{n}} тестов • Средний: {{avg}}%",
     "accuracy": "точность",
     "yourPlace": "Ваше место",
-    "allTime": "Всё время",
-    "thisWeek": "На этой неделе",
     "seriesStreak": "Серия: {{n}} дней подряд",
     "activeDays7": "Активных дней за 7:",
     "dailyGoal": "Цель дня",
@@ -689,18 +687,54 @@
   "achievementsPanel": {
     "title": "Достижения",
     "items": {
-      "first_test":    { "title": "Первый тест",         "description": "Пройдите свой первый тест" },
-      "tests_5":       { "title": "5 тестов",            "description": "Пройдите 5 тестов" },
-      "tests_10":      { "title": "10 тестов",           "description": "Пройдите 10 тестов" },
-      "correct_50":    { "title": "50 правильных",       "description": "50 правильных ответов" },
-      "correct_100":   { "title": "100 правильных",      "description": "100 правильных ответов" },
-      "correct_500":   { "title": "500 правильных",      "description": "500 правильных ответов" },
-      "study_1h":      { "title": "1 час обучения",      "description": "Проведите 1 час на платформе" },
-      "study_5h":      { "title": "5 часов обучения",    "description": "Проведите 5 часов на платформе" },
-      "study_10h":     { "title": "10 часов обучения",   "description": "Проведите 10 часов на платформе" },
-      "perfect_score": { "title": "Идеальный результат", "description": "Получите 100% за тест" },
-      "streak_3":      { "title": "Серия 3 дня",         "description": "Учитесь 3 дня подряд" },
-      "streak_7":      { "title": "Серия 7 дней",        "description": "Учитесь 7 дней подряд" }
+      "first_test": {
+        "title": "Первый тест",
+        "description": "Пройдите свой первый тест"
+      },
+      "tests_5": {
+        "title": "5 тестов",
+        "description": "Пройдите 5 тестов"
+      },
+      "tests_10": {
+        "title": "10 тестов",
+        "description": "Пройдите 10 тестов"
+      },
+      "correct_50": {
+        "title": "50 правильных",
+        "description": "50 правильных ответов"
+      },
+      "correct_100": {
+        "title": "100 правильных",
+        "description": "100 правильных ответов"
+      },
+      "correct_500": {
+        "title": "500 правильных",
+        "description": "500 правильных ответов"
+      },
+      "study_1h": {
+        "title": "1 час обучения",
+        "description": "Проведите 1 час на платформе"
+      },
+      "study_5h": {
+        "title": "5 часов обучения",
+        "description": "Проведите 5 часов на платформе"
+      },
+      "study_10h": {
+        "title": "10 часов обучения",
+        "description": "Проведите 10 часов на платформе"
+      },
+      "perfect_score": {
+        "title": "Идеальный результат",
+        "description": "Получите 100% за тест"
+      },
+      "streak_3": {
+        "title": "Серия 3 дня",
+        "description": "Учитесь 3 дня подряд"
+      },
+      "streak_7": {
+        "title": "Серия 7 дней",
+        "description": "Учитесь 7 дней подряд"
+      }
     }
   },
   "dashboardPage": {
@@ -1044,5 +1078,26 @@
     "basic-rational": "Рациональные выражения",
     "basic-ratios": "Отношения и пропорции",
     "basic-percentages": "Проценты"
+  },
+  "reportIssue": {
+    "title": "Сообщить о проблеме",
+    "buttonAria": "Сообщить о проблеме",
+    "modalTitle": "Сообщить о проблеме",
+    "modalDescription": "Расскажите, что пошло не так. Информация о странице прикрепится автоматически.",
+    "fieldTitle": "Заголовок",
+    "fieldTitlePlaceholder": "Кратко опишите проблему",
+    "fieldDescription": "Подробное описание",
+    "fieldDescriptionPlaceholder": "Шаги для воспроизведения, что ожидалось и что произошло...",
+    "fieldScreenshot": "Скриншот (необязательно)",
+    "submit": "Отправить",
+    "submitting": "Отправка...",
+    "cancel": "Отмена",
+    "successTitle": "Спасибо!",
+    "successMessage": "Ваше сообщение успешно отправлено.",
+    "errorTitle": "Не удалось отправить",
+    "errorMessage": "Пожалуйста, попробуйте ещё раз.",
+    "loginRequired": "Войдите, чтобы сообщить о проблеме.",
+    "validationTitleRequired": "Укажите заголовок.",
+    "validationDescriptionRequired": "Опишите проблему."
   }
 }

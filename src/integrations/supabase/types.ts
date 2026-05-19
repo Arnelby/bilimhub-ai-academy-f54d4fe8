@@ -307,6 +307,54 @@ export type Database = {
         }
         Relationships: []
       }
+      issue_reports: {
+        Row: {
+          browser_info: Json | null
+          created_at: string
+          description: string
+          email: string | null
+          id: string
+          language: string | null
+          page_name: string | null
+          page_url: string | null
+          screenshot_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          browser_info?: Json | null
+          created_at?: string
+          description: string
+          email?: string | null
+          id?: string
+          language?: string | null
+          page_name?: string | null
+          page_url?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          browser_info?: Json | null
+          created_at?: string
+          description?: string
+          email?: string | null
+          id?: string
+          language?: string | null
+          page_name?: string | null
+          page_url?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       learning_sessions: {
         Row: {
           completed_at: string | null

@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 import { useForcedLearning } from '@/hooks/useForcedLearning';
+import { ReportIssueButton } from '@/components/feedback/ReportIssueButton';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,7 +10,6 @@ interface LayoutProps {
 }
 
 export function Layout({ children, showFooter = true }: LayoutProps) {
-  // While a forced learning session is active, hide all chrome (navbar/footer).
   let locked = false;
   try {
     locked = useForcedLearning().isLocked;
@@ -21,6 +21,7 @@ export function Layout({ children, showFooter = true }: LayoutProps) {
       {!locked && <Navbar />}
       <main className="flex-1">{children}</main>
       {!locked && showFooter && <Footer />}
+      {!locked && <ReportIssueButton />}
     </div>
   );
 }
