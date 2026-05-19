@@ -42,7 +42,7 @@ function GuestHero() {
     <Layout>
       <section className="container mx-auto px-4 py-16 md:py-24 max-w-4xl text-center space-y-7">
         <img
-          src={new URL('@/assets/bilimhub-logo.png', import.meta.url).href}
+          src={bilimhubLogo}
           alt="BilimHub"
           className="mx-auto h-24 md:h-32 w-auto"
         />
