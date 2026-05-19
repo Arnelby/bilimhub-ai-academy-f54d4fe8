@@ -41,6 +41,7 @@ import LeaderboardPage from "./pages/Leaderboard";
 import BasicVideoPage from "./pages/BasicVideoPage";
 import { ForcedLearningProvider } from "@/hooks/useForcedLearning";
 import { ForcedModeGuard } from "@/components/forced/ForcedModeGuard";
+import { SessionTrackingRoot } from "@/components/SessionTrackingRoot";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
