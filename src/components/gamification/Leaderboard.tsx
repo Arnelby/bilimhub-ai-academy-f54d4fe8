@@ -86,7 +86,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         const st = userStats.get(entry.id);
         return {
           ...entry,
-          name: (entry as any).full_name || entry.name,
+          name: entry.name,
           rank: 0,
           testsCompleted: st?.count || 0,
           averageScore: st ? Math.round(st.totalPct / st.count) : 0,
