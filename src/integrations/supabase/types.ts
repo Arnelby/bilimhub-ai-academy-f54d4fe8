@@ -2464,6 +2464,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_leaderboard_profiles: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          id: string
+          last_activity_date: string
+          level: number
+          name: string
+          points: number
+          streak: number
+        }[]
+      }
       get_lesson_video_url: {
         Args: { expires_in?: number; video_path: string }
         Returns: string

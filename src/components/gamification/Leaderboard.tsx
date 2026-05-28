@@ -41,21 +41,19 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
 
   async function fetchLeaderboard() {
     try {
-      // Fetch visible profiles + always include current user
-      const { data: visibleData } = await supabase
-        .from('profiles')
-        .select('id, name, full_name, avatar_url, points, level, streak')
-        .eq('leaderboard_visible', true)
-        .order('points', { ascending: false })
-        .limit(50);
+      // Fetch leaderboard-visible profiles via SECURITY DEFINER RPC (returns only safe columns: no email/full_name)
+      const { data: visibleData } = await supabase.rpc('get_leaderboard_profiles');
 
-      let pool = visibleData || [];
+      let pool: any[] = ((visibleData as any[]) || [])
+        .slice()
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, 50);
 
       // Always include the current user even if they're not visible to others
-      if (user && !pool.find(p => p.id === user.id)) {
+      if (user && !pool.find((p: any) => p.id === user.id)) {
         const { data: meRow } = await supabase
           .from('profiles')
-          .select('id, name, full_name, avatar_url, points, level, streak')
+          .select('id, name, avatar_url, points, level, streak')
           .eq('id', user.id)
           .maybeSingle();
         if (meRow) pool = [...pool, meRow];
@@ -88,7 +86,7 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
         const st = userStats.get(entry.id);
         return {
           ...entry,
-          name: (entry as any).full_name || entry.name,
+          name: entry.name,
           rank: 0,
           testsCompleted: st?.count || 0,
           averageScore: st ? Math.round(st.totalPct / st.count) : 0,
@@ -110,15 +108,11 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       setLeaders(topSlice);
 
 
-      // For weekly, we use last_activity_date and recent points
-      // In a real app, you'd have a weekly points tracking table
-      const { data: weeklyData } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url, points, level, streak, last_activity_date')
-        .eq('leaderboard_visible', true)
-        .not('last_activity_date', 'is', null)
-        .order('points', { ascending: false })
-        .limit(limit);
+      // Weekly: reuse safe RPC results, filtered by last_activity_date
+      const weeklyData = ((visibleData as any[]) || [])
+        .filter((p) => p.last_activity_date)
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, limit);
 
       const weeklyLeadersData: LeaderboardEntry[] = (weeklyData || []).map((entry, index) => {
         const st = userStats.get(entry.id);
