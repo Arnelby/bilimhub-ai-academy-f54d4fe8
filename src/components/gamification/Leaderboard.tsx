@@ -108,15 +108,11 @@ export function Leaderboard({ limit = 10, showTabs = true, className }: Leaderbo
       setLeaders(topSlice);
 
 
-      // For weekly, we use last_activity_date and recent points
-      // In a real app, you'd have a weekly points tracking table
-      const { data: weeklyData } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url, points, level, streak, last_activity_date')
-        .eq('leaderboard_visible', true)
-        .not('last_activity_date', 'is', null)
-        .order('points', { ascending: false })
-        .limit(limit);
+      // Weekly: reuse safe RPC results, filtered by last_activity_date
+      const weeklyData = ((visibleData as any[]) || [])
+        .filter((p) => p.last_activity_date)
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, limit);
 
       const weeklyLeadersData: LeaderboardEntry[] = (weeklyData || []).map((entry, index) => {
         const st = userStats.get(entry.id);
